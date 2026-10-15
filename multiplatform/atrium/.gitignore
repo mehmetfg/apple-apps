@@ -1,0 +1,5 @@
+# symlinks back to the private vault (data and scripts stay there)
+/README.md
+/catalog
+/icon
+/telefona-kur.sh

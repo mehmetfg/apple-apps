@@ -1,0 +1,6 @@
+# symlinks back to the private vault (data and scripts stay there)
+/README.md
+/telefon
+/telefona-kur.sh
+/veri
+/veri.py

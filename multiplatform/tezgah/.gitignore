@@ -1,0 +1,10 @@
+# symlinks back to the private vault (data and scripts stay there)
+/README.md
+/Tezgâh'ı kur.command
+/chrome_aktar.py
+/durum
+/durum.py
+/kopru.js
+/mobil
+/oturum
+/tezgah_sunucu.py

@@ -1,0 +1,447 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C400000000000000000B0001 /* OrkestraWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C400000000000000000F0002 /* OrkestraWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C400000000000000000C0001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C400000000000000001F0001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C400000000000000001E0002;
+			remoteInfo = OrkestraWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C400000000000000000E0001 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C400000000000000000B0001 /* OrkestraWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C400000000000000000F0001 /* Orkestra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Orkestra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C400000000000000000F0002 /* OrkestraWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OrkestraWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C400000000000000001A0001 /* Exceptions for "Orkestra" folder in "Orkestra" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Orkestra.entitlements,
+				Info.plist,
+			);
+			target = C400000000000000001E0001 /* Orkestra */;
+		};
+		C400000000000000001A0002 /* Exceptions for "OrkestraWidget" folder in "OrkestraWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				OrkestraWidget.entitlements,
+				Info.plist,
+			);
+			target = C400000000000000001E0002 /* OrkestraWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C400000000000000001B0001 /* Orkestra */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C400000000000000001A0001 /* Exceptions for "Orkestra" folder in "Orkestra" target */, ); path = Orkestra; sourceTree = "<group>"; };
+		C400000000000000001B0002 /* OrkestraWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C400000000000000001A0002 /* Exceptions for "OrkestraWidget" folder in "OrkestraWidgetExtension" target */, ); path = OrkestraWidget; sourceTree = "<group>"; };
+		C400000000000000001B0003 /* Ortak */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Ortak; sourceTree = "<group>"; };
+		C400000000000000001B0004 /* Ekranlar */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Ekranlar; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C400000000000000001C0001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C400000000000000001C0002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C400000000000000001D0001 = {
+			isa = PBXGroup;
+			children = (
+				C400000000000000001B0001 /* Orkestra */,
+				C400000000000000001B0002 /* OrkestraWidget */,
+				C400000000000000001B0003 /* Ortak */,
+				C400000000000000001B0004 /* Ekranlar */,
+				C400000000000000001D0002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C400000000000000001D0002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C400000000000000000F0001 /* Orkestra.app */,
+				C400000000000000000F0002 /* OrkestraWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C400000000000000001E0001 /* Orkestra */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C400000000000000002E0001 /* Build configuration list for PBXNativeTarget "Orkestra" */;
+			buildPhases = (
+				C400000000000000002B0001 /* Sources */,
+				C400000000000000001C0001 /* Frameworks */,
+				C400000000000000002A0001 /* Resources */,
+				C400000000000000000E0001 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C400000000000000002C0001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C400000000000000001B0001 /* Orkestra */,
+				C400000000000000001B0003 /* Ortak */,
+				C400000000000000001B0004 /* Ekranlar */,
+			);
+			name = Orkestra;
+			packageProductDependencies = (
+			);
+			productName = Orkestra;
+			productReference = C400000000000000000F0001 /* Orkestra.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C400000000000000001E0002 /* OrkestraWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C400000000000000002E0002 /* Build configuration list for PBXNativeTarget "OrkestraWidgetExtension" */;
+			buildPhases = (
+				C400000000000000002B0002 /* Sources */,
+				C400000000000000001C0002 /* Frameworks */,
+				C400000000000000002A0002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C400000000000000001B0002 /* OrkestraWidget */,
+				C400000000000000001B0003 /* Ortak */,
+			);
+			name = OrkestraWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = OrkestraWidgetExtension;
+			productReference = C400000000000000000F0002 /* OrkestraWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C400000000000000001F0001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					C400000000000000001E0001 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					C400000000000000001E0002 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = C400000000000000002E0003 /* Build configuration list for PBXProject "Orkestra" */;
+			developmentRegion = tr;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				tr,
+				en,
+				Base,
+			);
+			mainGroup = C400000000000000001D0001;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C400000000000000001D0002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C400000000000000001E0001 /* Orkestra */,
+				C400000000000000001E0002 /* OrkestraWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C400000000000000002A0001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C400000000000000002A0002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C400000000000000002B0001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C400000000000000002B0002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C400000000000000002C0001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C400000000000000001E0002 /* OrkestraWidgetExtension */;
+			targetProxy = C400000000000000000C0001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C400000000000000002D0001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C400000000000000002D0002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C400000000000000002D0003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Orkestra/Orkestra.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Orkestra/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Orkestra;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.orkestra;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C400000000000000002D0004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Orkestra/Orkestra.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Orkestra/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Orkestra;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.orkestra;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C400000000000000002D0005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OrkestraWidget/OrkestraWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OrkestraWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Orkestra;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.orkestra.nabiz;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C400000000000000002D0006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OrkestraWidget/OrkestraWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OrkestraWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Orkestra;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.orkestra.nabiz;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C400000000000000002E0001 /* Build configuration list for PBXNativeTarget "Orkestra" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C400000000000000002D0003 /* Debug */,
+				C400000000000000002D0004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C400000000000000002E0002 /* Build configuration list for PBXNativeTarget "OrkestraWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C400000000000000002D0005 /* Debug */,
+				C400000000000000002D0006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C400000000000000002E0003 /* Build configuration list for PBXProject "Orkestra" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C400000000000000002D0001 /* Debug */,
+				C400000000000000002D0002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C400000000000000001F0001 /* Project object */;
+}

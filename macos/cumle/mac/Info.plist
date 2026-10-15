@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key><string>Cümle</string>
+	<key>CFBundleDisplayName</key><string>Cümle</string>
+	<key>CFBundleIdentifier</key><string>com.fatihgocgun.cumle</string>
+	<key>CFBundleExecutable</key><string>Cumle</string>
+	<key>CFBundlePackageType</key><string>APPL</string>
+	<key>CFBundleShortVersionString</key><string>1.0</string>
+	<key>CFBundleVersion</key><string>1</string>
+	<key>CFBundleIconFile</key><string>Cumle</string>
+	<key>LSMinimumSystemVersion</key><string>14.0</string>
+	<key>LSApplicationCategoryType</key><string>public.app-category.education</string>
+	<key>NSHighResolutionCapable</key><true/>
+	<key>NSMicrophoneUsageDescription</key><string>Paragrafı sesli okurken kaydetmek için. Kayıt telefonla ortak vault klasörüne gider.</string>
+	<key>NSSpeechRecognitionUsageDescription</key><string>Sesli okumada tanınan kelimeleri işaretlemek için; tanıma cihazın içinde yapılır.</string>
+</dict>
+</plist>

@@ -1,0 +1,4724 @@
+{
+ "odalar": [
+  {
+   "id": "mutfak",
+   "ad": "Mutfak",
+   "en": "Kitchen",
+   "simge": "fork.knife"
+  },
+  {
+   "id": "banyo",
+   "ad": "Banyo",
+   "en": "Bathroom",
+   "simge": "shower"
+  },
+  {
+   "id": "salon",
+   "ad": "Salon / oturma odası",
+   "en": "Living room",
+   "simge": "sofa"
+  },
+  {
+   "id": "yatak",
+   "ad": "Yatak odası",
+   "en": "Bedroom",
+   "simge": "bed.double"
+  },
+  {
+   "id": "genel",
+   "ad": "Her yerde",
+   "en": "Around the house",
+   "simge": "house"
+  }
+ ],
+ "kelimeler": [
+  {
+   "en": "TV",
+   "tr": "televizyon",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Television"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˌtiː ˈviː/",
+   "tanim": "television",
+   "ornek": "We spent the evening watching TV.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tv_/tv__g/tv__gb_1.mp3"
+  },
+  {
+   "en": "bag",
+   "tr": "çanta",
+   "odalar": [
+    "yatak",
+    "genel"
+   ],
+   "siniflar": [
+    "Handbag",
+    "Luggage and bags",
+    "Plastic bag"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/bæɡ/",
+   "tanim": "a container made of cloth, leather, plastic or paper, used to carry things in, especially when shopping or travelling",
+   "ornek": "He was carrying a heavy bag of groceries.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bag/bag__/bag__gb_1.mp3"
+  },
+  {
+   "en": "bath",
+   "tr": "küvet",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Bathtub"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/bɑːθ/",
+   "tanim": "a large, long container that you put water in and then get into to wash your whole body",
+   "ornek": "I'm in the bath!",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bat/bath_/bath__gb_1.mp3"
+  },
+  {
+   "en": "bathroom",
+   "tr": "banyo",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈbɑːθruːm/",
+   "tanim": "a room in which there is a bath, a washbasin and often a toilet",
+   "ornek": "Go and wash your hands in the bathroom.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bat/bathr/bathroom__gb_1.mp3"
+  },
+  {
+   "en": "bed",
+   "tr": "yatak",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Bed"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/bed/",
+   "tanim": "a piece of furniture for sleeping on",
+   "ornek": "a single/double bed",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bed/bed__/bed__gb_1.mp3"
+  },
+  {
+   "en": "bedroom",
+   "tr": "yatak odası",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈbedruːm/",
+   "tanim": "a room for sleeping in",
+   "ornek": "the spare/guest bedroom",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bed/bedro/bedroom__gb_1.mp3"
+  },
+  {
+   "en": "book",
+   "tr": "kitap",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Book"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/bʊk/",
+   "tanim": "a set of printed pages that are fastened inside a cover so that you can turn them and read them",
+   "ornek": "His desk was covered with piles of books.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/boo/book_/book__gb_2.mp3"
+  },
+  {
+   "en": "boot",
+   "tr": "bot",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Boot"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/buːt/",
+   "tanim": "a strong shoe that covers the foot and ankle and often the lower part of the leg",
+   "ornek": "(British English), walking boots",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/boo/boot_/boot__gb_2.mp3"
+  },
+  {
+   "en": "bottle",
+   "tr": "şişe",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [
+    "Bottle"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈbɒtl/",
+   "tanim": "a glass or plastic container, usually round with straight sides and a narrow neck, used especially for storing liquids",
+   "ornek": "a wine/beer/milk/water bottle",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bot/bottl/bottle__gb_3.mp3"
+  },
+  {
+   "en": "box",
+   "tr": "kutu",
+   "odalar": [
+    "mutfak",
+    "genel"
+   ],
+   "siniflar": [
+    "Box"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/bɒks/",
+   "tanim": "a container made of wood, thick card, metal, etc. with a flat stiff base and sides and often a lid (= cover), used especially for holding solid things",
+   "ornek": "in a box, Everything we owned was neatly packed in cardboard boxes.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/box/box__/box__gb_2.mp3"
+  },
+  {
+   "en": "bread",
+   "tr": "ekmek",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Bread"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/bred/",
+   "tanim": "a type of food made from flour, water and usually yeast mixed together and baked",
+   "ornek": "a loaf/slice/piece of bread",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bre/bread/bread__gb_2.mp3"
+  },
+  {
+   "en": "can",
+   "tr": "teneke kutu",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Tin can"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kən/",
+   "tanim": "used to say that it is possible for somebody/something to do something, or for something to happen",
+   "ornek": "I can run fast.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/can/can__/can__gb_1.mp3"
+  },
+  {
+   "en": "chair",
+   "tr": "sandalye",
+   "odalar": [
+    "mutfak",
+    "salon"
+   ],
+   "siniflar": [
+    "Chair"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/tʃeə(r)/",
+   "tanim": "a piece of furniture for one person to sit on, with a back, a seat and four legs",
+   "ornek": "a table and chairs",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cha/chair/chair__gb_3.mp3"
+  },
+  {
+   "en": "clock",
+   "tr": "saat",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Clock",
+    "Digital clock",
+    "Wall clock"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/klɒk/",
+   "tanim": "an instrument for measuring and showing time, in a room, on the wall of a building or on a computer screen (not worn or carried like a watch)",
+   "ornek": "The clock struck twelve/midnight.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/clo/clock/clock__gb_1.mp3"
+  },
+  {
+   "en": "clothes",
+   "tr": "giysiler",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Clothing"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kləʊðz/",
+   "tanim": "the things that you wear, such as trousers, dresses and jackets",
+   "ornek": "I bought some new clothes for the trip.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/clo/cloth/clothes__gb_1.mp3"
+  },
+  {
+   "en": "coat",
+   "tr": "palto",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Coat"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kəʊt/",
+   "tanim": "a piece of outdoor clothing that is worn over other clothes to keep warm or dry. Coats have sleeves (= parts covering the arms) and may be long or short.",
+   "ornek": "to wear a coat",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/coa/coat_/coat__gb_2.mp3"
+  },
+  {
+   "en": "coffee",
+   "tr": "kahve",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Coffee"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈkɒfi/",
+   "tanim": "the roasted seeds (called coffee beans) of a tropical bush; a powder made from them",
+   "ornek": "ground/real/instant coffee",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cof/coffe/coffee__gb_2.mp3"
+  },
+  {
+   "en": "computer",
+   "tr": "bilgisayar",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Computer monitor"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kəmˈpjuːtə(r)/",
+   "tanim": "an electronic machine that can store, organize and find information, do processes with numbers and other data, and control other machines",
+   "ornek": "a home computer",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/com/compu/computer__gb_2.mp3"
+  },
+  {
+   "en": "cream",
+   "tr": "krem",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kriːm/",
+   "tanim": "the thick white or pale yellow fatty liquid that rises to the top of milk, used in cooking or as a type of sauce to put on fruit, etc.",
+   "ornek": "We had strawberries and cream for dessert.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cre/cream/cream__gb_1.mp3"
+  },
+  {
+   "en": "cup",
+   "tr": "fincan",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Coffee cup"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kʌp/",
+   "tanim": "a small container that is like a bowl in shape, usually with a handle, used for drinking tea, coffee, etc.",
+   "ornek": "He filled the cup with water.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cup/cup__/cup__gb_3.mp3"
+  },
+  {
+   "en": "desk",
+   "tr": "çalışma masası",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Desk"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/desk/",
+   "tanim": "a piece of furniture like a table, often with drawers (= parts like boxes in it with handles on the front for pulling them open), that you sit at to read, write, work, etc.",
+   "ornek": "at a desk, I spend all day sitting at a desk.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/d/des/desk_/desk__gb_1.mp3"
+  },
+  {
+   "en": "door",
+   "tr": "kapı",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [
+    "Door"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/dɔː(r)/",
+   "tanim": "a piece of wood, glass, etc. that is opened and closed so that people can get in and out of a room, building, car, etc.; a similar thing in a cupboard",
+   "ornek": "Open the door!",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/d/doo/door_/door__gb_2.mp3"
+  },
+  {
+   "en": "dress",
+   "tr": "elbise",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Dress"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/dres/",
+   "tanim": "a piece of clothing that is made in one piece and hangs down to cover the body as far as the legs, sometimes reaching to below the knees, or to the ankles",
+   "ornek": "a long white dress",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/d/dre/dress/dress__gb_2.mp3"
+  },
+  {
+   "en": "egg",
+   "tr": "yumurta",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Egg (Food)"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/eɡ/",
+   "tanim": "a small oval object with a thin hard shell produced by a female bird and containing a young bird; a similar object (without a hard shell) produced by a female fish, insect, etc.",
+   "ornek": "The female sits on the eggs until they hatch.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/e/egg/egg__/egg__gb_3.mp3"
+  },
+  {
+   "en": "floor",
+   "tr": "zemin",
+   "odalar": [
+    "banyo",
+    "salon",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/flɔː(r)/",
+   "tanim": "the surface of a room that you walk on",
+   "ornek": "a wooden/concrete/tiled floor",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/flo/floor/floor__gb_3.mp3"
+  },
+  {
+   "en": "flower",
+   "tr": "çiçek",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Flower"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈflaʊə(r)/",
+   "tanim": "the coloured part of a plant from which the seed or fruit develops. Flowers usually grow at the end of a stem and last only a short time.",
+   "ornek": "The plant has a beautiful bright red flower.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/flo/flowe/flower__gb_1.mp3"
+  },
+  {
+   "en": "fruit",
+   "tr": "meyve",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Fruit"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/fruːt/",
+   "tanim": "the part of a plant that consists of one or more seeds and a soft inner part, can be eaten as food and usually tastes sweet",
+   "ornek": "tropical fruits, such as bananas and pineapples",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/fru/fruit/fruit__gb_1.mp3"
+  },
+  {
+   "en": "glass",
+   "tr": "bardak",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ɡlɑːs/",
+   "tanim": "a hard, usually clear, substance used, for example, for making windows and bottles",
+   "ornek": "a sheet/pane of glass",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/g/gla/glass/glass__gb_5.mp3"
+  },
+  {
+   "en": "guitar",
+   "tr": "gitar",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Guitar"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ɡɪˈtɑː(r)/",
+   "tanim": "a musical instrument that usually has six strings and that you play with your fingers or with a plectrum",
+   "ornek": "an acoustic/electric guitar",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/g/gui/guita/guitar__gb_2.mp3"
+  },
+  {
+   "en": "hat",
+   "tr": "şapka",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Hat"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/hæt/",
+   "tanim": "a piece of clothing made to fit the head, often with a brim (= a flat edge that sticks out), usually worn out of doors",
+   "ornek": "a straw/woolly hat",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/h/hat/hat__/hat__gb_2.mp3"
+  },
+  {
+   "en": "jacket",
+   "tr": "ceket",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Jacket"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈdʒækɪt/",
+   "tanim": "a piece of clothing worn on the top half of the body over a shirt, etc. that has arms and fastens down the front; a short, light coat",
+   "ornek": "a leather/denim/tweed jacket",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/j/jac/jacke/jacket__gb_2.mp3"
+  },
+  {
+   "en": "jeans",
+   "tr": "kot pantolon",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Jeans"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/dʒiːnz/",
+   "tanim": "trousers made of denim (= a type of strong cotton)",
+   "ornek": "I always wear jeans.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/j/jea/jeans/jeans__gb_2.mp3"
+  },
+  {
+   "en": "key",
+   "tr": "anahtar",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/kiː/",
+   "tanim": "most important; essential",
+   "ornek": "the key issue/factor/point",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/k/key/key__/key__gb_3.mp3"
+  },
+  {
+   "en": "kitchen",
+   "tr": "mutfak",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈkɪtʃɪn/",
+   "tanim": "a room in which meals are cooked or prepared",
+   "ornek": "We ate at the kitchen table.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/k/kit/kitch/kitchen__gb_2.mp3"
+  },
+  {
+   "en": "light",
+   "tr": "ışık",
+   "odalar": [
+    "mutfak",
+    "salon",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/laɪt/",
+   "tanim": "pale in colour",
+   "ornek": "He's got light blue eyes.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/l/lig/light/light__gb_2.mp3"
+  },
+  {
+   "en": "magazine",
+   "tr": "dergi",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˌmæɡəˈziːn/",
+   "tanim": "a type of large thin book with a paper cover that you can buy every week or month, containing articles, photographs, etc., often on a particular topic; a similar collection of articles, etc. that appears regularly online",
+   "ornek": "a weekly/monthly magazine",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mag/magaz/magazine__gb_1.mp3"
+  },
+  {
+   "en": "milk",
+   "tr": "süt",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Milk"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/mɪlk/",
+   "tanim": "the white liquid produced by cows, goats and some other animals as food for their young and used as a drink by humans",
+   "ornek": "a pint/litre of milk",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mil/milk_/milk__gb_1.mp3"
+  },
+  {
+   "en": "mouse",
+   "tr": "fare",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Computer mouse"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/maʊs/",
+   "tanim": "a small animal that is covered in fur and has a long thin tail. Mice live in fields, in people’s houses or where food is stored.",
+   "ornek": "a house mouse",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mou/mouse/mouse__gb_3.mp3"
+  },
+  {
+   "en": "newspaper",
+   "tr": "gazete",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈnjuːzpeɪpə(r)/",
+   "tanim": "a set of large printed sheets of paper, or a website, containing news, articles, advertisements, etc. and published every day or every week; the organization responsible for producing this",
+   "ornek": "a daily/weekly newspaper",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/new/newsp/newspaper__gb_1.mp3"
+  },
+  {
+   "en": "painting",
+   "tr": "tablo",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈpeɪntɪŋ/",
+   "tanim": "a picture that has been painted",
+   "ornek": "a watercolour/crylic painting",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pai/paint/painting__gb_1.mp3"
+  },
+  {
+   "en": "paper",
+   "tr": "kâğıt",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈpeɪpə(r)/",
+   "tanim": "the thin material that you write and draw on and that is also used for wrapping and packing things",
+   "ornek": "a piece/sheet of paper",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pap/paper/paper__gb_1.mp3"
+  },
+  {
+   "en": "pen",
+   "tr": "tükenmez kalem",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Pen"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/pen/",
+   "tanim": "an instrument made of plastic or metal used for writing with ink (= coloured liquid for writing, etc.)",
+   "ornek": "an ink pen",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pen/pen__/pen__gb_2.mp3"
+  },
+  {
+   "en": "pencil",
+   "tr": "kurşun kalem",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈpensl/",
+   "tanim": "a narrow piece of wood, or a metal or plastic case, containing a black or coloured substance, used for drawing or writing",
+   "ornek": "I'll get a pencil and paper.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pen/penci/pencil__gb_1.mp3"
+  },
+  {
+   "en": "pepper",
+   "tr": "karabiber",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Salt and pepper shakers"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈpepə(r)/",
+   "tanim": "a powder made from dried berries (called peppercorns), used to give a hot, spicy taste to food",
+   "ornek": "Season with salt and pepper",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pep/peppe/pepper__gb_2.mp3"
+  },
+  {
+   "en": "phone",
+   "tr": "telefon",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Corded phone",
+    "Mobile phone",
+    "Telephone"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/fəʊn/",
+   "tanim": "a piece of equipment for talking to people who are not in the same place as you",
+   "ornek": "I have to make a phone call.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pho/phone/phone__gb_2.mp3"
+  },
+  {
+   "en": "piano",
+   "tr": "piyano",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Piano"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/piˈænəʊ/",
+   "tanim": "a large musical instrument played by pressing the black and white keys on the keyboard. The sound is produced by small hammers hitting the metal strings inside the piano.",
+   "ornek": "to play the piano",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pia/piano/piano__gb_3.mp3"
+  },
+  {
+   "en": "picture",
+   "tr": "resim",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Picture frame"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈpɪktʃə(r)/",
+   "tanim": "a painting or drawing, etc. that shows a scene, a person or thing",
+   "ornek": "He likes books with lots of pictures in them.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pic/pictu/picture__gb_1.mp3"
+  },
+  {
+   "en": "plant",
+   "tr": "bitki",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Houseplant",
+    "Plant"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/plɑːnt/",
+   "tanim": "a living thing that grows in the earth and usually has a stem, leaves and roots, especially one that is smaller than a tree or bush",
+   "ornek": "All plants need light and water.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pla/plant/plant__gb_3.mp3"
+  },
+  {
+   "en": "salt",
+   "tr": "tuz",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Salt and pepper shakers"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/sɔːlt/",
+   "tanim": "a white substance that is added to food to make it taste better or to preserve it. Salt is obtained from mines and is also found in seawater. It is sometimes called common salt to show that it is different from other chemical salts. Its chemical name is sodium chloride.",
+   "ornek": "Pass the salt, please.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sal/salt_/salt__gb_1.mp3"
+  },
+  {
+   "en": "shirt",
+   "tr": "gömlek",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Shirt"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ʃɜːt/",
+   "tanim": "a piece of clothing worn on the upper part of the body, made of light cloth, with sleeves and usually with a collar and buttons down the front",
+   "ornek": "to wear a shirt",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/shi/shirt/shirt__gb_2.mp3"
+  },
+  {
+   "en": "shoe",
+   "tr": "ayakkabı",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Footwear"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ʃuː/",
+   "tanim": "one of a pair of objects usually made of leather or plastic that you wear on your feet",
+   "ornek": "a pair of shoes",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sho/shoe_/shoe__gb_2.mp3"
+  },
+  {
+   "en": "shower",
+   "tr": "duş",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Shower"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈʃaʊə(r)/",
+   "tanim": "a piece of equipment producing a flow of water that you stand under to wash yourself; the small room or part of a room that contains a shower",
+   "ornek": "in the shower, He's in the shower.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sho/showe/shower__gb_2.mp3"
+  },
+  {
+   "en": "skirt",
+   "tr": "etek",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Skirt"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/skɜːt/",
+   "tanim": "a piece of clothing that hangs from the middle part of the body",
+   "ornek": "a short/long/pleated/denim skirt",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/ski/skirt/skirt__gb_2.mp3"
+  },
+  {
+   "en": "sugar",
+   "tr": "şeker",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈʃʊɡə(r)/",
+   "tanim": "a sweet substance, often in the form of white or brown crystals, made from the juices of various plants, used in cooking or to make tea, coffee, etc. sweeter",
+   "ornek": "Do you take sugar (= have it in your tea, coffee, etc.)?",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sug/sugar/sugar__gb_2.mp3"
+  },
+  {
+   "en": "sweater",
+   "tr": "kazak",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈswetə(r)/",
+   "tanim": "a piece of clothing for the upper part of the body, made of wool or cotton, with long sleeves",
+   "ornek": "She wore jeans and a sweater.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/swe/sweat/sweater__gb_2.mp3"
+  },
+  {
+   "en": "table",
+   "tr": "masa",
+   "odalar": [
+    "mutfak",
+    "salon"
+   ],
+   "siniflar": [
+    "Kitchen & dining room table",
+    "Table"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈteɪbl/",
+   "tanim": "a piece of furniture that consists of a flat top supported by legs",
+   "ornek": "at a/the table, We sat at a round table in the corner.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tab/table/table__gb_3.mp3"
+  },
+  {
+   "en": "tea",
+   "tr": "çay",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Tea"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/tiː/",
+   "tanim": "the dried leaves (called tea leaves) of the tea bush",
+   "ornek": "a packet of tea",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tea/tea__/tea__gb_3.mp3"
+  },
+  {
+   "en": "television",
+   "tr": "televizyon",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Television"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈtelɪvɪʒn/",
+   "tanim": "a piece of electrical equipment with a screen on which you can watch programmes with moving pictures and sounds",
+   "ornek": "a widescreen/flat-screen/plasma television",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tel/telev/television__gb_1.mp3"
+  },
+  {
+   "en": "toilet",
+   "tr": "klozet, tuvalet",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Toilet"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈtɔɪlət/",
+   "tanim": "a large bowl attached to a pipe that you sit on or stand over when you get rid of waste matter from your body",
+   "ornek": "Have you flushed the toilet?",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/toi/toile/toilet__gb_3.mp3"
+  },
+  {
+   "en": "trousers",
+   "tr": "pantolon",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Trousers"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈtraʊzəz/",
+   "tanim": "a piece of clothing that covers the lower body and is divided into two parts to cover each leg separately",
+   "ornek": "a pair of grey trousers",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tro/trous/trousers__gb_2.mp3"
+  },
+  {
+   "en": "umbrella",
+   "tr": "şemsiye",
+   "odalar": [
+    "yatak",
+    "genel"
+   ],
+   "siniflar": [
+    "Umbrella"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ʌmˈbrelə/",
+   "tanim": "an object with a round folding frame of long, straight pieces of metal covered with material, that you use to protect yourself from the rain or from hot sun",
+   "ornek": "to carry/hold an umbrella",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/u/umb/umbre/umbrella__gb_2.mp3"
+  },
+  {
+   "en": "vegetable",
+   "tr": "sebze",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Vegetable"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈvedʒtəbl/",
+   "tanim": "a plant or part of a plant that is eaten as food. Potatoes, beans and onions are all vegetables.",
+   "ornek": "The children don't eat enough fresh vegetables.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/v/veg/veget/vegetable__gb_1.mp3"
+  },
+  {
+   "en": "wall",
+   "tr": "duvar",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/wɔːl/",
+   "tanim": "a long, solid structure that rises straight up from the ground, made of stone, brick or concrete, that surrounds, divides or protects an area of land",
+   "ornek": "to build a wall",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/w/wal/wall_/wall__gb_2.mp3"
+  },
+  {
+   "en": "watch",
+   "tr": "kol saati",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Watch"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/wɒtʃ/",
+   "tanim": "a type of small clock that you wear on your wrist, or (in the past) carried in your pocket",
+   "ornek": "She kept looking anxiously at her watch.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/w/wat/watch/watch__gb_2.mp3"
+  },
+  {
+   "en": "window",
+   "tr": "pencere",
+   "odalar": [
+    "mutfak",
+    "salon",
+    "genel"
+   ],
+   "siniflar": [
+    "Window"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A1",
+   "ses": "/ˈwɪndəʊ/",
+   "tanim": "an opening in the wall or roof of a building, car, etc., usually covered with glass, that allows light and air to come in and people to see out; the glass in a window",
+   "ornek": "out of the window, She looked out of the window.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/w/win/windo/window__gb_2.mp3"
+  },
+  {
+   "en": "belt",
+   "tr": "kemer",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Belt"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/belt/",
+   "tanim": "a long narrow piece of leather, cloth, etc. that you wear around the middle part of your body",
+   "ornek": "to do up/fasten/tighten a belt",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bel/belt_/belt__gb_2.mp3"
+  },
+  {
+   "en": "bin",
+   "tr": "çöp kutusu",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [
+    "Waste container"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/bɪn/",
+   "tanim": "a container that you put waste in",
+   "ornek": "a rubbish bin",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bin/bin__/bin__gb_1.mp3"
+  },
+  {
+   "en": "board",
+   "tr": "kesme tahtası",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Cutting board"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/bɔːd/",
+   "tanim": "a long thin piece of strong hard material, especially wood, used, for example, for making floors, building walls and roofs and making boats",
+   "ornek": "He had ripped up the carpet, leaving only the bare boards.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/boa/board/board__gb_1.mp3"
+  },
+  {
+   "en": "bowl",
+   "tr": "kase",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Bowl",
+    "Mixing bowl"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/bəʊl/",
+   "tanim": "a deep round dish with a wide open top, used especially for holding food or liquid",
+   "ornek": "a salad/fruit/sugar bowl",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bow/bowl_/bowl__gb_4.mp3"
+  },
+  {
+   "en": "brush",
+   "tr": "fırça",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/brʌʃ/",
+   "tanim": "an object made of short stiff hairs (called bristles) or wires set in a block of wood or plastic, usually attached to a handle. Brushes are used for many different jobs, such as cleaning, painting and tidying your hair.",
+   "ornek": "a paintbrush",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bru/brush/brush__gb_1.mp3"
+  },
+  {
+   "en": "carpet",
+   "tr": "halı",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈkɑːpɪt/",
+   "tanim": "a piece of thick woven material made of wool, etc., used to cover the floor of a room or stairs; the material used for carpets",
+   "ornek": "He spent the morning laying the new carpet.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/car/carpe/carpet__gb_2.mp3"
+  },
+  {
+   "en": "cooker",
+   "tr": "ocak, fırınlı ocak",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Gas stove"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈkʊkə(r)/",
+   "tanim": "a large piece of equipment for cooking food, containing an oven and gas or electric rings on top",
+   "ornek": "a gas cooker",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/coo/cooke/cooker__gb_2.mp3"
+  },
+  {
+   "en": "cupboard",
+   "tr": "dolap",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Cabinetry",
+    "Cupboard"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈkʌbəd/",
+   "tanim": "a piece of furniture with doors and shelves used for storing dishes, food, clothes, etc.",
+   "ornek": "kitchen cupboards",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cup/cupbo/cupboard__gb_2.mp3"
+  },
+  {
+   "en": "fan",
+   "tr": "vantilatör",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [
+    "Ceiling fan",
+    "Mechanical fan"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/fæn/",
+   "tanim": "a person who admires somebody/something or enjoys watching or listening to somebody/something very much",
+   "ornek": "sports/music fans",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/fan/fan__/fan__gb_2.mp3"
+  },
+  {
+   "en": "fork",
+   "tr": "çatal",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Fork"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/fɔːk/",
+   "tanim": "a tool with a handle and three or four sharp points (called prongs), used for picking up and eating food",
+   "ornek": "to eat with a knife and fork",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/for/fork_/fork__gb_2.mp3"
+  },
+  {
+   "en": "fridge",
+   "tr": "buzdolabı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Refrigerator"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/frɪdʒ/",
+   "tanim": "a piece of electrical equipment in which food is kept cold so that it stays fresh",
+   "ornek": "The kids tend to raid the fridge when they get home from school.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/fri/fridg/fridge__gb_2.mp3"
+  },
+  {
+   "en": "hall",
+   "tr": "hol",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/hɔːl/",
+   "tanim": "a space or passage inside the entrance or front door of a building",
+   "ornek": "in a hall, Her brother was standing in the front hall.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/h/hal/hall_/hall__gb_1.mp3"
+  },
+  {
+   "en": "jewellery",
+   "tr": "mücevher",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈdʒuːəlri/",
+   "tanim": "objects such as rings and necklaces that people wear as decoration",
+   "ornek": "silver/gold jewellery",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/j/jew/jewel/jewellery__gb_1.mp3"
+  },
+  {
+   "en": "knife",
+   "tr": "bıçak",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Kitchen knife",
+    "Knife"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/naɪf/",
+   "tanim": "a sharp blade (= metal edge) with a handle, used for cutting or as a weapon",
+   "ornek": "knives and forks",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/k/kni/knife/knife__gb_2.mp3"
+  },
+  {
+   "en": "lamp",
+   "tr": "lamba",
+   "odalar": [
+    "salon",
+    "yatak"
+   ],
+   "siniflar": [
+    "Lamp"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/læmp/",
+   "tanim": "a device that uses electricity, oil or gas to produce light",
+   "ornek": "a desk/bedside lamp",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/l/lam/lamp_/lamp__gb_2.mp3"
+  },
+  {
+   "en": "laptop",
+   "tr": "dizüstü bilgisayar",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Laptop"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈlæptɒp/",
+   "tanim": "a small computer that can work with a battery and be easily carried",
+   "ornek": "I opened my laptop and started typing.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/l/lap/lapto/laptop__gb_1.mp3"
+  },
+  {
+   "en": "lock",
+   "tr": "kilit",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/lɒk/",
+   "tanim": "a device that keeps a door, window, box, etc. shut, usually needing a key to open it",
+   "ornek": "She turned the key in the lock.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/l/loc/lock_/lock__gb_1.mp3"
+  },
+  {
+   "en": "medicine",
+   "tr": "ilaç",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈmedsn/",
+   "tanim": "the study and treatment of diseases and injuries",
+   "ornek": "advances in modern medicine",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/med/medic/medicine__gb_5.mp3"
+  },
+  {
+   "en": "mirror",
+   "tr": "ayna",
+   "odalar": [
+    "banyo",
+    "yatak"
+   ],
+   "siniflar": [
+    "Mirror"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈmɪrə(r)/",
+   "tanim": "a piece of special flat glass that reflects images, so that you can see yourself when you look in it",
+   "ornek": "in the mirror, He looked at himself in the mirror.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mir/mirro/mirror__gb_3.mp3"
+  },
+  {
+   "en": "oil",
+   "tr": "yağ",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Cooking spray"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ɔɪl/",
+   "tanim": "a thick liquid that is found in rock underground",
+   "ornek": "Several companies are drilling for oil in the region.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/o/oil/oil__/oil__gb_1.mp3"
+  },
+  {
+   "en": "oven",
+   "tr": "fırın",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Oven"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈʌvn/",
+   "tanim": "the part of a cooker that is like a box with a door on the front, in which food is cooked or heated",
+   "ornek": "Take the cake out of the oven.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/o/ove/oven_/oven__gb_1.mp3"
+  },
+  {
+   "en": "plate",
+   "tr": "tabak",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Plate"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/pleɪt/",
+   "tanim": "a flat, usually round, dish that you put food on",
+   "ornek": "sandwiches on a plate",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pla/plate/plate__gb_2.mp3"
+  },
+  {
+   "en": "poster",
+   "tr": "afiş",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Poster"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈpəʊstə(r)/",
+   "tanim": "a large notice, often with a picture on it, that is put in a public place to advertise something",
+   "ornek": "campaign/election posters",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pos/poste/poster__gb_2.mp3"
+  },
+  {
+   "en": "printer",
+   "tr": "yazıcı",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Printer"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈprɪntə(r)/",
+   "tanim": "a machine for printing text on paper, especially one connected to a computer",
+   "ornek": "a colour printer",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pri/print/printer__gb_2.mp3"
+  },
+  {
+   "en": "ring",
+   "tr": "yüzük",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/rɪŋ/",
+   "tanim": "a piece of jewellery that you wear on your finger, consisting of a round band of gold, silver, etc., sometimes decorated with precious stones",
+   "ornek": "a gold ring",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/rin/ring_/ring__gb_1.mp3"
+  },
+  {
+   "en": "roof",
+   "tr": "çatı",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ruːf/",
+   "tanim": "the structure that covers or forms the top of a building or vehicle",
+   "ornek": "a flat/sloping/pitched roof",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/roo/roof_/roof__gb_3.mp3"
+  },
+  {
+   "en": "screen",
+   "tr": "ekran",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Computer monitor"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/skriːn/",
+   "tanim": "the flat surface at the front of a television, computer, or other electronic device, on which you see pictures or information",
+   "ornek": "a computer screen",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/scr/scree/screen__gb_1.mp3"
+  },
+  {
+   "en": "sheet",
+   "tr": "çarşaf",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ʃiːt/",
+   "tanim": "a large piece of thin cloth used on a bed to lie on or lie under",
+   "ornek": "Have you changed the sheets (= put clean sheets on the bed)?",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/she/sheet/sheet__gb_2.mp3"
+  },
+  {
+   "en": "soap",
+   "tr": "sabun",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Soap dispenser"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/səʊp/",
+   "tanim": "a substance that you use with water for washing your body",
+   "ornek": "Wash the affected area with soap and water.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/soa/soap_/soap__gb_2.mp3"
+  },
+  {
+   "en": "sock",
+   "tr": "çorap",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Sock"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/sɒk/",
+   "tanim": "a piece of clothing that is worn over the foot, ankle and lower part of the leg, especially inside a shoe",
+   "ornek": "a pair of socks",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/soc/sock_/sock__gb_2.mp3"
+  },
+  {
+   "en": "speaker",
+   "tr": "hoparlör",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈspiːkə(r)/",
+   "tanim": "a person who gives a talk or makes a speech",
+   "ornek": "He was a guest speaker at the conference.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/spe/speak/speaker__gb_1.mp3"
+  },
+  {
+   "en": "spoon",
+   "tr": "kaşık",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Spoon"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/spuːn/",
+   "tanim": "a tool that has a handle with a shallow bowl at the end, used for mixing, serving and eating food",
+   "ornek": "a plastic/metal spoon",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/spo/spoon/spoon__gb_2.mp3"
+  },
+  {
+   "en": "step",
+   "tr": "basamak",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/step/",
+   "tanim": "one of a series of things that you do in order to achieve something",
+   "ornek": "We are taking steps to prevent pollution.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/ste/step_/step__gb_3.mp3"
+  },
+  {
+   "en": "tablet",
+   "tr": "tablet",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Tablet computer"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈtæblət/",
+   "tanim": "a small computer that is easy to carry, with a large touch screen and usually without a physical keyboard",
+   "ornek": "The company has launched its latest 10-inch tablet.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tab/table/tablet__gb_1.mp3"
+  },
+  {
+   "en": "tie",
+   "tr": "kravat",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Tie"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/taɪ/",
+   "tanim": "a long, narrow piece of cloth worn around the neck, especially by men, with a knot in front",
+   "ornek": "He was dressed impeccably in a suit and tie.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tie/tie__/tie__gb_2.mp3"
+  },
+  {
+   "en": "tool",
+   "tr": "alet",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Tool"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/tuːl/",
+   "tanim": "an instrument such as a hammer, screwdriver, saw, etc. that you hold in your hand and use for making things, repairing things, etc.",
+   "ornek": "garden tools",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/too/tool_/tool__gb_1.mp3"
+  },
+  {
+   "en": "towel",
+   "tr": "havlu",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Towel"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/ˈtaʊəl/",
+   "tanim": "a piece of cloth or paper used for drying things, especially your body",
+   "ornek": "Help yourself to a clean towel.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tow/towel/towel__gb_2.mp3"
+  },
+  {
+   "en": "toy",
+   "tr": "oyuncak",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Toy"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "A2",
+   "ses": "/tɔɪ/",
+   "tanim": "made as a copy of a particular thing and used for playing with",
+   "ornek": "a toy car",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/toy/toy__/toy__gb_1.mp3"
+  },
+  {
+   "en": "alarm",
+   "tr": "alarm",
+   "odalar": [
+    "yatak",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/əˈlɑːm/",
+   "tanim": "a loud noise or a signal that warns people of danger or of a problem",
+   "ornek": "She decided to sound the alarm (= warn people that the situation was dangerous).",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/a/ala/alarm/alarm__gb_1.mp3"
+  },
+  {
+   "en": "battery",
+   "tr": "pil",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈbætri/",
+   "tanim": "a device that is placed inside a car engine, clock, radio, etc. and that produces the electricity that makes it work",
+   "ornek": "to replace the batteries",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bat/batte/battery__gb_1.mp3"
+  },
+  {
+   "en": "bell",
+   "tr": "zil",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/bel/",
+   "tanim": "a hollow metal object, often like a cup in shape, that makes a ringing sound when hit by a small piece of metal inside it; the sound that it makes",
+   "ornek": "A peal of church bells rang out in the distance.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bel/bell_/bell__gb_1.mp3"
+  },
+  {
+   "en": "ceiling",
+   "tr": "tavan",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈsiːlɪŋ/",
+   "tanim": "the top inside surface of a room",
+   "ornek": "a large room with a high ceiling",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cei/ceili/ceiling__gb_1.mp3"
+  },
+  {
+   "en": "cloth",
+   "tr": "bez",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/klɒθ/",
+   "tanim": "material made by weaving or knitting cotton, wool, silk, etc.",
+   "ornek": "woollen/cotton/linen cloth",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/clo/cloth/cloth__gb_1.mp3"
+  },
+  {
+   "en": "container",
+   "tr": "saklama kabı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Container"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/kənˈteɪnə(r)/",
+   "tanim": "a box, bottle, etc. in which something can be stored or transported",
+   "ornek": "a plastic container",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/x/xco/xcont/xcontainer__gb_1.mp3"
+  },
+  {
+   "en": "curtain",
+   "tr": "duş perdesi",
+   "odalar": [
+    "banyo",
+    "salon"
+   ],
+   "siniflar": [
+    "Curtain"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈkɜːtn/",
+   "tanim": "a piece of cloth that is hung to cover a window",
+   "ornek": "to draw/pull/close the curtains (= to pull them across the window so they cover it)",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cur/curta/curtain__gb_2.mp3"
+  },
+  {
+   "en": "frame",
+   "tr": "çerçeve",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Picture frame"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/freɪm/",
+   "tanim": "a strong border or structure of wood, metal, etc. that holds a picture, door, piece of glass, etc. in position",
+   "ornek": "a picture/photo frame",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/f/fra/frame/frame__gb_1.mp3"
+  },
+  {
+   "en": "glove",
+   "tr": "eldiven",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Glove"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ɡlʌv/",
+   "tanim": "a piece of clothing for the hand, made of wool, leather, etc. with separate parts for each finger and the thumb",
+   "ornek": "a pair of gloves",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/g/glo/glove/glove__gb_2.mp3"
+  },
+  {
+   "en": "heating",
+   "tr": "ısıtma",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈhiːtɪŋ/",
+   "tanim": "the process of supplying heat to a room or building; a system used to do this",
+   "ornek": "to put/turn the heating on",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/h/hea/heati/heating__gb_1.mp3"
+  },
+  {
+   "en": "iron",
+   "tr": "ütü",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈaɪən/",
+   "tanim": "a chemical element. Iron is a hard strong metal that is used to make steel and is also found in small quantities in blood and food.",
+   "ornek": "iron gates/bars/railings",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/i/iro/iron_/iron__gb_1.mp3"
+  },
+  {
+   "en": "keyboard",
+   "tr": "klavye",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Computer keyboard"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈkiːbɔːd/",
+   "tanim": "the set of keys for operating a computer or typewriter, or the set of letters that you can touch to write on a smartphone or tablet",
+   "ornek": "The program locks the keyboard until a password is given.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/k/key/keybo/keyboard__gb_2.mp3"
+  },
+  {
+   "en": "nail",
+   "tr": "çivi",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Nail (Construction)"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/neɪl/",
+   "tanim": "the thin hard layer covering the outer tip of the fingers or toes",
+   "ornek": "Stop biting your nails!",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/nai/nail_/nail__gb_1.mp3"
+  },
+  {
+   "en": "pan",
+   "tr": "tava",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Frying pan"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/pæn/",
+   "tanim": "",
+   "ornek": "pots and pans",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pan/pan__/pan__gb_2.mp3"
+  },
+  {
+   "en": "pipe",
+   "tr": "boru",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/paɪp/",
+   "tanim": "a tube through which liquids and gases can flow",
+   "ornek": "Both hot and cold water pipes should be properly insulated.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pip/pipe_/pipe__gb_1.mp3"
+  },
+  {
+   "en": "pot",
+   "tr": "tencere",
+   "odalar": [
+    "mutfak",
+    "salon"
+   ],
+   "siniflar": [
+    "Flowerpot"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/pɒt/",
+   "tanim": "a deep round container used for cooking things in",
+   "ornek": "pots and pans",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/pot/pot__/pot__gb_1.mp3"
+  },
+  {
+   "en": "rope",
+   "tr": "ip",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/rəʊp/",
+   "tanim": "very strong thick string made by twisting thinner strings, wires, etc. together",
+   "ornek": "The rope broke and she fell 50 metres onto the rocks.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/r/rop/rope_/rope__gb_1.mp3"
+  },
+  {
+   "en": "shelf",
+   "tr": "raf",
+   "odalar": [
+    "mutfak",
+    "banyo",
+    "salon"
+   ],
+   "siniflar": [
+    "Shelf"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ʃelf/",
+   "tanim": "a flat board, made of wood, metal, glass, etc., fixed to the wall or forming part of a cupboard, bookcase, etc., for things to be placed on",
+   "ornek": "I helped him put up some shelves in his bedroom.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/she/shelf/shelf__gb_2.mp3"
+  },
+  {
+   "en": "sink",
+   "tr": "evye, lavabo",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [
+    "Sink"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/sɪŋk/",
+   "tanim": "to go down below the surface or towards the bottom of a liquid or soft substance",
+   "ornek": "The ship sank to the bottom of the sea.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sin/sink_/sink__gb_2.mp3"
+  },
+  {
+   "en": "statue",
+   "tr": "heykel",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Bust",
+    "Sculpture"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/ˈstætʃuː/",
+   "tanim": "a figure of a person or an animal in stone, metal, etc., usually the same size as in real life or larger",
+   "ornek": "a bronze/marble statue",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sta/statu/statue__gb_1.mp3"
+  },
+  {
+   "en": "string",
+   "tr": "sicim",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/strɪŋ/",
+   "tanim": "long, thin material used for tying things together, made of several threads that have been twisted together; a piece of string used to fasten or pull something or keep something in place",
+   "ornek": "a piece/length/ball of string",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/str/strin/string__gb_1.mp3"
+  },
+  {
+   "en": "switch",
+   "tr": "ışık düğmesi",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [
+    "Light switch"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/swɪtʃ/",
+   "tanim": "to change or make something change from one thing to another",
+   "ornek": "switch (over) to something, We're in the process of switching over to a new system of invoicing.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/swi/switc/switch__gb_1.mp3"
+  },
+  {
+   "en": "tape",
+   "tr": "bant",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Adhesive tape"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/teɪp/",
+   "tanim": "a long, narrow piece of material with a sticky substance on one side that is used for sticking things together",
+   "ornek": "adhesive/sticky tape",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tap/tape_/tape__gb_1.mp3"
+  },
+  {
+   "en": "tin",
+   "tr": "konserve kutusu",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Tin can"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B1",
+   "ses": "/tɪn/",
+   "tanim": "a metal container in which food is sold; the contents of one of these containers",
+   "ornek": "Open the tin and drain the tuna.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tin/tin__/tin__gb_2.mp3"
+  },
+  {
+   "en": "blind",
+   "tr": "stor perde",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Window blind"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B2",
+   "ses": "/blaɪnd/",
+   "tanim": "not able to see",
+   "ornek": "Doctors think he will go blind.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bli/blind/blind__gb_11.mp3"
+  },
+  {
+   "en": "cable",
+   "tr": "kablo",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford3000",
+   "cefr": "B2",
+   "ses": "/ˈkeɪbl/",
+   "tanim": "a set of wires, covered in plastic or rubber, that carries electricity, phone signals, etc.",
+   "ornek": "fibre-optic cable",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cab/cable/cable__gb_1.mp3"
+  },
+  {
+   "en": "handle",
+   "tr": "kapı kolu",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Door handle"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B2",
+   "ses": "/ˈhændl/",
+   "tanim": "the part of a door, window, etc. that you use to open it",
+   "ornek": "She turned the handle and opened the door.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/h/han/handl/handle__gb_1.mp3"
+  },
+  {
+   "en": "scale",
+   "tr": "mutfak tartısı",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [
+    "Scale"
+   ],
+   "kaynak": "oxford3000",
+   "cefr": "B2",
+   "ses": "/skeɪl/",
+   "tanim": "the size or extent of something, especially when compared with something else",
+   "ornek": "on a … scale, They entertain on a large scale (= they hold expensive parties with a lot of guests).",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/sca/scale/scale__gb_1.mp3"
+  },
+  {
+   "en": "basket",
+   "tr": "sepet",
+   "odalar": [
+    "mutfak",
+    "genel"
+   ],
+   "siniflar": [
+    "Picnic basket"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈbɑːskɪt/",
+   "tanim": "a container for holding or carrying things. Baskets are made of long thin pieces of material that bends and twists easily, for example plastic, wire or wicker.",
+   "ornek": "a shopping basket",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bas/baske/basket__gb_1.mp3"
+  },
+  {
+   "en": "blanket",
+   "tr": "battaniye",
+   "odalar": [
+    "salon",
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈblæŋkɪt/",
+   "tanim": "a large cover, often made of wool, used especially on beds to keep people warm",
+   "ornek": "It’s cold tonight—can I have another blanket?",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bla/blank/blanket__gb_2.mp3"
+  },
+  {
+   "en": "candle",
+   "tr": "mum",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Candle"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈkændl/",
+   "tanim": "a round stick of wax with a piece of string (called a wick) through the middle that is lit to give light as it burns",
+   "ornek": "a flickering candle",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/can/candl/candle__gb_1.mp3"
+  },
+  {
+   "en": "corridor",
+   "tr": "koridor",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈkɒrɪdɔː(r)/",
+   "tanim": "a long narrow passage in a building, with doors that open into rooms on either side",
+   "ornek": "His room is along the corridor.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cor/corri/corridor__gb_1.mp3"
+  },
+  {
+   "en": "counter",
+   "tr": "tezgâh",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Countertop"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈkaʊntə(r)/",
+   "tanim": "a long flat surface over which goods are sold or business is done in a shop, bank, etc.",
+   "ornek": "behind the counter, I asked the woman behind the counter if they had any postcards.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cou/count/counter__gb_1.mp3"
+  },
+  {
+   "en": "envelope",
+   "tr": "zarf",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Envelope"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈenvələʊp/",
+   "tanim": "a flat paper container used for sending letters in, with a part that you stick down to close it",
+   "ornek": "Writing paper and envelopes are provided in your room.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/e/env/envel/envelope__gb_1.mp3"
+  },
+  {
+   "en": "hook",
+   "tr": "askı kancası",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/hʊk/",
+   "tanim": "a curved piece of metal, plastic or wire for hanging things on, catching fish with, etc.",
+   "ornek": "a picture/curtain/coat hook",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/h/hoo/hook_/hook__gb_1.mp3"
+  },
+  {
+   "en": "ladder",
+   "tr": "seyyar merdiven",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Ladder"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈlædə(r)/",
+   "tanim": "a piece of equipment for climbing up and down a wall, the side of a building, etc., consisting of two lengths of wood or metal that are joined together by steps or rungs",
+   "ornek": "to climb up/fall off a ladder",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/l/lad/ladde/ladder__gb_2.mp3"
+  },
+  {
+   "en": "make-up",
+   "tr": "makyaj",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Cosmetics"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈmeɪk ʌp/",
+   "tanim": "coloured substances used on the skin to make yourself look more attractive or to change your appearance",
+   "ornek": "eye make-up",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/m/mak/make_/make_up_1_gb_1.mp3"
+  },
+  {
+   "en": "notebook",
+   "tr": "defter",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈnəʊtbʊk/",
+   "tanim": "a small book of plain paper for writing notes in",
+   "ornek": "The police officer wrote the details down in his notebook.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/n/not/noteb/notebook__gb_1.mp3"
+  },
+  {
+   "en": "tap",
+   "tr": "musluk",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [
+    "Tap"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/tæp/",
+   "tanim": "a device for controlling the flow of water from a pipe into a bath or sink",
+   "ornek": "bath taps",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tap/tap__/tap__gb_2.mp3"
+  },
+  {
+   "en": "tissue",
+   "tr": "kâğıt mendil",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Facial tissue holder"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "B2",
+   "ses": "/ˈtɪʃuː/",
+   "tanim": "a piece of soft paper, used especially as a handkerchief",
+   "ornek": "a box of tissues",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/t/tis/tissu/tissue__gb_1.mp3"
+  },
+  {
+   "en": "blade",
+   "tr": "bıçak ağzı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "C1",
+   "ses": "/bleɪd/",
+   "tanim": "the flat part of a knife, tool or machine, which has a sharp edge or edges for cutting",
+   "ornek": "The machine comes with a plastic guard over the blade to protect the operator.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/b/bla/blade/blade__gb_1.mp3"
+  },
+  {
+   "en": "cabinet",
+   "tr": "dolap",
+   "odalar": [
+    "banyo",
+    "salon"
+   ],
+   "siniflar": [
+    "Bathroom cabinet",
+    "Cabinetry"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "C1",
+   "ses": "/ˈkæbɪnət/",
+   "tanim": "a group of senior members of a government that is responsible for advising and deciding on government policy",
+   "ornek": "a cabinet meeting",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/c/cab/cabin/cabinet__gb_3.mp3"
+  },
+  {
+   "en": "drain",
+   "tr": "gider",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "C1",
+   "ses": "/dreɪn/",
+   "tanim": "to make something empty or dry by removing the liquid from it; to become empty or dry in this way",
+   "ornek": "Drain and rinse the pasta.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/d/dra/drain/drain__gb_2.mp3"
+  },
+  {
+   "en": "plug",
+   "tr": "fiş",
+   "odalar": [
+    "mutfak",
+    "banyo",
+    "salon"
+   ],
+   "siniflar": [
+    "Power plugs and sockets"
+   ],
+   "kaynak": "oxford5000",
+   "cefr": "C1",
+   "ses": "/plʌɡ/",
+   "tanim": "a small plastic object with two or three metal pins that connects a piece of electrical equipment to the main supply of electricity",
+   "ornek": "The iron is fitted with a three-pin plug.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/p/plu/plug_/plug__gb_1.mp3"
+  },
+  {
+   "en": "screw",
+   "tr": "vida",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "oxford5000",
+   "cefr": "C1",
+   "ses": "/skruː/",
+   "tanim": "a thin pointed piece of metal like a nail with a raised spiral line (called a thread) along it and a line or cross cut into its head. Screws are turned and pressed into wood, metal, etc. with a screwdriver in order to fasten two things together.",
+   "ornek": "One of the screws is loose.",
+   "sesURL": "https://www.oxfordlearnersdictionaries.com/media/english/uk_pron/s/scr/screw/screw__gb_1.mp3"
+  },
+  {
+   "en": "TV stand",
+   "tr": "televizyon sehpası",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "air conditioner",
+   "tr": "klima",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "alarm clock",
+   "tr": "çalar saat",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Alarm clock"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "apron",
+   "tr": "önlük",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "armchair",
+   "tr": "koltuk",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Chair"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "ashtray",
+   "tr": "kül tablası",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "backpack",
+   "tr": "sırt çantası",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Backpack"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "balcony",
+   "tr": "balkon",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "basin",
+   "tr": "lavabo",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Sink"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bath mat",
+   "tr": "banyo paspası",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bedside table",
+   "tr": "komodin",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Nightstand"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bidet",
+   "tr": "bide",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Bidet"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "blender",
+   "tr": "blender",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Blender"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bookcase",
+   "tr": "kitaplık",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Bookcase"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bookshelf",
+   "tr": "kitap rafı",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Bookcase"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bottle opener",
+   "tr": "şişe açacağı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Bottle opener"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "broom",
+   "tr": "süpürge",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "bucket",
+   "tr": "kova",
+   "odalar": [
+    "banyo",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "calculator",
+   "tr": "hesap makinesi",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Calculator"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "calendar",
+   "tr": "takvim",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "can opener",
+   "tr": "konserve açacağı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Can opener"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "chandelier",
+   "tr": "avize",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "chest of drawers",
+   "tr": "şifonyer",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Chest of drawers"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "chopping board",
+   "tr": "kesme tahtası",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Cutting board"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "chopsticks",
+   "tr": "yemek çubuğu",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Chopsticks"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "cleaning product",
+   "tr": "temizlik ürünü",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "clothes peg",
+   "tr": "mandal",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "coaster",
+   "tr": "bardak altlığı",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "coat hook",
+   "tr": "portmanto askısı",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "coffee maker",
+   "tr": "kahve makinesi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Coffeemaker"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "coffee table",
+   "tr": "sehpa",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Coffee table"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "colander",
+   "tr": "süzgeç (kevgir)",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "comb",
+   "tr": "tarak",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "corkscrew",
+   "tr": "tirbuşon",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "cosmetics",
+   "tr": "kozmetik",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Cosmetics"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "cot",
+   "tr": "bebek yatağı",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Infant bed"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "cotton bud",
+   "tr": "kulak çubuğu",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "cushion",
+   "tr": "minder, kırlent",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Pillow"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "cutlery",
+   "tr": "çatal bıçak takımı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "deodorant",
+   "tr": "deodorant",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "detergent",
+   "tr": "deterjan",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "dish rack",
+   "tr": "bulaşıklık",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "dish soap",
+   "tr": "bulaşık deterjanı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "dishwasher",
+   "tr": "bulaşık makinesi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Dishwasher"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "doormat",
+   "tr": "kapı paspası",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "drawer",
+   "tr": "çekmece",
+   "odalar": [
+    "mutfak",
+    "yatak"
+   ],
+   "siniflar": [
+    "Drawer"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "drill",
+   "tr": "matkap",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Drill (Tool)"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "dustpan",
+   "tr": "faraş",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "duvet",
+   "tr": "yorgan",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "earring",
+   "tr": "küpe",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Earrings"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "extractor fan",
+   "tr": "aspiratör",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "filing cabinet",
+   "tr": "dosya dolabı",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Filing cabinet"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "fireplace",
+   "tr": "şömine",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Fireplace"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "first aid kit",
+   "tr": "ilk yardım çantası",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "foil",
+   "tr": "alüminyum folyo",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "food processor",
+   "tr": "mutfak robotu",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Food processor"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "footstool",
+   "tr": "ayak taburesi",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Stool"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "freezer",
+   "tr": "dondurucu",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "frying pan",
+   "tr": "kızartma tavası",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Frying pan"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "glasses",
+   "tr": "gözlük",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Glasses"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "glue",
+   "tr": "yapıştırıcı",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "grater",
+   "tr": "rende",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "hairdryer",
+   "tr": "saç kurutma makinesi",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Hair dryer"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "hairspray",
+   "tr": "saç spreyi",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Hair spray"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "hammer",
+   "tr": "çekiç",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Hammer"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "hanger",
+   "tr": "askı",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "headphones",
+   "tr": "kulaklık",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Headphones"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "heater",
+   "tr": "ısıtıcı",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Heater"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "humidifier",
+   "tr": "nemlendirici",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Humidifier"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "ironing board",
+   "tr": "ütü masası",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "jar",
+   "tr": "kavanoz",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "jug",
+   "tr": "sürahi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Jug",
+    "Pitcher (Container)"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "kettle",
+   "tr": "su ısıtıcısı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Kettle"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "ladle",
+   "tr": "kepçe",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Ladle"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "laundry basket",
+   "tr": "kirli sepeti",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "lid",
+   "tr": "kapak",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "light bulb",
+   "tr": "ampul",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Light bulb"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "lipstick",
+   "tr": "ruj",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Lipstick"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "living room",
+   "tr": "oturma odası",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "mat",
+   "tr": "paspas",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "mattress",
+   "tr": "şilte",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "measuring cup",
+   "tr": "ölçü kabı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Measuring cup"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "microphone",
+   "tr": "mikrofon",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Microphone"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "microwave",
+   "tr": "mikrodalga",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Microwave oven"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "mixer",
+   "tr": "mikser",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Mixer"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "mop",
+   "tr": "paspas (sopalı)",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "mug",
+   "tr": "kupa",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Mug"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "nail clipper",
+   "tr": "tırnak makası",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "napkin",
+   "tr": "peçete",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Paper towel"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "necklace",
+   "tr": "kolye",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Necklace"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "ornament",
+   "tr": "süs eşyası",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "oven glove",
+   "tr": "fırın eldiveni",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "peeler",
+   "tr": "soyacak",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "pencil case",
+   "tr": "kalem kutusu",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Pencil case"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "perfume",
+   "tr": "parfüm",
+   "odalar": [
+    "banyo",
+    "yatak"
+   ],
+   "siniflar": [
+    "Perfume"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "pillow",
+   "tr": "yastık",
+   "odalar": [
+    "salon",
+    "yatak"
+   ],
+   "siniflar": [
+    "Pillow"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "pillowcase",
+   "tr": "yastık kılıfı",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "placemat",
+   "tr": "amerikan servis",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "plunger",
+   "tr": "vantuz (pompa)",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "pressure cooker",
+   "tr": "düdüklü tencere",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Pressure cooker"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "pyjamas",
+   "tr": "pijama",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "radiator",
+   "tr": "kalorifer peteği",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "razor",
+   "tr": "tıraş bıçağı",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "remote control",
+   "tr": "kumanda",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Remote control"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "rolling pin",
+   "tr": "oklava",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "rug",
+   "tr": "kilim, küçük halı",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "ruler",
+   "tr": "cetvel",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Ruler"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "saucepan",
+   "tr": "sap tutmalı tencere",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "saucer",
+   "tr": "fincan tabağı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Saucer"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "scarf",
+   "tr": "atkı",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Scarf"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "scissors",
+   "tr": "makas",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Scissors"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "screwdriver",
+   "tr": "tornavida",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Screwdriver"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "shampoo",
+   "tr": "şampuan",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "sharpener",
+   "tr": "kalemtıraş",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Pencil sharpener"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "shoe rack",
+   "tr": "ayakkabılık",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "shower head",
+   "tr": "duş başlığı",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Shower"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "side table",
+   "tr": "yan sehpa",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Table"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "sieve",
+   "tr": "elek",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "slipper",
+   "tr": "terlik",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "slow cooker",
+   "tr": "yavaş pişirici",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Slow cooker"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "soap dish",
+   "tr": "sabunluk",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "soap dispenser",
+   "tr": "sıvı sabunluk",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Soap dispenser"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "socket",
+   "tr": "priz",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [
+    "Power plugs and sockets"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "sofa",
+   "tr": "kanepe",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Couch",
+    "Loveseat",
+    "Sofa bed",
+    "Studio couch"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "spatula",
+   "tr": "spatula",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Spatula"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "spice rack",
+   "tr": "baharatlık",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Spice rack"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "sponge",
+   "tr": "sünger",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "stairs",
+   "tr": "merdiven",
+   "odalar": [
+    "salon",
+    "genel"
+   ],
+   "siniflar": [
+    "Stairs"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "stapler",
+   "tr": "zımba",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Stapler"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "stool",
+   "tr": "tabure",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Stool"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "stove",
+   "tr": "soba",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Wood-burning stove"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "straw",
+   "tr": "pipet",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Drinking straw"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "suitcase",
+   "tr": "bavul",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Suitcase"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "sunglasses",
+   "tr": "güneş gözlüğü",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Sunglasses"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "tablecloth",
+   "tr": "masa örtüsü",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "tableware",
+   "tr": "sofra takımı",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Tableware"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "tea towel",
+   "tr": "kurulama bezi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "teapot",
+   "tr": "demlik",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Teapot"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "teddy bear",
+   "tr": "oyuncak ayı",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Teddy bear"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "tile",
+   "tr": "fayans",
+   "odalar": [
+    "mutfak",
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "toaster",
+   "tr": "ekmek kızartma makinesi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Toaster"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "toilet paper",
+   "tr": "tuvalet kâğıdı",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Toilet paper"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "toothbrush",
+   "tr": "diş fırçası",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [
+    "Toothbrush"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "toothpaste",
+   "tr": "diş macunu",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "torch",
+   "tr": "el feneri",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [
+    "Flashlight"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "towel rail",
+   "tr": "havluluk",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "tray",
+   "tr": "tepsi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Platter",
+    "Serving tray"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "tweezers",
+   "tr": "cımbız",
+   "odalar": [
+    "banyo"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "vacuum cleaner",
+   "tr": "elektrik süpürgesi",
+   "odalar": [
+    "genel"
+   ],
+   "siniflar": [],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "vase",
+   "tr": "vazo",
+   "odalar": [
+    "salon"
+   ],
+   "siniflar": [
+    "Vase"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "wardrobe",
+   "tr": "gardırop",
+   "odalar": [
+    "yatak"
+   ],
+   "siniflar": [
+    "Closet",
+    "Wardrobe"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "washing machine",
+   "tr": "çamaşır makinesi",
+   "odalar": [
+    "banyo",
+    "genel"
+   ],
+   "siniflar": [
+    "Washing machine"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "whisk",
+   "tr": "çırpma teli",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Whisk"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "wine glass",
+   "tr": "şarap kadehi",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Wine glass"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  },
+  {
+   "en": "wok",
+   "tr": "wok tava",
+   "odalar": [
+    "mutfak"
+   ],
+   "siniflar": [
+    "Wok"
+   ],
+   "kaynak": "ek",
+   "cefr": "",
+   "ses": "",
+   "tanim": "",
+   "ornek": "",
+   "sesURL": ""
+  }
+ ]
+}

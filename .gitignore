@@ -1,0 +1,21 @@
+.DS_Store
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+.build/
+
+# distribution zips and screenshots (kept in the private archive)
+**/dagitim/
+**/onizleme/
+
+# personal data embedded at build time, generated from the private vault
+multiplatform/teoria/ios/Teoria/Kaynaklar/akis.json
+multiplatform/teoria/ios/Teoria/Kaynaklar/mufredat.json
+multiplatform/teoria/ios/Teoria/Kaynaklar/kapak-*.jpg
+ios/vitrin/ios/Vitrin/Veri/vitrin.json
+ios/asina/ios/Asina/Kaynaklar/kelimeler.json
+
+# large models (kept in the private archive)
+ios/ema/ios/Ortak/Model/*.onnx
+ios/saray/ios/Saray/SarayModel.mlpackage/

@@ -1,0 +1,4 @@
+# symlinks back to the private vault (data and scripts stay there)
+/model
+/modelleri-yukle.sh
+/telefona-kur.sh

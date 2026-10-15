@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array><dict><key>CFBundleURLName</key><string>com.fatihgocgun.saray</string><key>CFBundleURLSchemes</key><array><string>saray</string></array></dict></array>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array><string>arkit</string></array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict><key>UIApplicationShortcutItemType</key><string>mutfak</string><key>UIApplicationShortcutItemTitle</key><string>Kitchen</string><key>UIApplicationShortcutItemSubtitle</key><string>Mutfak</string><key>UIApplicationShortcutItemIconSymbolName</key><string>fork.knife</string></dict>
+		<dict><key>UIApplicationShortcutItemType</key><string>banyo</string><key>UIApplicationShortcutItemTitle</key><string>Bathroom</string><key>UIApplicationShortcutItemSubtitle</key><string>Banyo</string><key>UIApplicationShortcutItemIconSymbolName</key><string>shower</string></dict>
+		<dict><key>UIApplicationShortcutItemType</key><string>salon</string><key>UIApplicationShortcutItemTitle</key><string>Living room</string><key>UIApplicationShortcutItemSubtitle</key><string>Salon</string><key>UIApplicationShortcutItemIconSymbolName</key><string>sofa</string></dict>
+		<dict><key>UIApplicationShortcutItemType</key><string>yatak</string><key>UIApplicationShortcutItemTitle</key><string>Bedroom</string><key>UIApplicationShortcutItemSubtitle</key><string>Yatak odası</string><key>UIApplicationShortcutItemIconSymbolName</key><string>bed.double</string></dict>
+	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>tr</string>
+</dict>
+</plist>

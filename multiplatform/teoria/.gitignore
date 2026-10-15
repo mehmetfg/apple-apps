@@ -1,0 +1,8 @@
+# symlinks back to the private vault (data and scripts stay there)
+/README.md
+/degerlendirme
+/ilerleme
+/library
+/ses
+/telefona-kur.sh
+/veri

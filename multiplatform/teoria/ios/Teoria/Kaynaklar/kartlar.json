@@ -1,0 +1,1675 @@
+{
+ "surum": "2026-10-15.0905",
+ "kitaplar": [
+  {
+   "id": "kant-akil",
+   "baslik": "Kant ve aklın mahkemesi",
+   "yazar": "Immanuel Kant",
+   "seri": "Kendine Dönen Akıl · Bölüm 3",
+   "renk": "mavi",
+   "sembol": "scalemass",
+   "oz": "Bilgi nesneye değil, nesne bilgi biçimimize uyar."
+  },
+  {
+   "id": "kant-ahlak",
+   "baslik": "İçimizdeki yasa",
+   "yazar": "Immanuel Kant",
+   "seri": "Kendine Dönen Akıl · Bölüm 4",
+   "renk": "indigo",
+   "sembol": "sparkles",
+   "oz": "Özgürlük ile yasa birbirinin karşıtı değil, koşuludur."
+  },
+  {
+   "id": "heidegger-varlik",
+   "baslik": "Heidegger: varlık sorusu",
+   "yazar": "Martin Heidegger",
+   "seri": "Kendine Dönen Akıl · Bölüm 25",
+   "renk": "amber",
+   "sembol": "hammer",
+   "oz": "Dasein her zaman zaten bir dünyanın içindedir."
+  },
+  {
+   "id": "heidegger-donus",
+   "baslik": "Dönüş: teknik ve dil",
+   "yazar": "Martin Heidegger",
+   "seri": "Kendine Dönen Akıl · Bölüm 26",
+   "renk": "turuncu",
+   "sembol": "water.waves",
+   "oz": "Teknik bir araç değil, bir açılma biçimidir."
+  }
+ ],
+ "kavramlar": [
+  {
+   "id": "k-elestiri",
+   "kitap": "kant-akil",
+   "terim": "eleştiri",
+   "tanim": "Aklın kendi bilme yetkisinin sınırını kendisinin çizmesi; aklı mahkemeye çıkarmak.",
+   "anahtar": [
+    "akıl",
+    "sınır",
+    "mahkeme"
+   ],
+   "ipucu": "Gündelik anlamı değil: bir yetkinin sınırı."
+  },
+  {
+   "id": "k-analitik",
+   "kitap": "kant-akil",
+   "terim": "analitik önerme",
+   "tanim": "Yüklemi zaten öznenin içinde olan önerme; doğrulamak için kavramı çözümlemek yeter.",
+   "anahtar": [
+    "yüklem",
+    "özne",
+    "çözümle"
+   ],
+   "ipucu": "Bütün bekârlar evli değildir.",
+   "ayirt": {
+    "karsi": "sentetik önerme",
+    "fark": "Analitik önerme özneye yeni bir şey eklemez; sentetik önerme ekler."
+   }
+  },
+  {
+   "id": "k-sentetik",
+   "kitap": "kant-akil",
+   "terim": "sentetik önerme",
+   "tanim": "Yüklemi özneye yeni bir şey ekleyen önerme; bilmek için kavramın dışına çıkmak gerekir.",
+   "anahtar": [
+    "yüklem",
+    "yeni",
+    "ekle"
+   ],
+   "ipucu": "Bu masa kahverengidir."
+  },
+  {
+   "id": "k-apriori",
+   "kitap": "kant-akil",
+   "terim": "a priori",
+   "tanim": "Deneyimden önce gelen, doğruluğu deneyime başvurmadan görülen bilgi.",
+   "anahtar": [
+    "deneyim",
+    "önce"
+   ],
+   "ipucu": "Latince: öncekinden.",
+   "ayirt": {
+    "karsi": "a posteriori",
+    "fark": "A priori deneyimden önce gelir, a posteriori deneyimden sonra."
+   }
+  },
+  {
+   "id": "k-sentetik-apriori",
+   "kitap": "kant-akil",
+   "terim": "sentetik a priori",
+   "tanim": "Hem deneyimden bağımsız kesinlik taşıyan hem de dünya hakkında yeni bilgi veren önerme; 7 + 5 = 12 gibi.",
+   "anahtar": [
+    "kesin",
+    "yeni",
+    "deneyim"
+   ],
+   "ipucu": "Hume'un tablosunda olmayan üçüncü kutu."
+  },
+  {
+   "id": "k-kopernik",
+   "kitap": "kant-akil",
+   "terim": "Kopernik devrimi",
+   "tanim": "Bilginin nesneye değil, nesnelerin bilgi biçimimize uyduğu varsayımı; özne deneyimin kurucusudur.",
+   "anahtar": [
+    "nesne",
+    "uy",
+    "özne"
+   ],
+   "ipucu": "Gözlemciyi hareket ettirmek."
+  },
+  {
+   "id": "k-kategori",
+   "kitap": "kant-akil",
+   "terim": "kategori",
+   "tanim": "Anlama yetisinin deneyimi mümkün kılmak için zaten işlettiği saf kavramlar; nedensellik bunlardan biridir.",
+   "anahtar": [
+    "anlama",
+    "kavram",
+    "deneyim"
+   ],
+   "ipucu": "Bir dilin dilbilgisi gibi."
+  },
+  {
+   "id": "k-fenomen",
+   "kitap": "kant-akil",
+   "terim": "fenomen",
+   "tanim": "Duyusallığımızın ve kategorilerimizin biçiminden geçmiş hâliyle nesne; bilebildiğimiz tek şey.",
+   "anahtar": [
+    "biçim",
+    "nesne",
+    "bil"
+   ],
+   "ipucu": "Görünüş.",
+   "ayirt": {
+    "karsi": "kendinde şey",
+    "fark": "Fenomen bize göründüğü hâliyle nesnedir; kendinde şey bilme biçimimizden bağımsız hâlidir ve bilinemez."
+   }
+  },
+  {
+   "id": "k-kendinde",
+   "kitap": "kant-akil",
+   "terim": "kendinde şey",
+   "tanim": "Nesnenin bizim bilme biçimimizden bağımsız olarak ne olduğu; asla bilinemez.",
+   "anahtar": [
+    "bağımsız",
+    "bilinemez"
+   ],
+   "ipucu": "Ding an sich."
+  },
+  {
+   "id": "k-transandantal",
+   "kitap": "kant-akil",
+   "terim": "transandantal",
+   "tanim": "Bir şeyin mümkün olma koşullarını araştıran; aşkın değil, koşul arayan.",
+   "anahtar": [
+    "mümkün",
+    "koşul"
+   ],
+   "ipucu": "'Aşkın' değil."
+  },
+  {
+   "id": "k-antinomi",
+   "kitap": "kant-akil",
+   "terim": "antinomi",
+   "tanim": "Akıl deneyimin ötesine geçtiğinde hem tezin hem karşı tezin eşit güçle kanıtlanabilmesi; aklın kendi kendisiyle çelişmesi.",
+   "anahtar": [
+    "çeliş",
+    "tez",
+    "deneyim"
+   ],
+   "ipucu": "Dünyanın zamanda başlangıcı var mı?"
+  },
+  {
+   "id": "k-iyi-isteme",
+   "kitap": "kant-ahlak",
+   "terim": "iyi isteme",
+   "tanim": "Sonucundan bağımsız olarak koşulsuz iyi sayılabilecek tek şey.",
+   "anahtar": [
+    "koşulsuz",
+    "iyi",
+    "sonuç"
+   ],
+   "ipucu": "Zekâ da cesaret de kötüleşebilir; bu kötüleşmez."
+  },
+  {
+   "id": "k-odev",
+   "kitap": "kant-ahlak",
+   "terim": "ödevden dolayı eylem",
+   "tanim": "İşine gelmediği hâlde ilke gereği yapılan eylem; ahlaki değer buradadır.",
+   "anahtar": [
+    "ilke",
+    "değer"
+   ],
+   "ipucu": "Aldatmak işine geleceği hâlde aldatmayan esnaf.",
+   "ayirt": {
+    "karsi": "ödeve uygun eylem",
+    "fark": "Ödeve uygun eylem doğru olanı işine geldiği için yapar; ödevden dolayı eylem ilke gereği yapar."
+   }
+  },
+  {
+   "id": "k-maksim",
+   "kitap": "kant-ahlak",
+   "terim": "maksim",
+   "tanim": "Bir eylemin dayandığı öznel ilke; ahlakın ölçütü sonuç değil maksimdir.",
+   "anahtar": [
+    "ilke",
+    "eylem"
+   ],
+   "ipucu": "Eylemin arkasındaki kural."
+  },
+  {
+   "id": "k-kategorik",
+   "kitap": "kant-ahlak",
+   "terim": "kategorik buyruk",
+   "tanim": "Koşulsuz buyruk: yalnız evrensel yasa olmasını isteyebileceğin maksime göre eyle.",
+   "anahtar": [
+    "koşulsuz",
+    "evrensel",
+    "maksim"
+   ],
+   "ipucu": "'Şunu istiyorsan' demez.",
+   "ayirt": {
+    "karsi": "koşullu buyruk",
+    "fark": "Koşullu buyruk bir amaca bağlıdır; kategorik buyruk hiçbir amaca bağlı değildir."
+   }
+  },
+  {
+   "id": "k-amac",
+   "kitap": "kant-ahlak",
+   "terim": "amaç olarak insan",
+   "tanim": "İnsanlığa hiçbir zaman yalnızca araç olarak değil, her zaman aynı zamanda amaç olarak davranmak.",
+   "anahtar": [
+    "araç",
+    "amaç",
+    "yalnızca"
+   ],
+   "ipucu": "Taksi şoförü örneği."
+  },
+  {
+   "id": "k-ozerklik",
+   "kitap": "kant-ahlak",
+   "terim": "özerklik",
+   "tanim": "Ahlak yasasını akıl sahibi varlık olarak kendimizin koyması; ona uymak boyun eğmek değil özgür olmaktır.",
+   "anahtar": [
+    "yasa",
+    "koy",
+    "özgür"
+   ],
+   "ipucu": "Karşıtı yaderklik.",
+   "ayirt": {
+    "karsi": "yaderklik",
+    "fark": "Özerklikte yasayı kendimiz koyarız; yaderklikte yasa dışarıdan gelir: Tanrı, ceza, toplum."
+   }
+  },
+  {
+   "id": "k-postulat",
+   "kitap": "kant-ahlak",
+   "terim": "postulat",
+   "tanim": "Kanıtlanmış bilgi olmayan ama ahlak yaşamının anlamlı olması için varsayılması gereken şey: özgürlük, ruhun ölümsüzlüğü, Tanrı.",
+   "anahtar": [
+    "varsay",
+    "ahlak",
+    "kanıt"
+   ],
+   "ipucu": "Yapmalısın, öyleyse yapabilirsin."
+  },
+  {
+   "id": "k-yuce",
+   "kitap": "kant-ahlak",
+   "terim": "yüce",
+   "tanim": "Duyuların kavrayamadığı büyüklük karşısında önce ezilip sonra aklın onu düşünebildiğini fark ederek yükselme.",
+   "anahtar": [
+    "büyüklük",
+    "ezil",
+    "akıl"
+   ],
+   "ipucu": "Fırtınalı deniz, yıldızlı gökyüzü.",
+   "ayirt": {
+    "karsi": "güzel",
+    "fark": "Güzel çıkarsız bir hoşlanma uyandırır; yüce önce ezer sonra yükseltir."
+   }
+  },
+  {
+   "id": "h-dasein",
+   "kitap": "heidegger-varlik",
+   "terim": "Dasein",
+   "tanim": "Orada olmak; kendi varlığı kendisi için bir sorun olan, nasıl var olacağına karar vermek zorunda olan varlık.",
+   "anahtar": [
+    "varlık",
+    "sorun",
+    "karar"
+   ],
+   "ipucu": "İnsan, özne, bilinç demez; neden?"
+  },
+  {
+   "id": "h-dunyada",
+   "kitap": "heidegger-varlik",
+   "terim": "dünya içinde varlık",
+   "tanim": "Dasein'ın her zaman zaten bir dünyanın içinde olması; önce özne sonra dünya diye bir başlangıç yoktur.",
+   "anahtar": [
+    "zaten",
+    "dünya",
+    "içinde"
+   ],
+   "ipucu": "Descartes'ın resmi ters çevrilir."
+  },
+  {
+   "id": "h-elaltinda",
+   "kitap": "heidegger-varlik",
+   "terim": "el altında olmak",
+   "tanim": "Şeyin kullanım içinde, işin içinde erimiş olarak verilmesi; çekiç elin uzantısıdır.",
+   "anahtar": [
+    "kullanım",
+    "uzantı"
+   ],
+   "ipucu": "Çalışırken çekici görmezsin.",
+   "ayirt": {
+    "karsi": "önümde durmak",
+    "fark": "El altındaki şey kullanımda erir; önümde duran şey, aksama olunca seyredilen nesne olarak belirir."
+   }
+  },
+  {
+   "id": "h-herkes",
+   "kitap": "heidegger-varlik",
+   "terim": "herkes (das Man)",
+   "tanim": "Dasein'ın gündelik hâli: herkesin düşündüğü gibi düşünmek; sorumluluk kimsede değildir, çünkü herkes hiç kimsedir.",
+   "anahtar": [
+    "gündelik",
+    "kimse",
+    "sorumluluk"
+   ],
+   "ipucu": "El âlem."
+  },
+  {
+   "id": "h-kaygi",
+   "kitap": "heidegger-varlik",
+   "terim": "kaygı",
+   "tanim": "Nesnesi olmayan, gündelik anlamlar ağını askıya alıp Dasein'ı kendi çıplak varlığıyla baş başa bırakan deneyim.",
+   "anahtar": [
+    "nesne",
+    "çıplak",
+    "anlam"
+   ],
+   "ipucu": "Korkudan farkı.",
+   "ayirt": {
+    "karsi": "korku",
+    "fark": "Korku belirli bir şeyden duyulur; kaygının nesnesi yoktur."
+   }
+  },
+  {
+   "id": "h-atilmislik",
+   "kitap": "heidegger-varlik",
+   "terim": "atılmışlık",
+   "tanim": "Kendimizi hiç seçmediğimiz bir dilin, ailenin, tarihin içinde bulmamız ve oradan itibaren seçmemiz.",
+   "anahtar": [
+    "seçme",
+    "içinde",
+    "tarih"
+   ],
+   "ipucu": "Başlangıcı ben seçmedim."
+  },
+  {
+   "id": "h-olume",
+   "kitap": "heidegger-varlik",
+   "terim": "ölüme doğru varlık",
+   "tanim": "Ölümü ileride gelecek bir olay değil, şimdi taşınan en kendine ait, aşılamaz ve kesin imkân olarak üstlenmek.",
+   "anahtar": [
+    "imkân",
+    "kendine",
+    "üstlen"
+   ],
+   "ipucu": "'Herkes ölür' örtüsü."
+  },
+  {
+   "id": "h-sahicilik",
+   "kitap": "heidegger-varlik",
+   "terim": "sahicilik",
+   "tanim": "Belirli bir hayat tarzı değil; hangi hayatı yaşarsan yaşa onu kendi kararın olarak üstlenmek.",
+   "anahtar": [
+    "karar",
+    "üstlen",
+    "hayat"
+   ],
+   "ipucu": "Bir yaşam biçimi değil, bir sahiplenme."
+  },
+  {
+   "id": "h-anlama",
+   "kitap": "heidegger-varlik",
+   "terim": "anlama",
+   "tanim": "Bir önermeyi kavramak değil, bir şeyi yapabilmek; Dasein'ın kendi imkânlarına doğru açık olması.",
+   "anahtar": [
+    "imkân",
+    "açık",
+    "yapabil"
+   ],
+   "ipucu": "Senin işaretin: F1-26."
+  },
+  {
+   "id": "h-donus",
+   "kitap": "heidegger-donus",
+   "terim": "dönüş (Kehre)",
+   "tanim": "Varlığın anlamını Dasein'dan çözümlemek yerine varlığın tarih içinde nasıl açıldığını anlatmaya geçiş.",
+   "anahtar": [
+    "varlık",
+    "tarih",
+    "açıl"
+   ],
+   "ipucu": "Varlık ve Zaman yarım kaldı."
+  },
+  {
+   "id": "h-aletheia",
+   "kitap": "heidegger-donus",
+   "terim": "alētheia",
+   "tanim": "Hakikatin uygunluk değil, örtüsünü açma, gizlilikten çıkma olması; her açılma aynı anda bir örtmedir.",
+   "anahtar": [
+    "örtü",
+    "aç",
+    "gizli"
+   ],
+   "ipucu": "Yunanca hakikat.",
+   "ayirt": {
+    "karsi": "uygunluk olarak hakikat",
+    "fark": "Uygunlukta hakikat önermenin nesneye uymasıdır; alētheia'da önce şeyin görünür hâle gelmesidir."
+   }
+  },
+  {
+   "id": "h-gestell",
+   "kitap": "heidegger-donus",
+   "terim": "çerçeveleme (Gestell)",
+   "tanim": "Modern tekniğin açılma biçimi: her şeyin hazır bekleyen kaynak olarak görünmesi.",
+   "anahtar": [
+    "kaynak",
+    "açılma",
+    "hazır"
+   ],
+   "ipucu": "Nehir güç kaynağı, insan insan kaynağı."
+  },
+  {
+   "id": "h-dil",
+   "kitap": "heidegger-donus",
+   "terim": "dil varlığın evidir",
+   "tanim": "Dil kullandığımız bir araç değil; hangi dünyada yaşadığımız hangi kelimelerle düşünebildiğimize bağlıdır.",
+   "anahtar": [
+    "araç",
+    "dünya",
+    "kelime"
+   ],
+   "ipucu": "Konuşan biz değiliz, dil konuşur."
+  }
+ ],
+ "cumleler": [
+  {
+   "id": "c-k1",
+   "kitap": "kant-akil",
+   "metin": "Bütün bilgimiz deneyimle başlar, ama bu hepsinin deneyimden çıktığı anlamına gelmez.",
+   "anahtar": [
+    "deneyim",
+    "başlar",
+    "çıktığı"
+   ],
+   "oz": "Bilgi deneyimle başlar ama deneyime indirgenemez.",
+   "yapi": "Bütün X Y ile başlar, ama bu hepsinin Y'den çıktığı anlamına gelmez.",
+   "taklit": "Bütün yazı okumayla başlar, ama bu her cümlenin okunandan çıktığı anlamına gelmez.",
+   "kaynak": "Kant · KDA Bölüm 3"
+  },
+  {
+   "id": "c-k2",
+   "kitap": "kant-akil",
+   "metin": "İçeriksiz düşünceler boş, kavramsız sezgiler kördür.",
+   "anahtar": [
+    "içeriksiz",
+    "boş",
+    "kavramsız",
+    "kör"
+   ],
+   "oz": "Duyu ile kavram birbirine muhtaçtır.",
+   "yapi": "X'siz A boş, Y'siz B kördür.",
+   "taklit": "Ölçüsüz cesaret kör, cesaretsiz ölçü kısırdır.",
+   "kaynak": "Kant · KDA Bölüm 3"
+  },
+  {
+   "id": "c-k3",
+   "kitap": "kant-akil",
+   "metin": "Nedensellik, bir dilin dilbilgisi gibidir: kelimelerin içinde bulunmaz ama onsuz cümle kurulmaz.",
+   "anahtar": [
+    "dilbilgisi",
+    "kelime",
+    "cümle"
+   ],
+   "oz": "Nedensellik dünyada değil, deneyimi düzenleyen zihnin kuralıdır.",
+   "yapi": "X, Y gibidir: Z'nin içinde bulunmaz ama onsuz W olmaz.",
+   "taklit": "Ritim, bir şiirin nefesi gibidir: kelimelerde görünmez ama onsuz dize yürümez.",
+   "kaynak": "Kant · KDA Bölüm 3"
+  },
+  {
+   "id": "c-k4",
+   "kitap": "kant-akil",
+   "metin": "İnanca yer açmak için bilgiyi kaldırmak zorunda kaldım.",
+   "anahtar": [
+    "inanca",
+    "yer",
+    "bilgiyi",
+    "kaldırmak"
+   ],
+   "oz": "Teorik akıl Tanrı'yı ne kanıtlar ne çürütür.",
+   "yapi": "X'e yer açmak için Y'yi kaldırmak zorunda kaldım.",
+   "taklit": "Düşünmeye yer açmak için bildirimleri kaldırmak zorunda kaldım.",
+   "kaynak": "Kant · Saf Aklın Eleştirisi"
+  },
+  {
+   "id": "c-k5",
+   "kitap": "kant-akil",
+   "metin": "Varlık bir yüklem değildir: yüz gerçek talerin kavramı ile yüz olası talerin kavramı birebir aynıdır.",
+   "anahtar": [
+    "varlık",
+    "yüklem",
+    "kavramı",
+    "aynıdır"
+   ],
+   "oz": "Bir şeyin var olması, kavramına bir özellik eklemez.",
+   "yapi": "X bir Y değildir: gerçek A'nın kavramı ile olası A'nın kavramı aynıdır.",
+   "taklit": "Söz bir eylem değildir: tutulan sözün kavramı ile tutulmayan sözün kavramı aynıdır.",
+   "kaynak": "Kant · KDA Bölüm 3"
+  },
+  {
+   "id": "c-ka1",
+   "kitap": "kant-ahlak",
+   "metin": "Yalnız, aynı zamanda evrensel bir yasa hâline gelmesini isteyebileceğin maksime göre eyle.",
+   "anahtar": [
+    "evrensel",
+    "yasa",
+    "maksime",
+    "eyle"
+   ],
+   "oz": "Kendi kuralını herkesin kuralı yapabiliyorsan doğrudur.",
+   "yapi": "Yalnız, aynı zamanda X olmasını isteyebileceğin Y'ye göre Z.",
+   "taklit": "Yalnız, aynı zamanda herkesin okumasını isteyebileceğin cümleyi yaz.",
+   "kaynak": "Kant · KDA Bölüm 4"
+  },
+  {
+   "id": "c-ka2",
+   "kitap": "kant-ahlak",
+   "metin": "İnsanlığa, ister kendi kişinde ister başkasının kişisinde olsun, hiçbir zaman yalnızca araç olarak değil, her zaman aynı zamanda amaç olarak davran.",
+   "anahtar": [
+    "yalnızca",
+    "araç",
+    "amaç",
+    "davran"
+   ],
+   "oz": "Kimse yalnızca bir araca indirgenemez.",
+   "yapi": "X'e hiçbir zaman yalnızca A olarak değil, her zaman aynı zamanda B olarak davran.",
+   "taklit": "Zamana hiçbir zaman yalnızca harcanacak bir kaynak olarak değil, her zaman aynı zamanda yaşanacak bir yer olarak bak.",
+   "kaynak": "Kant · KDA Bölüm 4"
+  },
+  {
+   "id": "c-ka3",
+   "kitap": "kant-ahlak",
+   "metin": "Özgürlük ile yasa burada birbirinin karşıtı değil, birbirinin koşuludur.",
+   "anahtar": [
+    "özgürlük",
+    "yasa",
+    "karşıtı",
+    "koşuludur"
+   ],
+   "oz": "Kendi yasasını koymayan özgür değildir.",
+   "yapi": "X ile Y birbirinin karşıtı değil, birbirinin koşuludur.",
+   "taklit": "Disiplin ile yaratıcılık birbirinin karşıtı değil, birbirinin koşuludur.",
+   "kaynak": "Kant · KDA Bölüm 4"
+  },
+  {
+   "id": "c-ka4",
+   "kitap": "kant-ahlak",
+   "metin": "Yapmalısın, öyleyse yapabilirsin.",
+   "anahtar": [
+    "yapmalısın",
+    "yapabilirsin"
+   ],
+   "oz": "Ödev, özgürlüğü varsayar.",
+   "yapi": "X-malısın, öyleyse X-abilirsin.",
+   "taklit": "Anlamalısın, öyleyse anlayabilirsin.",
+   "kaynak": "Kant · KDA Bölüm 4"
+  },
+  {
+   "id": "c-h1",
+   "kitap": "heidegger-varlik",
+   "metin": "Dünya, nesnelerin toplamı değil, gönderme ilişkilerinden oluşan anlamlı bir bütündür.",
+   "anahtar": [
+    "nesnelerin",
+    "toplamı",
+    "gönderme",
+    "bütündür"
+   ],
+   "oz": "Dünya bir eşya yığını değil, anlam ağıdır.",
+   "yapi": "X, Y'lerin toplamı değil, Z'den oluşan anlamlı bir bütündür.",
+   "taklit": "Bir kitap, cümlelerin toplamı değil, birbirine seslenen fikirlerden oluşan anlamlı bir bütündür.",
+   "kaynak": "F1-26 Heidegger I · senin işaretin (27 Ağustos)"
+  },
+  {
+   "id": "c-h2",
+   "kitap": "heidegger-varlik",
+   "metin": "Anlama, Dasein'ın kendi imkânlarına doğru açık olmasıdır.",
+   "anahtar": [
+    "anlama",
+    "imkânlarına",
+    "açık"
+   ],
+   "oz": "Anlamak bir önermeyi kavramak değil, yapabilmektir.",
+   "yapi": "X, Y'nin kendi Z'lerine doğru açık olmasıdır.",
+   "taklit": "Öğrenmek, zihnin kendi sınırlarına doğru açık olmasıdır.",
+   "kaynak": "F1-26 Heidegger I · senin işaretin (27 Ağustos)"
+  },
+  {
+   "id": "c-h3",
+   "kitap": "heidegger-varlik",
+   "metin": "Sorumluluk kimsede değildir, çünkü özne herkestir ve herkes hiç kimsedir.",
+   "anahtar": [
+    "sorumluluk",
+    "herkestir",
+    "hiç kimsedir"
+   ],
+   "oz": "Kalabalığın içinde karar sahipsiz kalır.",
+   "yapi": "X kimsede değildir, çünkü Y herkestir ve herkes hiç kimsedir.",
+   "taklit": "Hata kimsede değildir, çünkü karar komitededir ve komite hiç kimsedir.",
+   "kaynak": "Heidegger · KDA Bölüm 25"
+  },
+  {
+   "id": "c-h4",
+   "kitap": "heidegger-varlik",
+   "metin": "Sahicilik, belirli bir hayat tarzı değildir; hangi hayatı yaşarsan yaşa, onu kendi kararın olarak üstlenmendir.",
+   "anahtar": [
+    "hayat tarzı",
+    "kararın",
+    "üstlenmendir"
+   ],
+   "oz": "Sahicilik içerik değil, sahiplenmedir.",
+   "yapi": "X, belirli bir Y değildir; hangi Y'yi Z'rsen Z, onu kendi W olarak üstlenmendir.",
+   "taklit": "Üslup, belirli bir kelime seçimi değildir; hangi kelimeyi kullanırsan kullan, onu kendi sesin olarak taşımandır.",
+   "kaynak": "Heidegger · KDA Bölüm 25"
+  },
+  {
+   "id": "c-hd1",
+   "kitap": "heidegger-donus",
+   "metin": "Tehlike, makinelerde değil, her şeyi kaynak olarak görmeye başlayan ve sonunda kendini de böyle gören bakıştadır.",
+   "anahtar": [
+    "tehlike",
+    "makinelerde",
+    "kaynak",
+    "bakıştadır"
+   ],
+   "oz": "Sorun alet değil, bakıştır.",
+   "yapi": "Tehlike, X'te değil, her şeyi Y olarak görmeye başlayan ve sonunda kendini de böyle gören bakıştadır.",
+   "taklit": "Tehlike, ekranda değil, her şeyi içerik olarak görmeye başlayan ve sonunda kendini de böyle gören bakıştadır.",
+   "kaynak": "Heidegger · KDA Bölüm 26"
+  },
+  {
+   "id": "c-hd2",
+   "kitap": "heidegger-donus",
+   "metin": "Bir şeyi belli bir biçimde görmek, başka biçimlerini kapatmaktır.",
+   "anahtar": [
+    "biçimde",
+    "görmek",
+    "kapatmaktır"
+   ],
+   "oz": "Her açılma aynı anda bir örtmedir.",
+   "yapi": "Bir şeyi belli bir biçimde X, başka biçimlerini Y'dır.",
+   "taklit": "Bir soruyu belli bir biçimde sormak, başka cevaplarını susturmaktır.",
+   "kaynak": "Heidegger · KDA Bölüm 26"
+  },
+  {
+   "id": "c-hd3",
+   "kitap": "heidegger-donus",
+   "metin": "Eğer çerçeveleme çağı dilin kendisini de bir bilgi aktarım aracına indirgiyorsa, dilin başka bir işleyişini nerede görebiliriz?",
+   "anahtar": [
+    "çerçeveleme",
+    "aktarım",
+    "indirgiyorsa",
+    "işleyişini"
+   ],
+   "oz": "Bilgi çağında dil yalnız aktarım aracına dönüşür; şiir başka bir işleyiştir.",
+   "yapi": "Eğer X çağı Y'nin kendisini de bir Z aracına indirgiyorsa, Y'nin başka bir işleyişini nerede görebiliriz?",
+   "taklit": "Eğer ölçüm çağı dostluğun kendisini de bir ağ kurma aracına indirgiyorsa, dostluğun başka bir işleyişini nerede görebiliriz?",
+   "kaynak": "F1-27 Heidegger II · senin işaretin"
+  }
+ ],
+ "donusumler": [
+  {
+   "id": "d-bil1",
+   "kok": "bilmek",
+   "hedef": "isim",
+   "dogru": "bilgi",
+   "secenekler": [
+    "bilgi",
+    "bilen",
+    "bilinir"
+   ],
+   "aciklama": "-gi: eylemin ürünü. Bilgi, bilmenin sonucudur."
+  },
+  {
+   "id": "d-bil2",
+   "kok": "bilmek",
+   "hedef": "isim",
+   "dogru": "bilinç",
+   "secenekler": [
+    "bilinç",
+    "bilgili",
+    "bildik"
+   ],
+   "aciklama": "-inç: eylemin sürekli hâli. Bilinç, bilmenin kendine dönük hâlidir."
+  },
+  {
+   "id": "d-bil3",
+   "kok": "bilmek",
+   "hedef": "sıfat",
+   "dogru": "bilinemez",
+   "secenekler": [
+    "bilinemez",
+    "bilgi",
+    "bilim"
+   ],
+   "aciklama": "Edilgen + olumsuz yeterlik: kendinde şey bilinemezdir."
+  },
+  {
+   "id": "d-var1",
+   "kok": "var olmak",
+   "hedef": "isim",
+   "dogru": "varlık",
+   "secenekler": [
+    "varlık",
+    "varan",
+    "varsayım"
+   ],
+   "aciklama": "-lık: durum ve öz. Varlık, var olmanın kendisidir."
+  },
+  {
+   "id": "d-var2",
+   "kok": "var olmak",
+   "hedef": "isim",
+   "dogru": "varoluş",
+   "secenekler": [
+    "varoluş",
+    "varlıklı",
+    "varmak"
+   ],
+   "aciklama": "-uş: eylemin tarzı. Varoluş, var olmanın biçimidir."
+  },
+  {
+   "id": "d-anla1",
+   "kok": "anlamak",
+   "hedef": "isim",
+   "dogru": "anlayış",
+   "secenekler": [
+    "anlayış",
+    "anlamlı",
+    "anlatı"
+   ],
+   "aciklama": "-yış: eylemin tarzı. Anlayış, anlamanın kendine özgü biçimidir."
+  },
+  {
+   "id": "d-anla2",
+   "kok": "anlamak",
+   "hedef": "sıfat",
+   "dogru": "anlaşılır",
+   "secenekler": [
+    "anlaşılır",
+    "anlam",
+    "anlayış"
+   ],
+   "aciklama": "Edilgen geniş zaman sıfatı: anlaşılabilen."
+  },
+  {
+   "id": "d-dus1",
+   "kok": "düşünmek",
+   "hedef": "isim",
+   "dogru": "düşünce",
+   "secenekler": [
+    "düşünce",
+    "düşünür",
+    "düşünsel"
+   ],
+   "aciklama": "-ce: eylemin ürünü. Düşünce, düşünmenin vardığı yerdir."
+  },
+  {
+   "id": "d-dus2",
+   "kok": "düşünmek",
+   "hedef": "sıfat",
+   "dogru": "düşünsel",
+   "secenekler": [
+    "düşünsel",
+    "düşünce",
+    "düşünüş"
+   ],
+   "aciklama": "-sel: ait olma. Düşünsel, düşünceye ait olan."
+  },
+  {
+   "id": "d-gor1",
+   "kok": "görmek",
+   "hedef": "isim",
+   "dogru": "görünüş",
+   "secenekler": [
+    "görünüş",
+    "görgü",
+    "görevli"
+   ],
+   "aciklama": "Dönüşlü + -üş: kendini gösterme tarzı. Kant'ta fenomenin karşılığı."
+  },
+  {
+   "id": "d-gor2",
+   "kok": "görmek",
+   "hedef": "isim",
+   "dogru": "görü",
+   "secenekler": [
+    "görü",
+    "görüntülü",
+    "görünmez"
+   ],
+   "aciklama": "-ü: eylemin ürünü. Görü, sezginin eski karşılığı."
+  },
+  {
+   "id": "d-ac1",
+   "kok": "açmak",
+   "hedef": "isim",
+   "dogru": "açılma",
+   "secenekler": [
+    "açılma",
+    "açık",
+    "açıcı"
+   ],
+   "aciklama": "Edilgen + -ma: Heidegger'de hakikatin örtüsünün kalkması."
+  },
+  {
+   "id": "d-kur1",
+   "kok": "kurmak",
+   "hedef": "sıfat",
+   "dogru": "kurucu",
+   "secenekler": [
+    "kurucu",
+    "kurum",
+    "kuruluş"
+   ],
+   "aciklama": "-ucu: eylemi yapan. Kant'ta özne deneyimin kurucusudur."
+  },
+  {
+   "id": "d-kur2",
+   "kok": "kurmak",
+   "hedef": "isim",
+   "dogru": "kurum",
+   "secenekler": [
+    "kurum",
+    "kurucu",
+    "kurulu"
+   ],
+   "aciklama": "-um: eylemin kalıcı ürünü. Söz verme bir kurumdur."
+  },
+  {
+   "id": "d-yarg1",
+   "kok": "yargılamak",
+   "hedef": "isim",
+   "dogru": "yargı",
+   "secenekler": [
+    "yargı",
+    "yargıç",
+    "yargısal"
+   ],
+   "aciklama": "Kök isim: Yargı Gücünün Eleştirisi."
+  },
+  {
+   "id": "d-ist1",
+   "kok": "istemek",
+   "hedef": "isim",
+   "dogru": "isteme",
+   "secenekler": [
+    "isteme",
+    "istekli",
+    "istenen"
+   ],
+   "aciklama": "-me: eylemin kendisi. İyi isteme, iyi niyetten daha doğru çeviri."
+  },
+  {
+   "id": "d-sor1",
+   "kok": "sormak",
+   "hedef": "isim",
+   "dogru": "sorgu",
+   "secenekler": [
+    "sorgu",
+    "sorumlu",
+    "sorulu"
+   ],
+   "aciklama": "-gu: eylemin ürünü ve biçimi."
+  },
+  {
+   "id": "d-sor2",
+   "kok": "sormak",
+   "hedef": "sıfat",
+   "dogru": "sorumlu",
+   "secenekler": [
+    "sorumlu",
+    "soru",
+    "sorgu"
+   ],
+   "aciklama": "Sorulabilen, hesap verecek olan: herkes hiç kimse olduğunda kimse sorumlu değildir."
+  },
+  {
+   "id": "d-at1",
+   "kok": "atmak",
+   "hedef": "isim",
+   "dogru": "atılmışlık",
+   "secenekler": [
+    "atılmışlık",
+    "atılgan",
+    "atış"
+   ],
+   "aciklama": "Edilgen + geçmiş + -lık: içine atılmış olma durumu. Heidegger'in Geworfenheit'ı."
+  },
+  {
+   "id": "d-ust1",
+   "kok": "üstlenmek",
+   "hedef": "isim",
+   "dogru": "üstlenme",
+   "secenekler": [
+    "üstlenme",
+    "üstün",
+    "üstlük"
+   ],
+   "aciklama": "-me: eylemin kendisi. Sahicilik bir üstlenmedir."
+  },
+  {
+   "id": "d-belir1",
+   "kok": "belirlemek",
+   "hedef": "isim",
+   "dogru": "belirlenim",
+   "secenekler": [
+    "belirlenim",
+    "belirgin",
+    "belirti"
+   ],
+   "aciklama": "Edilgen + -im: belirlenmiş olma hâli (determinasyon)."
+  },
+  {
+   "id": "d-gerek1",
+   "kok": "gerekmek",
+   "hedef": "sıfat",
+   "dogru": "zorunlu",
+   "secenekler": [
+    "zorunlu",
+    "gerekçe",
+    "gerekirci"
+   ],
+   "aciklama": "Felsefede 'gerekli'nin kavramsal karşılığı: başka türlü olamayan."
+  },
+  {
+   "id": "d-olmak1",
+   "kok": "olmak",
+   "hedef": "isim",
+   "dogru": "olanak",
+   "secenekler": [
+    "olanak",
+    "oluşum",
+    "olasılıklı"
+   ],
+   "aciklama": "-anak: olabilme. İmkânın öz Türkçesi."
+  },
+  {
+   "id": "d-olmak2",
+   "kok": "olmak",
+   "hedef": "sıfat",
+   "dogru": "olumsal",
+   "secenekler": [
+    "olumsal",
+    "olanak",
+    "oluş"
+   ],
+   "aciklama": "-sal: başka türlü de olabilen (zorunlunun karşıtı)."
+  }
+ ],
+ "kavramsallar": [
+  {
+   "id": "v-1",
+   "kitap": "kant-akil",
+   "gundelik": "Her şeyi zaten kafamızdaki gözlükle görüyoruz.",
+   "kavramsal": "Nesneler bize ancak bilme biçimimizden geçerek, fenomen olarak verilir.",
+   "ipucu": "nesne · bilme biçimi · fenomen"
+  },
+  {
+   "id": "v-2",
+   "kitap": "kant-akil",
+   "gundelik": "Bazı şeyleri hiç denemeden kesin biliyoruz ve bu bilgi bize yeni bir şey söylüyor.",
+   "kavramsal": "Deneyimden bağımsız kesinlik taşıyan ve dünya hakkında yeni bilgi veren sentetik a priori önermeler vardır.",
+   "ipucu": "deneyimden bağımsız · sentetik a priori"
+  },
+  {
+   "id": "v-3",
+   "kitap": "kant-ahlak",
+   "gundelik": "Doğruyu işine geldiği için yapan biri aslında iyi biri sayılmaz.",
+   "kavramsal": "Ödeve uygun eylem ahlaki değer taşımaz; ahlaki değer yalnız ödevden dolayı eylemdedir.",
+   "ipucu": "ödeve uygun · ödevden dolayı · ahlaki değer"
+  },
+  {
+   "id": "v-4",
+   "kitap": "kant-ahlak",
+   "gundelik": "Kimseyi işini görmek için kullanıp atmamalısın.",
+   "kavramsal": "Kişiyi hiçbir zaman yalnızca araç olarak değil, aynı zamanda amaç olarak görmek gerekir.",
+   "ipucu": "yalnızca araç · amaç"
+  },
+  {
+   "id": "v-5",
+   "kitap": "kant-ahlak",
+   "gundelik": "Kurallara uyduğumda kendimi kısıtlanmış değil, özgür hissediyorum, çünkü kuralı ben koydum.",
+   "kavramsal": "Özerk özne, uyduğu yasanın koyucusu olduğu için yasaya uyarak özgürleşir.",
+   "ipucu": "özerk · koyucu · yasa"
+  },
+  {
+   "id": "v-6",
+   "kitap": "heidegger-varlik",
+   "gundelik": "Kalem elimdeyken kalemi düşünmüyorum; ancak bozulunca fark ediyorum.",
+   "kavramsal": "El altındaki alet kullanımda görünmez kalır; ancak aksama olduğunda önümde duran bir nesne olarak belirir.",
+   "ipucu": "el altında · aksama · önümde durmak"
+  },
+  {
+   "id": "v-7",
+   "kitap": "heidegger-varlik",
+   "gundelik": "Herkes ne diyorsa onu düşünüyoruz, kimse kendi kafasıyla karar vermiyor.",
+   "kavramsal": "Gündelik Dasein, herkesin anonim yorumuna dağılır; karar sahipsiz kalır.",
+   "ipucu": "gündelik · herkes · sahipsiz"
+  },
+  {
+   "id": "v-8",
+   "kitap": "heidegger-varlik",
+   "gundelik": "Bir gün öleceğimi bilmek bana neyin önemli olduğunu gösteriyor.",
+   "kavramsal": "Ölüme doğru varlığı üstlenmek, sonluluğun içinde kendi imkânlarını seçmeyi açar.",
+   "ipucu": "ölüme doğru varlık · sonluluk · imkân"
+  },
+  {
+   "id": "v-9",
+   "kitap": "heidegger-varlik",
+   "gundelik": "Ailemi, dilimi, doğduğum yeri seçmedim ama hayatımı oradan kuruyorum.",
+   "kavramsal": "Dasein atılmışlığın içinden kendini imkânlarına doğru tasarlar.",
+   "ipucu": "atılmışlık · tasarlamak · imkân"
+  },
+  {
+   "id": "v-10",
+   "kitap": "heidegger-donus",
+   "gundelik": "Artık ormana bakınca ağaç değil kereste görüyoruz.",
+   "kavramsal": "Çerçeveleme, her varolanı hazır bekleyen bir kaynak olarak açar.",
+   "ipucu": "çerçeveleme · varolan · kaynak"
+  },
+  {
+   "id": "v-11",
+   "kitap": "heidegger-donus",
+   "gundelik": "Bir konuya bir açıdan bakınca öteki açılar gözden kaçıyor.",
+   "kavramsal": "Her açılma aynı anda bir örtmedir; görünür kılınan, başka görünüşleri gizler.",
+   "ipucu": "açılma · örtme · görünüş"
+  },
+  {
+   "id": "v-12",
+   "kitap": "heidegger-donus",
+   "gundelik": "Kullandığımız kelimeler neyi düşünebileceğimizi belirliyor.",
+   "kavramsal": "Dil düşüncenin aracı değil, dünyanın açıldığı yerdir.",
+   "ipucu": "araç değil · açılmak"
+  }
+ ],
+ "baglar": [
+  {
+   "id": "b-1",
+   "a": "k-kopernik",
+   "b": "h-dunyada",
+   "soru": "Kant'ın Kopernik devrimi ile Heidegger'in dünya içinde varlığı özneyi nasıl farklı konumlar?",
+   "model": "Kant özneyi deneyimin kurucusu yapar; Heidegger ise kurucu bir özneden önce zaten dünyada olan bir varlıkla başlar. Biri dünyayı öznenin biçimlerine bağlar, öbürü özneyi dünyanın içine geri koyar."
+  },
+  {
+   "id": "b-2",
+   "a": "k-kendinde",
+   "b": "h-aletheia",
+   "soru": "Kendinde şeyin bilinemezliği ile alētheia'nın 'her açılma bir örtmedir' fikri arasında nasıl bir akrabalık var?",
+   "model": "İkisinde de bilinen her şey bir sınırın içinden görünür. Kant'ta bu sınır öznenin biçimleridir ve kalıcıdır; Heidegger'de açılmanın kendisidir ve tarih içinde değişir."
+  },
+  {
+   "id": "b-3",
+   "a": "k-ozerklik",
+   "b": "h-sahicilik",
+   "soru": "Kant'ın özerkliği ile Heidegger'in sahiciliği 'kendi yasası' bakımından nerede buluşur, nerede ayrılır?",
+   "model": "İkisi de dışarıdan alınan yönü reddeder. Kant'ta kendi koyduğum yasa evrenseldir; Heidegger'de üstlendiğim karar tekil ve sonludur, evrensel bir test yoktur."
+  },
+  {
+   "id": "b-4",
+   "a": "k-amac",
+   "b": "h-gestell",
+   "soru": "'İnsanı yalnızca araç olarak görme' ilkesi ile çerçevelemenin 'insan kaynağı' bakışı nasıl konuşur?",
+   "model": "Çerçeveleme Kant'ın yasakladığı bakışın tarihsel biçimidir: insanı kaynak olarak açar. Kant bunu ahlaki ilkeyle sınırlar; Heidegger bunun bir ilkeyle değil, başka bir açılmayla aşılabileceğini söyler."
+  },
+  {
+   "id": "b-5",
+   "a": "k-kategori",
+   "b": "h-dil",
+   "soru": "Kategorilerin 'dilbilgisi' benzetmesi ile 'dil varlığın evidir' sözü arasındaki fark nedir?",
+   "model": "Kant'ta dilbilgisi benzetmesi zihnin evrensel ve tarih dışı kurallarını anlatır; Heidegger'de dil tarihseldir, seçilmemiştir ve dünyanın kendisini açar."
+  },
+  {
+   "id": "b-6",
+   "a": "k-yuce",
+   "b": "h-kaygi",
+   "soru": "Yüce deneyimi ile kaygı deneyimi, gündelik dünyanın askıya alınması bakımından nasıl karşılaştırılır?",
+   "model": "İkisi de olağan kavrayışı çökertir. Yücede akıl kendi gücünü fark ederek yükselir; kaygıda Dasein hiçbir dayanak bulmadan kendi çıplak varlığıyla kalır."
+  }
+ ],
+ "aforizmalar": [
+  {
+   "id": "a-1",
+   "metin": "Üstümde yıldızlı gökyüzü, içimde ahlak yasası.",
+   "kaynak": "Kant · Pratik Aklın Eleştirisi",
+   "kitap": "kant-ahlak"
+  },
+  {
+   "id": "a-2",
+   "metin": "İçeriksiz düşünceler boş, kavramsız sezgiler kördür.",
+   "kaynak": "Kant · Saf Aklın Eleştirisi",
+   "kitap": "kant-akil"
+  },
+  {
+   "id": "a-3",
+   "metin": "Bütün bilgimiz deneyimle başlar, ama hepsi deneyimden çıkmaz.",
+   "kaynak": "Kant · Saf Aklın Eleştirisi",
+   "kitap": "kant-akil"
+  },
+  {
+   "id": "a-4",
+   "metin": "İnanca yer açmak için bilgiyi kaldırmak zorunda kaldım.",
+   "kaynak": "Kant · Saf Aklın Eleştirisi",
+   "kitap": "kant-akil"
+  },
+  {
+   "id": "a-5",
+   "metin": "Yapmalısın, öyleyse yapabilirsin.",
+   "kaynak": "Kant",
+   "kitap": "kant-ahlak"
+  },
+  {
+   "id": "a-6",
+   "metin": "İnsanın fiyatı değil, onuru vardır.",
+   "kaynak": "Kant · Ahlak Metafiziğinin Temellendirilmesi",
+   "kitap": "kant-ahlak"
+  },
+  {
+   "id": "a-7",
+   "metin": "Varlık bir yüklem değildir.",
+   "kaynak": "Kant · Saf Aklın Eleştirisi",
+   "kitap": "kant-akil"
+  },
+  {
+   "id": "a-8",
+   "metin": "Kendinde şey olmadan sisteme giremiyorum, kendinde şeyle sistemde kalamıyorum.",
+   "kaynak": "Jacobi, Kant üzerine",
+   "kitap": "kant-akil"
+  },
+  {
+   "id": "a-9",
+   "metin": "Dil varlığın evidir.",
+   "kaynak": "Heidegger · Hümanizm Üzerine Mektup",
+   "kitap": "heidegger-donus"
+  },
+  {
+   "id": "a-10",
+   "metin": "Konuşan biz değiliz, dil konuşur.",
+   "kaynak": "Heidegger · Dile Giden Yol",
+   "kitap": "heidegger-donus"
+  },
+  {
+   "id": "a-11",
+   "metin": "Tehlikenin olduğu yerde, kurtaran da büyür.",
+   "kaynak": "Hölderlin, Heidegger'in teknik denemesinde",
+   "kitap": "heidegger-donus"
+  },
+  {
+   "id": "a-12",
+   "metin": "Herkes öteki ve hiç kimse kendisi.",
+   "kaynak": "Heidegger · Varlık ve Zaman",
+   "kitap": "heidegger-varlik"
+  },
+  {
+   "id": "a-13",
+   "metin": "Anlamak, bir şeyi yapabilmektir.",
+   "kaynak": "F1-26 Heidegger I · işaretin",
+   "kitap": "heidegger-varlik"
+  },
+  {
+   "id": "a-14",
+   "metin": "Dünya, nesnelerin toplamı değil, anlamlı bir bütündür.",
+   "kaynak": "F1-26 Heidegger I · işaretin",
+   "kitap": "heidegger-varlik"
+  },
+  {
+   "id": "a-15",
+   "metin": "Ölüm ileride bir olay değil, şimdi taşıdığım bir imkândır.",
+   "kaynak": "Heidegger · KDA Bölüm 25",
+   "kitap": "heidegger-varlik"
+  },
+  {
+   "id": "a-16",
+   "metin": "Her açılma aynı anda bir örtmedir.",
+   "kaynak": "Heidegger · KDA Bölüm 26",
+   "kitap": "heidegger-donus"
+  },
+  {
+   "id": "a-17",
+   "metin": "Tehlike makinelerde değil, bakıştadır.",
+   "kaynak": "Heidegger · Tekniğe İlişkin Soru",
+   "kitap": "heidegger-donus"
+  },
+  {
+   "id": "a-18",
+   "metin": "Özgürlük ile yasa birbirinin karşıtı değil, koşuludur.",
+   "kaynak": "Kant · KDA Bölüm 4",
+   "kitap": "kant-ahlak"
+  }
+ ],
+ "questions": [
+  {
+   "id": "q-elestiri",
+   "concept": "k-elestiri",
+   "question": "Kant ‘saf aklın eleştirisi’ derken ne yapıyor?",
+   "context": null,
+   "options": [
+    "Aklın neyi bilebileceğinin sınırını yine aklın kendisine çizdiriyor",
+    "Aklı güvenilmez bulup bir kenara bırakıyor",
+    "Önceki filozofların hatalarını tek tek sıralıyor",
+    "Aklın yerine yalnız deneyimi koyuyor"
+   ],
+   "answer": "Aklın neyi bilebileceğinin sınırını yine aklın kendisine çizdiriyor",
+   "explanation": "Eleştiri burada kusur bulmak değil, bir yetkinin sınırını belirlemek: akıl kendi mahkemesine çıkar."
+  },
+  {
+   "id": "q-analitik",
+   "concept": "k-analitik",
+   "question": "Hangisi analitik bir önermedir?",
+   "context": null,
+   "options": [
+    "Bütün cisimler yer kaplar.",
+    "Bütün cisimler ağırdır.",
+    "Her olayın bir nedeni vardır.",
+    "Bu oda soğuktur."
+   ],
+   "answer": "Bütün cisimler yer kaplar.",
+   "explanation": "Yer kaplamak ‘cisim’ kavramının içinde zaten var; önermeyi doğrulamak için kavramı çözümlemek yeter."
+  },
+  {
+   "id": "q-sentetik",
+   "concept": "k-sentetik",
+   "question": "‘Bütün cisimler ağırdır’ önermesi neden sentetiktir?",
+   "context": null,
+   "options": [
+    "Ağırlık ‘cisim’ kavramında yoktur; önerme ona yeni bir şey ekler",
+    "Doğruluğu deneyime bakmadan görülür",
+    "Değillemesi bir çelişki doğurur",
+    "Yalnızca ‘cisim’ kelimesinin tanımını açar"
+   ],
+   "answer": "Ağırlık ‘cisim’ kavramında yoktur; önerme ona yeni bir şey ekler",
+   "explanation": "Sentetik önermede yüklem özneye bir şey katar; bunu bilmek için kavramın dışına çıkmak gerekir."
+  },
+  {
+   "id": "q-apriori",
+   "concept": "k-apriori",
+   "question": "Bir bilginin a priori olması ne demektir?",
+   "context": null,
+   "options": [
+    "Doğruluğu deneyime başvurmadan görülebilir",
+    "Zaman bakımından deneyimden önce öğrenilmiştir",
+    "Herkesin aklında doğuştan hazır bulunur",
+    "Henüz kanıtlanmamış bir varsayımdır"
+   ],
+   "answer": "Doğruluğu deneyime başvurmadan görülebilir",
+   "explanation": "A priori bir zaman sırası değil, gerekçelendirme biçimidir: bilgiyi haklı kılan deneyim değildir."
+  },
+  {
+   "id": "q-sentetik-apriori",
+   "concept": "k-sentetik-apriori",
+   "question": "Hangisi Kant'a göre sentetik a priori bir yargıdır?",
+   "context": null,
+   "options": [
+    "7 + 5 = 12",
+    "Bekârlar evli değildir.",
+    "Bu masa kahverengidir.",
+    "Kuğular beyazdır."
+   ],
+   "answer": "7 + 5 = 12",
+   "explanation": "12 kavramı 7 ile 5'in kavramında saklı değildir (sentetik), ama sonuç deneyime bakmadan zorunludur (a priori)."
+  },
+  {
+   "id": "q-kopernik",
+   "concept": "k-kopernik",
+   "question": "Kant'ın Kopernik devrimi neyi tersine çevirir?",
+   "context": null,
+   "options": [
+    "Bilgi nesnelere uymaz; nesneler bizim bilme biçimimize uyar",
+    "Dünyanın değil Güneş'in merkezde olduğunu felsefeye taşır",
+    "Aklın dünyayı yoktan yarattığını öne sürer",
+    "Deneyimi bilginin tek kaynağı yapar"
+   ],
+   "answer": "Bilgi nesnelere uymaz; nesneler bizim bilme biçimimize uyar",
+   "explanation": "Kopernik gözlemciyi hareket ettirdi; Kant da bilginin koşullarını nesneden özneye taşır."
+  },
+  {
+   "id": "q-kategori",
+   "concept": "k-kategori",
+   "question": "Kategoriler deneyimde hangi işi görür?",
+   "context": null,
+   "options": [
+    "Duyuların verdiğini düşünülebilir bir birliğe bağlayan saf kavramlardır",
+    "Deneyimden zamanla toplanan genellemelerdir",
+    "Nesnelerin bizden bağımsız sahip olduğu özelliklerdir",
+    "Bilimleri konularına göre ayıran başlıklardır"
+   ],
+   "answer": "Duyuların verdiğini düşünülebilir bir birliğe bağlayan saf kavramlardır",
+   "explanation": "Nedensellik gibi kategoriler deneyimden çıkarılmaz; deneyimi baştan mümkün kılar, bir dilin dilbilgisi gibi."
+  },
+  {
+   "id": "q-fenomen",
+   "concept": "k-fenomen",
+   "question": "Kant'a göre bilimin bilebildiği nedir?",
+   "context": null,
+   "options": [
+    "Bize göründüğü hâliyle şeyler, yani fenomenler",
+    "Şeylerin bizden bağımsız kendileri",
+    "Yalnız matematiksel nesneler",
+    "Ruhun iç dünyası"
+   ],
+   "answer": "Bize göründüğü hâliyle şeyler, yani fenomenler",
+   "explanation": "Bilgi duyusallığın ve kategorilerin biçiminden geçmiş nesneye yöneliktir; bilebildiğimiz tek şey budur."
+  },
+  {
+   "id": "q-kendinde",
+   "concept": "k-kendinde",
+   "question": "‘Kendinde şey’ için hangisi doğrudur?",
+   "context": null,
+   "options": [
+    "Düşünülebilir ama bilinemez",
+    "Bilim ilerledikçe yavaş yavaş keşfedilir",
+    "Bir yanılsamadır, aslında yoktur",
+    "Duyularla doğrudan algılanır"
+   ],
+   "answer": "Düşünülebilir ama bilinemez",
+   "explanation": "Kendinde şey bilme biçimimizden bağımsız nesnedir; onu sınır kavramı olarak düşünürüz, bilemeyiz."
+  },
+  {
+   "id": "q-transandantal",
+   "concept": "k-transandantal",
+   "question": "‘Transandantal’ bir inceleme neyi araştırır?",
+   "context": null,
+   "options": [
+    "Deneyimin mümkün olmasının koşullarını",
+    "Deneyimin ötesindeki tanrısal âlemi",
+    "Mistik sezginin kaynağını",
+    "Algının beyindeki fizyolojik süreçlerini"
+   ],
+   "answer": "Deneyimin mümkün olmasının koşullarını",
+   "explanation": "Transandantal ‘aşkın’ değildir: deneyimin ötesine değil, onun koşullarına bakar."
+  },
+  {
+   "id": "q-antinomi",
+   "concept": "k-antinomi",
+   "question": "‘Dünyanın zamanda bir başlangıcı var mı?’ sorusu neden antinomiye götürür?",
+   "context": null,
+   "options": [
+    "Akıl deneyimin sınırını aşınca iki karşıt tezi de eşit güçte kanıtlar",
+    "Bilim henüz yeterli veri toplamamıştır",
+    "Soru dilbilgisi bakımından yanlış kurulmuştur",
+    "Tanrı'nın varlığı önce kanıtlanmalıdır"
+   ],
+   "answer": "Akıl deneyimin sınırını aşınca iki karşıt tezi de eşit güçte kanıtlar",
+   "explanation": "Antinomi aklın kendi kendisiyle çelişmesidir; çözümü, aklın deneyim dışında bilgi iddiasını bırakmasıdır."
+  },
+  {
+   "id": "q-iyi-isteme",
+   "concept": "k-iyi-isteme",
+   "question": "Kant'a göre bu eylemin ahlaki değeri nedir?",
+   "context": "Biri boğulan birini kurtarmak için suya atlar ama yetişemez.",
+   "options": [
+    "Değeri istemededir; sonuç başarısız olsa da değeri azalmaz",
+    "Sonuç olmadığı için ahlaki değeri yoktur",
+    "Niyet ve sonuç yarı yarıya değerlendirilir",
+    "Ancak başkaları fark ederse değer kazanır"
+   ],
+   "answer": "Değeri istemededir; sonuç başarısız olsa da değeri azalmaz",
+   "explanation": "İyi isteme sonucundan bağımsız olarak iyidir: ‘bir mücevher gibi kendi ışığıyla parlar’."
+  },
+  {
+   "id": "q-odev",
+   "concept": "k-odev",
+   "question": "Kant bu esnafın davranışını nasıl adlandırır?",
+   "context": "Bir esnaf, müşteri kaybetmekten korktuğu için kimseyi aldatmıyor.",
+   "options": [
+    "Ödeve uygun ama ödevden dolayı olmayan eylem",
+    "Ödevden dolayı eylem",
+    "Kategorik buyruğa aykırı eylem",
+    "Özerk eylem"
+   ],
+   "answer": "Ödeve uygun ama ödevden dolayı olmayan eylem",
+   "explanation": "Davranış doğru, ama gerekçesi çıkar; ahlaki değer ancak ilke gereği yapılan eylemdedir."
+  },
+  {
+   "id": "q-maksim",
+   "concept": "k-maksim",
+   "question": "Bu cümle Kant'ın dilinde nedir?",
+   "context": "‘Zor durumda kalınca yalan söylerim.’",
+   "options": [
+    "Bir maksim: eylemin dayandığı öznel ilke",
+    "Bir kategorik buyruk",
+    "Bir postulat",
+    "Bir doğa yasası"
+   ],
+   "answer": "Bir maksim: eylemin dayandığı öznel ilke",
+   "explanation": "Maksim kişinin kendine koyduğu kuraldır; sınama, bu kuralın evrensel yasa olup olamayacağıdır."
+  },
+  {
+   "id": "q-kategorik",
+   "concept": "k-kategorik",
+   "question": "Hangisi kategorik bir buyruktur?",
+   "context": null,
+   "options": [
+    "Yalan söyleme.",
+    "Sevilmek istiyorsan yalan söyleme.",
+    "Zengin olmak istiyorsan çalış.",
+    "Sağlıklı kalmak istiyorsan spor yap."
+   ],
+   "answer": "Yalan söyleme.",
+   "explanation": "Kategorik buyruk ‘şunu istiyorsan’ demez; koşulsuz buyurur. Öteki üçü koşullu buyruktur."
+  },
+  {
+   "id": "q-amac",
+   "concept": "k-amac",
+   "question": "Bu durum ‘insanı amaç olarak gör’ ilkesini çiğner mi?",
+   "context": "Taksiye binip şoföre gideceğin yeri söylüyorsun.",
+   "options": [
+    "Hayır; şoförün hizmetini kullanırsın ama onu yalnızca araç olarak görmezsin",
+    "Evet; birinden hizmet almak onu araç yapmaktır",
+    "Evet; para vermek insanı nesneye çevirir",
+    "Hayır; çünkü ahlak alışverişte geçerli değildir"
+   ],
+   "answer": "Hayır; şoförün hizmetini kullanırsın ama onu yalnızca araç olarak görmezsin",
+   "explanation": "İlke ‘yalnızca araç olarak’ görmeyi yasaklar; karşılıklı rızayla, kişiliğe saygıyla alınan hizmet bunu çiğnemez."
+  },
+  {
+   "id": "q-ozerklik",
+   "concept": "k-ozerklik",
+   "question": "Kant'ta özerk irade nedir?",
+   "context": null,
+   "options": [
+    "Aklın kendi koyduğu yasaya uyan irade",
+    "Hiçbir yasaya bağlı olmayan irade",
+    "Duygularını izleyen irade",
+    "Toplumun kurallarını benimseyen irade"
+   ],
+   "answer": "Aklın kendi koyduğu yasaya uyan irade",
+   "explanation": "Özerklik yasasızlık değildir; yasayı kendine koymaktır. Dışarıdan gelen kural yaderkliktir."
+  },
+  {
+   "id": "q-postulat",
+   "concept": "k-postulat",
+   "question": "Kant Tanrı'yı ve ruhun ölümsüzlüğünü neden ‘postulat’ sayar?",
+   "context": null,
+   "options": [
+    "Kanıtlanamazlar ama ahlaki yaşamın anlamı için varsayılmaları gerekir",
+    "Akıl onları kesin olarak kanıtlar",
+    "Deneyimde gözlemlenebilirler",
+    "Dinî gelenek öyle öğrettiği için"
+   ],
+   "answer": "Kanıtlanamazlar ama ahlaki yaşamın anlamı için varsayılmaları gerekir",
+   "explanation": "Postulat bilgi değildir; pratik aklın ihtiyacıdır: ‘yapmalısın, öyleyse yapabilirsin’."
+  },
+  {
+   "id": "q-yuce",
+   "concept": "k-yuce",
+   "question": "Bu yüce duygusu nereden doğar?",
+   "context": "Fırtınalı denizi güvenli bir kıyıdan izliyorsun.",
+   "options": [
+    "Hayal gücü büyüklüğü kavrayamaz, akıl ise onu düşünebildiğini fark eder",
+    "Manzara uyumlu ve ölçülü olduğu için",
+    "Tehlike gerçekten bizi tehdit ettiği için",
+    "Doğanın renklerinden haz aldığımız için"
+   ],
+   "answer": "Hayal gücü büyüklüğü kavrayamaz, akıl ise onu düşünebildiğini fark eder",
+   "explanation": "Güzel uyumdan doğar; yüce önce ezer, sonra aklın duyuların üstünde olduğunu hissettirir."
+  },
+  {
+   "id": "q-dasein",
+   "concept": "h-dasein",
+   "question": "Heidegger insan için neden ‘özne’ ya da ‘bilinç’ yerine ‘Dasein’ der?",
+   "context": null,
+   "options": [
+    "İnsan önce dünyaya açık bir varoluştur, dünyanın karşısında duran bir zihin değil",
+    "Almanca terim daha kısa olduğu için",
+    "İnsanı hayvanlardan biyolojik olarak ayırmak için",
+    "Bilincin var olduğunu reddettiği için"
+   ],
+   "answer": "İnsan önce dünyaya açık bir varoluştur, dünyanın karşısında duran bir zihin değil",
+   "explanation": "Dasein, varlığı kendisi için bir sorun olan varlıktır; ‘özne’ kelimesi bu açıklığı baştan kapatır."
+  },
+  {
+   "id": "q-dunyada",
+   "concept": "h-dunyada",
+   "question": "‘Dünya içinde varlık’ hangi fikri reddeder?",
+   "context": null,
+   "options": [
+    "Önce yalıtık bir özne, sonra ona sonradan eklenen bir dünya olduğu fikrini",
+    "Dünyanın gerçekten var olduğu fikrini",
+    "İnsanın mekânda bulunduğu fikrini",
+    "Doğa bilimlerinin geçerli olduğu fikrini"
+   ],
+   "answer": "Önce yalıtık bir özne, sonra ona sonradan eklenen bir dünya olduğu fikrini",
+   "explanation": "Descartes'ın resmi ters çevrilir: Dasein her zaman zaten bir dünyanın içindedir."
+  },
+  {
+   "id": "q-elaltinda",
+   "concept": "h-elaltinda",
+   "question": "Kırılmadan önceki çekiç nasıl vardır?",
+   "context": "Çivi çakarken çekici düşünmezsin; çekiç kırılınca birden ona bakarsın.",
+   "options": [
+    "El altında: kullanım içinde eriyen, göze görünmeyen araç",
+    "Önümde duran: incelenen bir nesne",
+    "Kendinde şey",
+    "Hazır bekleyen bir kaynak"
+   ],
+   "answer": "El altında: kullanım içinde eriyen, göze görünmeyen araç",
+   "explanation": "Kırılınca çekiç ‘önümde duran’ bir nesneye döner; işlerken elin uzantısıdır."
+  },
+  {
+   "id": "q-herkes",
+   "concept": "h-herkes",
+   "question": "Heidegger bu durumu nasıl adlandırır?",
+   "context": "Bir filmi izlemeden, okuduğun yorumlara bakarak beğeniyorsun.",
+   "options": [
+    "Herkes (das Man) içinde yaşamak",
+    "Atılmışlık",
+    "Sahicilik",
+    "Kaygı"
+   ],
+   "answer": "Herkes (das Man) içinde yaşamak",
+   "explanation": "Herkesin düşündüğü gibi düşünmek gündelik hâldir; sorumluluk kimsede değildir."
+  },
+  {
+   "id": "q-kaygi",
+   "concept": "h-kaygi",
+   "question": "Kaygıyı korkudan ayıran nedir?",
+   "context": null,
+   "options": [
+    "Korkunun belirli bir nesnesi vardır; kaygının yoktur",
+    "Kaygı korkudan daha şiddetlidir",
+    "Kaygı geleceğe, korku geçmişe yönelir",
+    "Kaygı bedensel, korku zihinseldir"
+   ],
+   "answer": "Korkunun belirli bir nesnesi vardır; kaygının yoktur",
+   "explanation": "Kaygıda tehdit edici olan ‘hiçbir şey’ ve ‘hiçbir yer’dir; gündelik anlamlar çekilir, Dasein kendisiyle kalır."
+  },
+  {
+   "id": "q-atilmislik",
+   "concept": "h-atilmislik",
+   "question": "Hangisi atılmışlığa örnektir?",
+   "context": null,
+   "options": [
+    "Belli bir dilde, ailede ve çağda doğmuş olmak",
+    "Bir meslek seçmek",
+    "Bir kitabı bitirmeye karar vermek",
+    "Ölümü düşünmek"
+   ],
+   "answer": "Belli bir dilde, ailede ve çağda doğmuş olmak",
+   "explanation": "Başlangıcı ben seçmedim; ama seçimlerim her zaman oradan başlar."
+  },
+  {
+   "id": "q-olume",
+   "concept": "h-olume",
+   "question": "‘Herkes ölür’ demek ölümü neden örter?",
+   "context": null,
+   "options": [
+    "Ölümü başkalarının başına gelen bir olaya çevirir, benim imkânım olmaktan çıkarır",
+    "Ölümü abartıp korku yaratır",
+    "Ölümün biyolojik gerçeğini yalanlar",
+    "Ölümden sonrası hakkında bilgi verir"
+   ],
+   "answer": "Ölümü başkalarının başına gelen bir olaya çevirir, benim imkânım olmaktan çıkarır",
+   "explanation": "‘Herkes ölür’ doğru ama kaçamaktır: ölüm benim en kendime ait, devredilemez imkânımdır."
+  },
+  {
+   "id": "q-sahicilik",
+   "concept": "h-sahicilik",
+   "question": "Heidegger'de sahicilik nedir?",
+   "context": null,
+   "options": [
+    "Hangi hayatı yaşıyorsan onu kendi kararın olarak üstlenmek",
+    "Toplumdan uzak, yalnız yaşamak",
+    "Duygularını her zaman açıkça söylemek",
+    "Geleneklere sadık kalmak"
+   ],
+   "answer": "Hangi hayatı yaşıyorsan onu kendi kararın olarak üstlenmek",
+   "explanation": "Sahicilik bir yaşam tarzı değil, bir sahiplenmedir; herkesten kaçmak gerekmez."
+  },
+  {
+   "id": "q-anlama",
+   "concept": "h-anlama",
+   "question": "Heidegger'de ‘anlama’ öncelikle nedir?",
+   "context": null,
+   "options": [
+    "Bir şeyi yapabilmek: kendi imkânlarına doğru açık olmak",
+    "Bir önermenin içeriğini kavramak",
+    "Bir metni yorumlama tekniği",
+    "Başkasının duygusunu sezmek"
+   ],
+   "answer": "Bir şeyi yapabilmek: kendi imkânlarına doğru açık olmak",
+   "explanation": "Bisiklete binmeyi ‘anlamak’ gibi: anlama önce bir yapabilmedir, önermesel bilgi ondan türer."
+  },
+  {
+   "id": "q-donus",
+   "concept": "h-donus",
+   "question": "Heidegger'in ‘dönüş’ü neyi değiştirir?",
+   "context": null,
+   "options": [
+    "Varlığı Dasein'dan çözümlemek yerine varlığın tarihte nasıl açıldığını düşünmeye geçer",
+    "Felsefeyi bırakıp yalnız şiir yazar",
+    "Kant'ın sistemine geri döner",
+    "Dinî inanca yönelir"
+   ],
+   "answer": "Varlığı Dasein'dan çözümlemek yerine varlığın tarihte nasıl açıldığını düşünmeye geçer",
+   "explanation": "Varlık ve Zaman yarım kaldı; dönüşte ağırlık insandan varlığın kendi açılışına kayar."
+  },
+  {
+   "id": "q-aletheia",
+   "concept": "h-aletheia",
+   "question": "Alētheia olarak hakikat nedir?",
+   "context": null,
+   "options": [
+    "Örtüsünü açma: şeylerin gizlilikten çıkması",
+    "Önermenin olgulara uygun olması",
+    "Çoğunluğun kabul ettiği görüş",
+    "Mantıksal tutarlılık"
+   ],
+   "answer": "Örtüsünü açma: şeylerin gizlilikten çıkması",
+   "explanation": "Uygunluk olarak hakikat, alētheia'dan türer: önce bir şey açığa çıkmalı ki ona uygun bir önerme kurulsun."
+  },
+  {
+   "id": "q-gestell",
+   "concept": "h-gestell",
+   "question": "Heidegger bu bakışı nasıl adlandırır?",
+   "context": "Bir ormana yalnız kaç ton kereste vereceği gözüyle bakmak.",
+   "options": [
+    "Çerçeveleme (Gestell): her şeyi hazır bekleyen kaynak olarak görmek",
+    "El altında olmak",
+    "Dünya içinde varlık",
+    "Herkes (das Man)"
+   ],
+   "answer": "Çerçeveleme (Gestell): her şeyi hazır bekleyen kaynak olarak görmek",
+   "explanation": "Modern tekniğin tehlikesi makinelerde değil bakıştadır: nehir güç kaynağı, insan ‘insan kaynağı’ olur."
+  },
+  {
+   "id": "q-dil",
+   "concept": "h-dil",
+   "question": "‘Dil varlığın evidir’ ne söyler?",
+   "context": null,
+   "options": [
+    "Şeyler bize önce dilde açılır; dil düşüncenin aracı değil yeridir",
+    "Dil yalnız iletişim için kullanılan bir araçtır",
+    "Her dil öteki dillere kapalı bir evdir",
+    "Varlık ancak yazıyla korunabilir"
+   ],
+   "answer": "Şeyler bize önce dilde açılır; dil düşüncenin aracı değil yeridir",
+   "explanation": "Hangi dünyada yaşadığımız, hangi kelimelerle düşünebildiğimize bağlıdır: konuşan biz değil, dil konuşur."
+  }
+ ]
+}

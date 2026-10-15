@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.fatihgocgun.kenar</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kenar</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>ayna</string>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict><key>UIApplicationShortcutItemType</key><string>oku</string><key>UIApplicationShortcutItemTitle</key><string>Okumaya başla</string><key>UIApplicationShortcutItemSubtitle</key><string>Önce soru</string><key>UIApplicationShortcutItemIconSymbolName</key><string>book</string></dict>
+		<dict><key>UIApplicationShortcutItemType</key><string>kamera</string><key>UIApplicationShortcutItemTitle</key><string>Kamerayla işaretle</string><key>UIApplicationShortcutItemIconSymbolName</key><string>camera.viewfinder</string></dict>
+		<dict><key>UIApplicationShortcutItemType</key><string>anlat</string><key>UIApplicationShortcutItemTitle</key><string>Feynman dakikası</string><key>UIApplicationShortcutItemSubtitle</key><string>60 sn anlat</string><key>UIApplicationShortcutItemIconSymbolName</key><string>waveform</string></dict>
+		<dict><key>UIApplicationShortcutItemType</key><string>kutu</string><key>UIApplicationShortcutItemTitle</key><string>Kenar kutusu</string><key>UIApplicationShortcutItemIconSymbolName</key><string>tray</string></dict>
+	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>tr</string>
+</dict>
+</plist>
