@@ -6,22 +6,26 @@ struct BugunEkrani: View {
     @EnvironmentObject var oynatici: Oynatici
     @Binding var sekme: Sekme
     @State private var cozumAcik = false
+    @State private var uretAcik = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    if !depo.kasa.bagli {
+                    if !depo.kasa.bagli && depo.paketler.isEmpty {
                         baglanti
+                        uretDugmesi     // vault'suz da çalışır: brief ve model App Group'tan
                     } else if let p = depo.guncel {
                         kapak(p)
                         adimlar(p)
                         gunler(p)
                         if let c = depo.sonCozum { cozumKarti(c) }
+                        uretDugmesi
                         akis
                     } else {
                         BosDurum(simge: "tray", baslik: "Paket henüz yok",
                                  metin: "Sabah görevi Mac'te paketi hazırlayınca burada görünür. Vault bağlı; aşağı çekip yenileyebilirsin.")
+                        uretDugmesi
                     }
                 }
                 .padding(.horizontal, 18).padding(.bottom, 30)
@@ -32,6 +36,7 @@ struct BugunEkrani: View {
             .sheet(isPresented: $cozumAcik) {
                 if let c = depo.sonCozum { CozumEkrani(cozum: c).environmentObject(depo) }
             }
+            .sheet(isPresented: $uretAcik) { UretEkrani().environmentObject(depo) }
             .overlay(alignment: .top) { bilgiBandi }
         }
     }
@@ -234,6 +239,15 @@ struct BugunEkrani: View {
             Text(d).font(.system(.title2, design: .rounded).weight(.bold)).foregroundStyle(Tema.vurgu)
             Text(e).font(.caption2).foregroundStyle(.secondary)
         }
+    }
+
+    /// Mac'in brief'iyle metni telefonda yaz (Qwen) — sabah görevi paketi üretmediyse.
+    private var uretDugmesi: some View {
+        Button { uretAcik = true } label: {
+            Label("Bugünün paketini telefonda üret", systemImage: "wand.and.stars")
+                .font(.subheadline.weight(.medium)).frame(maxWidth: .infinity).padding(.vertical, 4)
+        }
+        .buttonStyle(.bordered)
     }
 
     private var akis: some View {

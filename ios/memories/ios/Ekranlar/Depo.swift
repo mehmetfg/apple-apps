@@ -134,6 +134,12 @@ final class Depo: ObservableObject {
         }
     }
 
+    /// Telefonda üretilen paket yerel önbelleğe yazıldıktan sonra (Uretici).
+    func yerelYenile() {
+        yerelYukle()
+        widgetYaz()
+    }
+
     private func kayitDefteriniYaz() {
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601
         if let v = try? e.encode(kayitlar) { try? v.write(to: kayitDefteri, options: .atomic) }
