@@ -255,7 +255,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
@@ -277,7 +277,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -299,6 +299,7 @@
 				INFOPLIST_FILE = Memories/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Memories;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Günün metnini kendi sesinle okuyup kaydetmek için.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Okuduğun kaydı cihazın içinde yazıya çevirip takıldığın kelimeleri göstermek için.";
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
@@ -336,6 +337,7 @@
 				INFOPLIST_FILE = Memories/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Memories;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Günün metnini kendi sesinle okuyup kaydetmek için.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Okuduğun kaydı cihazın içinde yazıya çevirip takıldığın kelimeleri göstermek için.";
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
@@ -369,6 +371,7 @@
 				DEVELOPMENT_TEAM = EK4WY8PSFE;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MemoriesWidget/Info.plist;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET $(inherited)";
 				INFOPLIST_KEY_CFBundleDisplayName = Memories;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -397,6 +400,7 @@
 				DEVELOPMENT_TEAM = EK4WY8PSFE;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MemoriesWidget/Info.plist;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET $(inherited)";
 				INFOPLIST_KEY_CFBundleDisplayName = Memories;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (

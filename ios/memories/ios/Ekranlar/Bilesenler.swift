@@ -12,7 +12,7 @@ struct Cip: View {
         }
         .padding(.horizontal, 9).padding(.vertical, 4)
         .foregroundStyle(renk)
-        .background(Capsule().fill(renk.opacity(0.13)))
+        .background { Capsule().fill(renk.opacity(0.13)) }
     }
 }
 

@@ -4,6 +4,9 @@
 // · Dinleme ancak sesin ≥ %80'i GERÇEKTEN çalınınca sayılır (sona sarmak sayılmaz); ikinci tam dinleme yeniden sayılır.
 // · Arama/Siri kesince durur, kesinti bitince 2 sn geriden devam eder. Kulaklık çıkınca durur, hoparlörden kendiliğinden çalmaz.
 // · Tek cümle çalma (Oku ekranı): yalnız o cümlenin aralığı çalar, sonra durur.
+// · Kaldığın yer gün gün saklanır; uygulama kapansa da paket açılınca oradan sürer.
+// · Ses bitince sıradaki gün yüklenir (çalmaz): dinlenmiş günün başına geri atılmaz.
+// · Çalarken ekran kararmaz (ScreenAwake, Ayarlar'dan kapatılabilir).
 import Foundation
 import AVFoundation
 import MediaPlayer
@@ -11,7 +14,7 @@ import MediaPlayer
 @MainActor
 final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published private(set) var paket: Paket?
-    @Published private(set) var caliyor = false
+    @Published private(set) var caliyor = false { didSet { ScreenAwake.set("listen", caliyor) } }
     @Published private(set) var zaman: Double = 0
     @Published private(set) var sure: Double = 0
     @Published private(set) var satir: Satir?
@@ -27,12 +30,16 @@ final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
     private var durAt: Double?
     private var kesintidenDon = false
     static let esik = 0.8
+    // listening stretch (play → pause/finish/switch): written as a `listened` event for the Mac's Dinleme view
+    private var stretchSeconds: Double = 0
+    private var stretchSentences = Set<Int>()
 
     override init() {
         super.init()
         let m = NotificationCenter.default
         m.addObserver(self, selector: #selector(kesinti(_:)), name: AVAudioSession.interruptionNotification, object: nil)
         m.addObserver(self, selector: #selector(yolDegisti(_:)), name: AVAudioSession.routeChangeNotification, object: nil)
+        m.addObserver(self, selector: #selector(widgetAudio(_:)), name: SentencePlayer.willPlay, object: nil)
         uzaktanKomutlar()
     }
 
@@ -52,8 +59,11 @@ final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
             c.enableRate = true
             c.delegate = self
             c.prepareToPlay()
+            if let eski = paket { savePosition(eski.gun) }
+            flushStretch()
             calici?.stop()
             calici = c; paket = p; sure = c.duration; zaman = 0; sonZaman = 0; dinlenen = 0; hata = nil
+            if let t = savedPosition(p.gun) { c.currentTime = t; zaman = t; sonZaman = t }
             guncelle()
             return true
         } catch {
@@ -76,6 +86,8 @@ final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     func duraklat() {
         calici?.pause()
+        flushStretch()
+        if tekCumle == nil, let p = paket { savePosition(p.gun) }
         caliyor = false
         zamanlayici?.invalidate(); zamanlayici = nil
         durAt = nil; tekCumle = nil
@@ -149,12 +161,24 @@ final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
         guard let c = calici else { return }
         let t = c.currentTime
         let fark = t - sonZaman
-        if c.isPlaying, fark > 0, fark < 1.0 { dinlenen += fark }   // sarma (büyük sıçrama) sayılmaz
+        if c.isPlaying, fark > 0, fark < 1.0 {     // sarma (büyük sıçrama) sayılmaz
+            dinlenen += fark; stretchSeconds += fark
+            if let i = satir?.cumle { stretchSentences.insert(i) }
+        }
         sonZaman = t
         zaman = t
         guncelle()
+        if c.isPlaying, tekCumle == nil, let p = paket, Date().timeIntervalSince(lastSave) > 5 { savePosition(p.gun) }
+        if stretchSeconds >= 180 { flushStretch() }     // long listens are saved in 3-minute pieces (app may be killed)
         if let d = durAt, t >= d { duraklat() }
         if tekCumle == nil, sure > 0, dinlenen >= sure * Oynatici.esik { sayildi() }
+    }
+
+    /// Writes the current listening stretch (≥ 5 s of real playback) and resets it.
+    private func flushStretch() {
+        defer { stretchSeconds = 0; stretchSentences = [] }
+        guard stretchSeconds >= 5, let p = paket else { return }
+        depo?.listened(p, seconds: stretchSeconds, ratio: min(1, stretchSeconds / max(sure, 1)), sentences: stretchSentences.sorted())
     }
 
     private func sayildi() {
@@ -175,11 +199,48 @@ final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
         Task { @MainActor in
             self.caliyor = false
             self.zamanlayici?.invalidate(); self.zamanlayici = nil
+            self.flushStretch()
             self.zaman = 0; self.sonZaman = 0
             self.calici?.currentTime = 0
+            if let p = self.paket { self.clearPosition(p.gun) }
             self.guncelle()
             self.simdiCaliyor()
+            self.advanceAfterFinish()
         }
+    }
+
+    /// Ses sonuna kadar çaldı: sıradaki gün yüklenir (kendiliğinden çalmaz). Yalnız bu gün gerçekten
+    /// dinlendiyse (≥ %80 sayıldıysa) ilerler; sarıp sona gelmek günü geçirmez.
+    private func advanceAfterFinish() {
+        guard let p = paket, let depo, depo.listenedDays.contains(p.gun) else { return }
+        guard let next = depo.guncel, next.gun > p.gun else { return }
+        if depo.sesURL(next) != nil, yukle(next) {
+            depo.bilgi = "Gün \(p.gun) bitti · sıradaki Gün \(next.gun) hazır"
+        } else {
+            depo.bilgi = "Gün \(p.gun) bitti · Gün \(next.gun) sesi henüz inmedi"
+        }
+    }
+
+    // MARK: Kaldığın yer (gün başına, cihazda)
+
+    private func positionKey(_ gun: Int) -> String { "memories.position.\(gun)" }
+    func savedPosition(_ gun: Int) -> Double? {
+        let t = UserDefaults.standard.double(forKey: positionKey(gun))
+        return t > 5 ? t : nil
+    }
+    private func savePosition(_ gun: Int) {
+        guard paket?.gun == gun, let c = calici else { return }
+        let t = c.currentTime
+        lastSave = Date()
+        if t > 5 && t < c.duration - 10 { UserDefaults.standard.set(t, forKey: positionKey(gun)) }
+        else if t >= c.duration - 10 { clearPosition(gun) }
+    }
+    private var lastSave = Date.distantPast
+    private func clearPosition(_ gun: Int) { UserDefaults.standard.removeObject(forKey: positionKey(gun)) }
+
+    /// Widget'tan cümle çalınacak: uygulamanın dinlemesi durur (iki ses üst üste binmesin).
+    @objc nonisolated private func widgetAudio(_ n: Notification) {
+        Task { @MainActor in if self.caliyor { self.duraklat() } }
     }
 
     // MARK: Ses oturumu, kesinti, kulaklık
@@ -198,6 +259,7 @@ final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
             case .began:
                 self.kesintidenDon = self.caliyor
                 self.calici?.pause(); self.caliyor = false
+                self.flushStretch()
                 self.zamanlayici?.invalidate(); self.zamanlayici = nil
             case .ended:
                 if self.kesintidenDon && devam { self.git(self.zaman - 2); self.cal() }

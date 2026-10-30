@@ -26,7 +26,7 @@ struct BugunEkrani: View {
                 }
                 .padding(.horizontal, 18).padding(.bottom, 30)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Tema.arka)
             .navigationTitle("Memories")
             .refreshable { await depo.esitleSimdi() }
             .sheet(isPresented: $cozumAcik) {
@@ -54,41 +54,48 @@ struct BugunEkrani: View {
     private func kapak(_ p: Paket) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("GÜN \(p.gun)").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(.white.opacity(0.85))
+                Text("GÜN \(p.gun)").font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(Tema.kehribarYazi)
                 Spacer()
-                Label(Tarih.dakika(p.sure), systemImage: "headphones").font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.9))
+                Label(Tarih.dakika(p.sure), systemImage: "headphones").font(.caption.weight(.semibold)).foregroundStyle(Tema.ikincil)
             }
-            Text(p.ad).font(.system(.largeTitle, design: .serif).weight(.semibold)).foregroundStyle(.white)
+            Text(p.ad).font(.system(.largeTitle, design: .serif).weight(.semibold)).foregroundStyle(Tema.metin)
             if let o = p.ozet {
-                Text(o).font(.callout).foregroundStyle(.white.opacity(0.92)).fixedSize(horizontal: false, vertical: true)
+                Text(o).font(.callout).foregroundStyle(Tema.ikincil).fixedSize(horizontal: false, vertical: true)
             }
             if let k = p.sahne_konulari, !k.isEmpty {
                 HStack(spacing: 6) {
-                    ForEach(k, id: \.self) { Cip(metin: $0, renk: .white, simge: "textformat") }
+                    ForEach(k, id: \.self) { Cip(metin: $0, renk: Tema.kehribarYazi, simge: "textformat") }
                 }
             }
             Button {
                 sekme = .dinle
                 oynatici.cal(p)
             } label: {
-                Label(oynatici.paket?.gun == p.gun && oynatici.caliyor ? "Çalıyor — dinleme ekranı" : "Dinle",
-                      systemImage: oynatici.caliyor ? "waveform" : "play.fill")
+                Label(dinleEtiketi(p), systemImage: oynatici.paket?.gun == p.gun && oynatici.caliyor ? "waveform" : "play.fill")
                     .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 10)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(Tema.vurguKoyu)
-            .background(Capsule().fill(.white))
+            .foregroundStyle(.black.opacity(0.85))
+            .background { Capsule().fill(Tema.kehribar) }
             .disabled(depo.sesURL(p) == nil)
             .opacity(depo.sesURL(p) == nil ? 0.6 : 1)
             if depo.sesURL(p) == nil {
                 Text(depo.esitleniyor ? "Ses iniyor…" : "Ses henüz telefona inmedi — aşağı çekip yenile.")
-                    .font(.caption).foregroundStyle(.white.opacity(0.85))
+                    .font(.caption).foregroundStyle(Tema.ikincil)
             }
         }
         .padding(20)
-        .background(RoundedRectangle(cornerRadius: 28, style: .continuous).fill(Tema.egim))
-        .shadow(color: Tema.vurgu.opacity(0.25), radius: 18, y: 8)
+        .background { TemaZemin().clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous)) }
+        .overlay { RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Tema.cizgi) }
+        .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
         .padding(.top, 6)
+    }
+
+    private func dinleEtiketi(_ p: Paket) -> String {
+        if oynatici.paket?.gun == p.gun && oynatici.caliyor { return "Çalıyor — dinleme ekranı" }
+        let t = oynatici.paket?.gun == p.gun && oynatici.zaman > 5 ? oynatici.zaman : oynatici.savedPosition(p.gun)
+        if let t { return "Kaldığın yerden · \(Tarih.sure(t))" }
+        return depo.listenedDays.contains(p.gun) ? "Yeniden dinle" : "Dinle"
     }
 
     private func adimlar(_ p: Paket) -> some View {
@@ -130,7 +137,8 @@ struct BugunEkrani: View {
                 Spacer()
                 Text("\(liste.filter { !atlanan.contains($0.gun) && !yapilan.contains($0.gun) }.count) açık").font(.caption).foregroundStyle(.secondary)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollViewReader { kaydir in
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(liste) { g in
                         let secili = g.gun == p.gun
@@ -141,19 +149,25 @@ struct BugunEkrani: View {
                                     Text("Gün \(g.gun)").font(.subheadline.weight(.semibold))
                                     if gecildi { Image(systemName: "arrowshape.turn.up.right").font(.caption2) }
                                     else if yapilan.contains(g.gun) { Image(systemName: "checkmark").font(.caption2) }
+                                    else if depo.listenedDays.contains(g.gun) { Image(systemName: "headphones").font(.caption2) }
                                 }
                                 Text(g.ad).font(.caption).lineLimit(1)
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .frame(maxWidth: 150, alignment: .leading)
-                            .foregroundStyle(secili ? Color.white : Color.primary)
-                            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(secili ? Tema.vurgu : Color(.tertiarySystemGroupedBackground)))
+                            .foregroundStyle(secili ? Color.black.opacity(0.85) : Tema.metin)
+                            .background { RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(secili ? Tema.kehribar : Tema.yuzey2) }
                             .opacity(gecildi && !secili ? 0.6 : 1)
                         }
                         .buttonStyle(.plain)
+                        .id(g.gun)
                     }
                 }
+            }
+            .scrollIndicators(.hidden)
+            .onAppear { kaydir.scrollTo(p.gun, anchor: .center) }
+            .onChange(of: p.gun) { _, g in withAnimation { kaydir.scrollTo(g, anchor: .center) } }
             }
             if !yapilan.contains(p.gun) && !atlanan.contains(p.gun) {
                 Button { depo.atla(p) } label: {
@@ -242,11 +256,11 @@ struct BugunEkrani: View {
     @ViewBuilder private var bilgiBandi: some View {
         if let b = depo.bilgi {
             Text(b).font(.subheadline.weight(.medium)).padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Capsule().fill(.regularMaterial))
+                .background { Capsule().fill(.regularMaterial) }
                 .shadow(radius: 8, y: 3)
                 .padding(.top, 4)
                 .transition(.move(edge: .top).combined(with: .opacity))
-                .task { try? await Task.sleep(nanoseconds: 3_000_000_000); withAnimation { depo.bilgi = nil } }
+                .task { try? await Task.sleep(for: .seconds(3)); withAnimation { depo.bilgi = nil } }
         }
     }
 }

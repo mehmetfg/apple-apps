@@ -33,6 +33,7 @@ final class Depo: ObservableObject {
 
     @AppStorage("memories.hiz") var hiz: Double = 1.0
     @AppStorage("memories.haptik") var haptik = true
+    @AppStorage(ScreenAwake.settingKey) var keepScreenOn = true
 
     let kasa = Kasa()
 
@@ -45,7 +46,8 @@ final class Depo: ObservableObject {
     private var kayitDefteri: URL { yerel.appendingPathComponent("kayitlar.json") }
 
     private var esitlemeGorevi: Task<Void, Never>?
-    static let tutulan = 9     // yerelde tutulan son paket: haftalık tampon (7 açık gün) + 2 geçmiş (kayıtlar ayrı, hep kalır)
+    static let sentRebuildsKey = "memories.kurma.gonderilen"
+    static let tutulan = 16    // yerelde tutulan son paket: tampon (14 açık gün) + 2 geçmiş (kayıtlar ayrı, hep kalır)
 
     init() {
         yerelYukle()
@@ -54,11 +56,23 @@ final class Depo: ObservableObject {
 
     // MARK: Okunan durum
 
-    /// Çantadaki paket: seçtiğin gün; seçmediysen yazılmamış ve geçilmemiş EN ESKİ gün. Sabah görevi haftalık
-    /// tampon (7 açık gün) tutar; sıra atlanmasın diye en yeni değil sıradaki gün açılır. Hepsi bittiyse en yeni gün.
+    /// Çantadaki paket: seçtiğin gün; seçmediysen ilerlemenin bir sonraki günü. İlerleme = dinlenen, Mac'te yazılan
+    /// ya da geçilen en ileri gün; ondan sonraki ilk gün açılır. Geride kalmış eski bir güne geri atılmaz
+    /// (2026-10-16, kullanıcı isteği: "dinlenmiş olandan sonrakine geç, geriye doğru atma"). Hepsi bittiyse en yeni gün.
     var guncel: Paket? {
         if let s = secilenGun, let p = paketler.first(where: { $0.gun == s }) { return p }
-        return paketler.first { !yazilanGunler.contains($0.gun) && !atlananGunler.contains($0.gun) } ?? paketler.last
+        let done = yazilanGunler.union(atlananGunler).union(listenedDays)
+        let reached = paketler.map(\.gun).filter { done.contains($0) }.max() ?? Int.min
+        return paketler.first { $0.gun > reached } ?? paketler.last
+    }
+    /// Telefonda en az bir kez tam dinlenmiş günler.
+    var listenedDays: Set<Int> { Set(olaylar.filter { $0.tur == .dinledi }.map(\.gun)) }
+
+    /// Günler arasında bir adım: ‹ önceki · › sonraki (yerelde tutulan paketler arasında).
+    func neighbor(of gun: Int, _ step: Int) -> Paket? {
+        guard let i = paketler.firstIndex(where: { $0.gun == gun }) else { return nil }
+        let j = i + step
+        return paketler.indices.contains(j) ? paketler[j] : nil
     }
     /// Mac'te yazılmış günler: Tezgâh'ın "bitti" olayı ya da yazım sonucu taşıyan çözüm.
     var yazilanGunler: Set<Int> {
@@ -146,9 +160,18 @@ final class Depo: ObservableObject {
     func dinledi(_ p: Paket, oran: Double, sure: Double) {
         var o = Olay(gun: p.gun, surum: p.surum, tur: .dinledi)
         o.oran = (oran * 100).rounded() / 100; o.sure = sure.rounded()
+        if secilenGun == p.gun { secilenGun = nil }
         ekle(o)
         let n = hazirlik(p.gun).dinleme
         bilgi = n == 1 ? "Bir kez dinledin." : "\(n). dinleme tamam."
+    }
+
+    /// One listening stretch (also partial). Counted on the Mac as listening time; does not change readiness.
+    func listened(_ p: Paket, seconds: Double, ratio: Double, sentences: [Int]) {
+        var o = Olay(gun: p.gun, surum: p.surum, tur: .listened)
+        o.sure = seconds.rounded(); o.oran = (ratio * 1000).rounded() / 1000
+        o.sentences = sentences.isEmpty ? nil : sentences
+        ekle(o)
     }
 
     func okudu(_ p: Paket) {
@@ -236,6 +259,16 @@ final class Depo: ObservableObject {
             let aday = p.cumleler.filter { $0.konu != nil && ($0.en?.count ?? 0) < 90 }
             let c = aday.isEmpty ? p.cumleler.first : aday[p.gun % aday.count]
             a.anahtar = c?.en; a.anahtarTr = c?.tr
+            a.sentences = p.cumleler.compactMap { c in
+                guard let en = c.en, !en.isEmpty else { return nil }
+                let z = p.cumleZamani(c.i)
+                return .init(i: c.i, en: en, tr: c.tr, start: z?.baslangic, end: z?.bitis)
+            }
+            a.todayWords = Depo.newWords(p)
+            if let y = neighbor(of: p.gun, -1) {
+                a.yesterdayDay = y.gun
+                a.yesterdayWords = Depo.newWords(y)
+            }
         }
         if let c = sonCozum {
             a.dunGun = c.gun
@@ -246,12 +279,19 @@ final class Depo: ObservableObject {
         return a
     }
 
+    /// The package's new words (the echo words are older days' words); if a package has no "yeni", all of them.
+    static func newWords(_ p: Paket) -> [WidgetAnlik.WidgetWord] {
+        let all = p.sozluk ?? []
+        let fresh = all.filter { $0.tur == "yeni" }
+        return (fresh.isEmpty ? all : fresh).prefix(6).map { .init(w: $0.w, tr: $0.tr) }
+    }
+
     // MARK: Eşitleme
 
     func esitle(gecikme: Double = 0) {
         esitlemeGorevi?.cancel()
         esitlemeGorevi = Task { [weak self] in
-            if gecikme > 0 { try? await Task.sleep(nanoseconds: UInt64(gecikme * 1_000_000_000)) }
+            if gecikme > 0 { try? await Task.sleep(for: .seconds(gecikme)) }
             guard let self, !Task.isCancelled else { return }
             await self.esitleSimdi()
         }
@@ -264,6 +304,7 @@ final class Depo: ObservableObject {
         var inenSes: [Int] = []
         var vaultKayitlari: [Int: [String: Data?]] = [:]   // gün → ad → yan dosya (json)
         var gonderilen: [String] = []
+        var sentRebuilds: [String] = []
     }
 
     /// - Returns: yeni gelen paket ya da çözüm varsa (gün) — arka plan bildirimi için.
@@ -283,6 +324,8 @@ final class Depo: ObservableObject {
         let kayitYerel = kayitKlasoru
         let tutulan = Depo.tutulan
         let bitmisGunler = yazilanGunler.union(atlananGunler)
+        let rebuildFolder = RebuildState.folder
+        let sentRebuilds = Set(UserDefaults.standard.stringArray(forKey: Depo.sentRebuildsKey) ?? [])
 
         let g: Gelen? = await kasa.ile { kok in
             var s = Gelen()
@@ -359,9 +402,24 @@ final class Depo: ObservableObject {
                 let a = (try? fm.attributesOfItem(atPath: hedef.path)[.size] as? Int) ?? -1
                 if a == v.count { s.gonderilen.append(k.ad) }
             }
+            // 5 · Sentences built from the widget (kurma/): m4a + json, for later evaluation
+            for ad in (try? fm.contentsOfDirectory(atPath: rebuildFolder.path)) ?? [] where ad.hasSuffix(".m4a") && !sentRebuilds.contains(ad) {
+                let side = ad.replacingOccurrences(of: ".m4a", with: ".json")
+                guard let day = Int(ad.prefix(3)), let v = try? Data(contentsOf: rebuildFolder.appendingPathComponent(ad)),
+                      let j = try? Data(contentsOf: rebuildFolder.appendingPathComponent(side)) else { continue }   // json not written yet
+                let target = pk.appendingPathComponent(Paket.klasor(day)).appendingPathComponent("kurma", isDirectory: true)
+                do {
+                    try Kasa.koordineliYaz(v, target.appendingPathComponent(ad))
+                    try Kasa.koordineliYaz(j, target.appendingPathComponent(side))
+                    s.sentRebuilds.append(ad)
+                } catch { continue }
+            }
             return s
         }
         guard let g else { return (nil, nil) }
+        if !g.sentRebuilds.isEmpty {
+            UserDefaults.standard.set(Array(sentRebuilds.union(g.sentRebuilds)), forKey: Depo.sentRebuildsKey)
+        }
 
         // Yerel önbelleğe al
         let fm = FileManager.default

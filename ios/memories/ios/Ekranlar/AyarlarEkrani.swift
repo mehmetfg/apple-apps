@@ -83,6 +83,11 @@ struct AyarlarEkrani: View {
                         }
                     }
                     Toggle("Dokunsal geri bildirim", isOn: $depo.haptik)
+                    Toggle(isOn: $depo.keepScreenOn) {
+                        Text("Dinlerken ekran açık kalsın")
+                        Text("Çalarken ve kayıtta ekran kararmaz; durdurunca normale döner.")
+                    }
+                    .onChange(of: depo.keepScreenOn) { _, _ in ScreenAwake.apply() }
                 }
 
                 Section("Akış") {
@@ -96,6 +101,8 @@ struct AyarlarEkrani: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Tema.arka)
             .navigationTitle("Ayarlar")
             .fileImporter(isPresented: $klasorSec, allowedContentTypes: [.folder]) { r in
                 if case .success(let u) = r {

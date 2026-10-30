@@ -5,7 +5,18 @@ struct DinleEkrani: View {
     @EnvironmentObject var depo: Depo
     @EnvironmentObject var oynatici: Oynatici
 
-    private var paket: Paket? { oynatici.paket ?? depo.guncel }
+    /// Çalan (ya da yarıda duran) gün; başka bir gün seçildiyse ya da oynatıcı boşsa çantadaki gün.
+    private var paket: Paket? {
+        if let o = oynatici.paket,
+           oynatici.caliyor || (oynatici.zaman > 0 && (depo.secilenGun == nil || depo.secilenGun == o.gun)) { return o }
+        return depo.guncel ?? oynatici.paket
+    }
+
+    /// ‹ › ile gün değiştir: çalıyorsa durur (kaldığı yer saklanır), seçilen gün açılır.
+    private func gunDegistir(_ hedef: Paket) {
+        if oynatici.caliyor { oynatici.duraklat() }
+        depo.gunSec(hedef.gun)
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,7 +27,7 @@ struct DinleEkrani: View {
                     BosDurum(simge: "headphones", baslik: "Dinlenecek paket yok", metin: "Paket telefona inince burada çalar.")
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Tema.arka)
             .navigationTitle("Dinle")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -30,8 +41,14 @@ struct DinleEkrani: View {
             ScrollView {
                 VStack(spacing: 18) {
                     VStack(spacing: 6) {
-                        Text("Gün \(p.gun)").font(.caption.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
-                        Text(p.ad).font(.system(.title, design: .serif).weight(.semibold))
+                        HStack {
+                            gunOku(depo.neighbor(of: p.gun, -1), "chevron.left", "Önceki gün")
+                            Spacer()
+                            Text("Gün \(p.gun)").font(.caption.weight(.bold)).tracking(1.1).foregroundStyle(.secondary)
+                            Spacer()
+                            gunOku(depo.neighbor(of: p.gun, 1), "chevron.right", "Sonraki gün")
+                        }
+                        Text(p.ad).font(.system(.title, design: .serif).weight(.semibold)).multilineTextAlignment(.center)
                         HStack(spacing: 6) {
                             ForEach(0..<3) { i in
                                 Image(systemName: i < h.dinleme ? "headphones.circle.fill" : "circle.dotted")
@@ -50,7 +67,7 @@ struct DinleEkrani: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: b.simge).font(.body.weight(.semibold)).foregroundStyle(Tema.bolumRengi(b.ad))
                                         .frame(width: 34, height: 34)
-                                        .background(Circle().fill(Tema.bolumRengi(b.ad).opacity(0.14)))
+                                        .background { Circle().fill(Tema.bolumRengi(b.ad).opacity(0.14)) }
                                     Text(b.etiket).font(.body.weight(oynatici.bolum == b ? .semibold : .regular)).foregroundStyle(.primary)
                                     Spacer()
                                     Text(Tarih.sure(b.bitis - b.baslangic)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
@@ -139,6 +156,23 @@ struct DinleEkrani: View {
         .background(.bar)
     }
 
+    private func gunOku(_ hedef: Paket?, _ simge: String, _ ad: String) -> some View {
+        Button { if let hedef { gunDegistir(hedef) } } label: {
+            HStack(spacing: 4) {
+                if simge == "chevron.left" { Image(systemName: simge) }
+                if let hedef { Text("Gün \(hedef.gun)").font(.caption.weight(.semibold)) }
+                if simge == "chevron.right" { Image(systemName: simge) }
+            }
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 12).frame(minHeight: 36)
+            .background { Capsule().fill(Color(.tertiarySystemGroupedBackground)) }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(hedef == nil ? Color.secondary.opacity(0.4) : Tema.vurgu)
+        .disabled(hedef == nil)
+        .accessibilityLabel(ad)
+    }
+
     private func dugme(_ simge: String, _ ad: String, _ e: @escaping () -> Void) -> some View {
         Button(action: e) {
             Image(systemName: simge).font(.system(size: 22, weight: .medium)).frame(maxWidth: .infinity, minHeight: 44)
@@ -166,7 +200,7 @@ struct TurkceGoz: View {
         .onChange(of: tr) { _, _ in acik = false }
         .task(id: acik) {
             guard acik else { return }
-            try? await Task.sleep(nanoseconds: 6_000_000_000)
+            try? await Task.sleep(for: .seconds(6))
             withAnimation { acik = false }
         }
     }

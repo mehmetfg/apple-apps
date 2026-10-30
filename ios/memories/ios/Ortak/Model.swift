@@ -149,6 +149,7 @@ enum OlayTuru: String, Codable {
     case takildi      // bir cümlede takıldın: yineledin, geri sardın, tek başına dinledin ya da Türkçesine baktın
     case basladi, bitti   // Mac'te Tezgâh (yalnız okunur)
     case atladi           // «Yaptım, geç»: gün sicile girmez, sıradaki gün açılır (iki cihaz da yazabilir)
+    case listened         // one listening stretch (play → pause/finish), partial ones too: seconds + sentences heard (Mac › Dinleme)
 }
 
 struct Olay: Codable, Hashable, Identifiable {
@@ -165,8 +166,9 @@ struct Olay: Codable, Hashable, Identifiable {
     var takilan: [String]?
     var rol: String?
     var cumle: Int?             // takildi: hangi cümle (0'dan) — Mac'te metin haritasında işaretlenir
+    var sentences: [Int]?       // listened: sentence indices (0-based) heard in this stretch
 
-    enum CodingKeys: String, CodingKey { case id, cihaz, t, gun, surum, tur, oran, sure, dosya, tanima, takilan, rol, cumle }
+    enum CodingKeys: String, CodingKey { case id, cihaz, t, gun, surum, tur, oran, sure, dosya, tanima, takilan, rol, cumle, sentences }
 
     init(gun: Int, surum: String?, tur: OlayTuru) { self.gun = gun; self.surum = surum; self.tur = tur }
 
@@ -190,6 +192,7 @@ struct Olay: Codable, Hashable, Identifiable {
         takilan = try? c.decode([String].self, forKey: .takilan)
         rol = try? c.decode(String.self, forKey: .rol)
         cumle = try? c.decode(Int.self, forKey: .cumle)
+        sentences = try? c.decode([Int].self, forKey: .sentences)
     }
 }
 
@@ -216,7 +219,7 @@ struct Hazirlik: Hashable {
                 for w in o.takilan ?? [] where !h.takilan.contains(w) { h.takilan.append(w) }
             case .hazirim: h.hazir = true
             case .bitti: h.yazildi = true
-            case .basladi, .takildi, .atladi: break
+            case .basladi, .takildi, .atladi, .listened: break
             }
         }
         if h.dinleme > 0 && h.okuma { h.hazir = true }
@@ -315,6 +318,24 @@ struct WidgetAnlik: Codable {
     var dunEn: String?              // dünün çözümünden: en iyi ya da düzeltilen cümle
     var dunTr: String?
     var rota: String?               // yol haritasının ilk satırı
+    var sentences: [WidgetSentence]?  // günün metni cümle cümle (Cümle cümle widget'ı)
+    var todayWords: [WidgetWord]?     // the day's new words (large Cümle cümle widget)
+    var yesterdayWords: [WidgetWord]? // the previous day's new words
+    var yesterdayDay: Int?
+
+    struct WidgetWord: Codable, Hashable {
+        var w: String
+        var tr: String?
+    }
+
+    /// One sentence of the day's text, with its time range in the package audio (ses.m4a).
+    struct WidgetSentence: Codable, Hashable {
+        var i: Int
+        var en: String
+        var tr: String?
+        var start: Double?
+        var end: Double?
+    }
 
     static let ornek = WidgetAnlik(
         guncel: Date(), gun: 22, baslik: "The Market",
@@ -345,6 +366,26 @@ enum Paylasim {
     static var ayar: UserDefaults { UserDefaults(suiteName: grup) ?? .standard }
     static var anlikURL: URL { kapsayici.appendingPathComponent("widget.json") }
     static let dunAcik = "w.dun.acik"
+    static let sentenceKind = "MemoriesCumle"
+    static let sentenceIndexKey = "w.cumle.sira"
+    static let sentenceDayKey = "w.cumle.gun"
+
+    /// Widget'ta gösterilen cümle: gün değişince ilk cümleye döner.
+    static func sentenceIndex(_ a: WidgetAnlik?) -> Int {
+        guard let a, let n = a.sentences?.count, n > 0 else { return 0 }
+        guard ayar.integer(forKey: sentenceDayKey) == (a.gun ?? -1) else { return 0 }
+        return min(max(0, ayar.integer(forKey: sentenceIndexKey)), n - 1)
+    }
+    /// Bir cümle ileri/geri; uçta öbür uca döner.
+    static func moveSentence(_ step: Int) {
+        guard let a = oku(), let n = a.sentences?.count, n > 0 else { return }
+        let next = ((sentenceIndex(a) + step) % n + n) % n
+        ayar.set(next, forKey: sentenceIndexKey)
+        ayar.set(a.gun ?? -1, forKey: sentenceDayKey)
+    }
+    static func audioURL(gun: Int) -> URL {
+        kapsayici.appendingPathComponent("paket/\(Paket.klasor(gun))/ses.m4a")
+    }
 
     static func oku() -> WidgetAnlik? {
         guard let v = try? Data(contentsOf: anlikURL) else { return nil }

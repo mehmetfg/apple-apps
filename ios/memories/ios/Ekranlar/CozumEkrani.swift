@@ -69,7 +69,7 @@ struct CozumEkrani: View {
                 }
                 .padding(18)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Tema.arka)
             .navigationTitle(cozum.macten ? "Gün \(cozum.gun) · Mac'te yazdın" : "Gün \(cozum.gun) çözümü")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Kapat") { kapat() } } }

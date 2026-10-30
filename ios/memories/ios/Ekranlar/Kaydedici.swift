@@ -11,7 +11,7 @@ import Speech
 final class Kaydedici: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAudioPlayerDelegate {
     enum Hal: Equatable { case bos, kayit, cozuluyor, bitti, izinYok, hata(String) }
 
-    @Published var hal: Hal = .bos
+    @Published var hal: Hal = .bos { didSet { ScreenAwake.set("record", hal == .kayit) } }
     @Published var sure: TimeInterval = 0
     @Published var seviyeler: [Float] = []
     @Published var sonuc: KayitBilgisi?
@@ -130,6 +130,7 @@ final class Kaydedici: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAu
         return await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
             let b = Biriktirici()
             tanici.recognitionTask(with: istek) { sonuc, hata in
+                _ = tanici   // the recognizer must stay alive until the task ends, or the callback never fires
                 if b.bitti { return }
                 if let sonuc {
                     b.ekle(sonuc.bestTranscription.formattedString, parcaSonu: sonuc.speechRecognitionMetadata != nil)

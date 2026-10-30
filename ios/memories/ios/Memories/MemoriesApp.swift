@@ -1,5 +1,5 @@
-// Memories — İngilizce Ön Çalışma, iPhone (iOS 17+).
-// Sekmeler: Bugün · Dinle · Oku · Kendi sesinle · Ayarlar.
+// Memories — İngilizce Ön Çalışma, iPhone (iOS 18+).
+// Sekmeler: Bugün · Dinle · Oku · Metin (tek parça + Türkçesi + sesli oku ve kaydet) · Ayarlar.
 // Akış: ① mobilde çalış → ② Mac'te yaz (Cümle Tezgâhı) → ③ çözümle (ertesi sabah). Paket bir gün önce hazır.
 import SwiftUI
 import UserNotifications
@@ -56,14 +56,16 @@ struct MemoriesApp: App {
     @Environment(\.scenePhase) private var faz
     @State private var sekme: Sekme = .bugun
     @State private var cozumAcik = false
+    @State private var okuHedef: Int?
+    @State private var bant: String?
 
     var body: some Scene {
         WindowGroup {
             TabView(selection: $sekme) {
                 BugunEkrani(sekme: $sekme).tabItem { Label("Bugün", systemImage: "sun.max") }.tag(Sekme.bugun)
                 DinleEkrani().tabItem { Label("Dinle", systemImage: "headphones") }.tag(Sekme.dinle)
-                OkuEkrani().tabItem { Label("Oku", systemImage: "text.book.closed") }.tag(Sekme.oku)
-                KayitEkrani().tabItem { Label("Sesinle", systemImage: "mic") }.tag(Sekme.kaydet)
+                OkuEkrani(hedef: $okuHedef).tabItem { Label("Oku", systemImage: "text.book.closed") }.tag(Sekme.oku)
+                KayitEkrani().tabItem { Label("Metin", systemImage: "doc.text") }.tag(Sekme.kaydet)
                 AyarlarEkrani().tabItem { Label("Ayarlar", systemImage: "gearshape") }.tag(Sekme.ayarlar)
             }
             .environmentObject(depo)
@@ -72,6 +74,30 @@ struct MemoriesApp: App {
             .environment(\.locale, Locale(identifier: "tr_TR"))
             .sheet(isPresented: $cozumAcik) {
                 if let c = depo.sonCozum { CozumEkrani(cozum: c).environmentObject(depo) }
+            }
+            .overlay(alignment: .top) {
+                if let bant {
+                    Label(bant, systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background { Capsule().fill(Tema.yesil.gradient) }
+                        .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
+                        .padding(.top, 6).padding(.horizontal, 16)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: PasteboardCopy.copied)) { n in
+                let yazi = n.object as? String ?? "Panoda"
+                withAnimation(.spring(duration: 0.3)) { bant = yazi }
+                Task {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    if bant == yazi { withAnimation { bant = nil } }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: PasteboardCopy.openSentence)) { n in
+                // Widget'ın YZ düğmesi: uygulama açıldı, istem panoda; o cümle Oku'da önde
+                sekme = .oku
+                okuHedef = n.object as? Int
             }
             .onOpenURL { git($0.host() ?? "") }
             .onAppear {
