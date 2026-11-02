@@ -165,7 +165,8 @@ struct ReaderScreen: View {
                 BikeBar(theme: theme)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if !chromeHidden {
-                PlayerBar(theme: theme, onJump: jump, onShow: show, onScrub: scrubbed, onSearch: { searching = true })
+                PlayerBar(theme: theme, browseAt: backShown && !following ? visibleOffset : nil,
+                          onJump: jump, onShow: show, onScrub: scrubbed, onSearch: { searching = true })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -521,6 +522,8 @@ struct PlayerBar: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accent) private var accent
     let theme: ReaderTheme
+    /// The place on screen while browsing after the progress bar (the knob stays there; the reading place is a tick).
+    var browseAt: Int?
     var onJump: (Int, Bool?) -> Void
     var onShow: (Int) -> Void
     var onScrub: (Int) -> Void
@@ -544,7 +547,7 @@ struct PlayerBar: View {
                 bar("magnifyingglass", "Belgede ara", action: onSearch)
             }
             .padding(.top, 6)
-            ProgressRow(scrubbing: $scrubbing, onShow: onScrub)
+            ProgressRow(scrubbing: $scrubbing, browseAt: browseAt, onShow: onScrub)
             StatusRow()
         }
         .padding(.horizontal, 12)
@@ -601,18 +604,21 @@ private struct ProgressRow: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accent) private var accent
     @Binding var scrubbing: Double?
+    var browseAt: Int?
     /// The bar only brings a place on screen: a hand brushing it must not move the reading place (2026-11-02).
     var onShow: (Int) -> Void
 
     var body: some View {
         let player = model.player
         let len = max(1, player.length)
-        let value = scrubbing ?? Double(player.cursor) / Double(len)
+        let reading = Double(player.cursor) / Double(len)
+        let value = scrubbing ?? browseAt.map { Double($0) / Double(len) } ?? reading
         let total = player.totalSeconds
         let elapsed = total * value
         HStack(spacing: 10) {
             Text(Format.clock(elapsed)).frame(width: 58, alignment: .leading)
-            Scrubber(value: value, fill: accent.fill, knob: accent.ink, onChanging: { scrubbing = $0 }, onEnded: { s in
+            Scrubber(value: value, fill: accent.fill, knob: accent.ink,
+                     mark: scrubbing != nil || browseAt != nil ? reading : nil, onChanging: { scrubbing = $0 }, onEnded: { s in
                 onShow(player.sentenceStart(before: Int(Double(len) * s) + 1))
                 scrubbing = nil
             })

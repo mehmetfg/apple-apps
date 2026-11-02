@@ -709,3 +709,4 @@ bir yere gidiyorum; eski yere dön düğmesi çıksın". Alt çubuktaki ilerleme
 o yere götürür (`ReaderScreen.show`); okuma yeri ancak çift dokunuşla ya da ▶ ile değişir. Çubuk bırakılınca sayfanın altında
 **Eski yere dön** kalır (kaybolmaz), basınca sayfa okuma yerine döner; çift dokunuşla okuma yeri değişince de kalkar.
 Sınanan: simülatörde çubuk sürüklendi, okuma yeri %0'da kaldı, düğme çıktı ve basınca kalktı; iPhone'a kuruldu.
+Aynı gün düzeltme (kullanıcı: "çektiğimde etki etmiyor, yerinde kalıyor"): bırakınca topuz okuma yerine geri sıçrıyordu. Artık göz atarken topuz ve süreler sayfanın yerini gösterir, okuma yeri çubukta ince bir çentiktir (`Scrubber.mark`). Kıymet'te sınandı: topuz %75'te, çentik %16'da, sayfa oraya gitti.

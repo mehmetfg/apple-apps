@@ -95,6 +95,8 @@ struct Scrubber: View {
     var value: Double
     var fill: Color
     var knob: Color
+    /// The reading place, drawn as a small tick while the knob shows another place (browsing the book).
+    var mark: Double? = nil
     var onChanging: (Double) -> Void
     var onEnded: (Double) -> Void
     @State private var dragging = false
@@ -106,6 +108,10 @@ struct Scrubber: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.primary.opacity(0.14)).frame(height: 5)
                 Capsule().fill(fill).frame(width: x, height: 5)
+                if let m = mark {
+                    Capsule().fill(knob.opacity(0.55)).frame(width: 3, height: 14)
+                        .offset(x: min(max(0, w * m - 1.5), w - 3))
+                }
                 RoundedRectangle(cornerRadius: 3.5, style: .continuous).fill(knob)
                     .frame(width: dragging ? 11 : 8, height: dragging ? 24 : 20)
                     .offset(x: min(max(0, x - 4), w - 8))
