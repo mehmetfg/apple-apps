@@ -9,20 +9,19 @@ import Foundation
 import CryptoKit
 import Security
 import Observation
+import AVFoundation
 
 // MARK: Keychain
 
 /// The API key lives only in this device's Keychain: readable after the first unlock (so reading goes on from the lock
 /// screen), not synced to iCloud Keychain and not part of backups.
 enum KeyVault {
-    private static let base: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "wisepath.elevenlabs",
-        kSecAttrAccount as String: "api",
-    ]
+    private static func base(_ service: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: "api"]
+    }
 
-    static func read() -> String? {
-        var q = base
+    static func read(_ service: String = "wisepath.elevenlabs") -> String? {
+        var q = base(service)
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
@@ -31,15 +30,15 @@ enum KeyVault {
     }
 
     @discardableResult
-    static func write(_ key: String) -> Bool {
-        delete()
-        var q = base
+    static func write(_ key: String, service: String = "wisepath.elevenlabs") -> Bool {
+        delete(service)
+        var q = base(service)
         q[kSecValueData as String] = Data(key.utf8)
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
     }
 
-    static func delete() { SecItemDelete(base as CFDictionary) }
+    static func delete(_ service: String = "wisepath.elevenlabs") { SecItemDelete(base(service) as CFDictionary) }
 }
 
 // MARK: settings
@@ -130,6 +129,8 @@ final class ElevenLabs {
     static let shared = ElevenLabs()
     /// The voice id the reader stores when ElevenLabs is the chosen voice (the ElevenLabs voice itself is `voiceID`).
     nonisolated static let readerVoiceID = "vr.eleven"
+    /// The disk cache limit (shared by every cloud voice), readable off the main actor.
+    nonisolated static var cacheLimitBytes: Int { (UserDefaults.standard.object(forKey: "a.eleven.limitMB") as? Int ?? 500) * 1_000_000 }
 
     private static let root = "https://api.elevenlabs.io"
     @ObservationIgnored private let d = UserDefaults.standard
@@ -393,9 +394,18 @@ enum ElevenCache {
         return ElevenClip(file: mp3, record: record, fromCache: true)
     }
 
-    static func write(_ k: String, audio: Data, record: ElevenRecord, limit: Int64) throws -> ElevenClip {
+    /// `timing`: for providers without word timings, the words from the audio's measured length (seconds).
+    static func write(_ k: String, audio: Data, record: ElevenRecord, limit: Int64,
+                      timing: ((Double) -> [ElevenWord])? = nil) throws -> ElevenClip {
         let mp3 = folder.appending(path: k + ".mp3"), js = folder.appending(path: k + ".json")
         try audio.write(to: mp3, options: .atomic)
+        var record = record
+        if let timing {
+            let seconds = (try? AVAudioFile(forReading: mp3)).map { Double($0.length) / $0.processingFormat.sampleRate } ?? 0
+            guard seconds > 0 else { try? FileManager.default.removeItem(at: mp3); throw ElevenError.undecodable }
+            record.seconds = seconds
+            record.words = timing(seconds)
+        }
         try JSONEncoder().encode(record).write(to: js, options: .atomic)
         prune(limit, keep: k)
         return ElevenClip(file: mp3, record: record, fromCache: false)

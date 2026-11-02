@@ -710,3 +710,24 @@ o yere götürür (`ReaderScreen.show`); okuma yeri ancak çift dokunuşla ya da
 **Eski yere dön** kalır (kaybolmaz), basınca sayfa okuma yerine döner; çift dokunuşla okuma yeri değişince de kalkar.
 Sınanan: simülatörde çubuk sürüklendi, okuma yeri %0'da kaldı, düğme çıktı ve basınca kalktı; iPhone'a kuruldu.
 Aynı gün düzeltme (kullanıcı: "çektiğimde etki etmiyor, yerinde kalıyor"): bırakınca topuz okuma yerine geri sıçrıyordu. Artık göz atarken topuz ve süreler sayfanın yerini gösterir, okuma yeri çubukta ince bir çentiktir (`Scrubber.mark`). Kıymet'te sınandı: topuz %75'te, çentik %16'da, sayfa oraya gitti.
+
+### 2026-11-02 (akşam) — Bulut sesi: Google, Azure, OpenAI; ücretsiz kotada kalma
+
+Kullanıcı: "ElevenLabs API'de yalnız 10 bin karakter var, 4 dakikada bitti; ElevenReader'da 10 saat ücretsiz; bunu kendi
+uygulamamda kullanamaz mıyım; dinlemem çok yüksek; Google gibi alternatifleri ve daha ucuzunu ekle".
+ElevenReader'ın saatleri ayrı bir sistemdir, API'den kullanılamaz (ElevenLabs yardım sayfası); uygulamanın iç uçlarını taklit
+etmek şartlara aykırı, yapılmadı. Yerine `Speech/CloudVoice.swift` (ses kimliği `vr.cloud`): bir sağlayıcı seçilir.
+
+| Sağlayıcı | Ücretsiz / ay | Sonrası | Kelime zamanı |
+|---|---|---|---|
+| Google WaveNet, Standard | 4 M karakter | $4 / M | SSML `<mark>` (ücretlendirilmez) |
+| Google Neural2 · Chirp 3 HD | 1 M | $16 · $30 / M | Neural2 işaretli; Chirp süreye yayılır |
+| Azure nöral (F0 anahtar) | 0,5 M | F0'da durur, ücret yok | süreye yayılır |
+| OpenAI gpt-4o-mini-tts | yok | ≈ 1,5 sent / dk | süreye yayılır |
+
+330 kelime/dk ≈ dakikada 2.300 karakter: 4 M ≈ 29 saat, 1 M ≈ 7 saat, 0,5 M ≈ 3,6 saat. Sayaç ayda bir sıfırlanır
+(Google'da ses ailesine göre ayrı); **Ücretsiz kotada kal** açıkken kota dolunca paragrafı iPhone sesi okur. Her paragraf bir
+kez üretilip ElevenLabs ile aynı disk önbelleğine yazılır; ses süresi ölçülüp kelimeler uzunluklarına (noktalamada biraz
+fazla) göre yayılır. Anahtar Keychain'de `wisepath.cloud.<sağlayıcı>`. Sınama bayrağı `-cloudtest`.
+Sınanan: derleme, SSML işaretleme ve kelime yayma Mac'te, ayar ekranı simülatörde; iPhone'a kuruldu.
+Sınanmayan: üç sağlayıcının gerçek anahtarla yanıtı (anahtar yok).

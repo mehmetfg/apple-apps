@@ -252,7 +252,8 @@ final class SpeechPlayer: NSObject {
     /// Voice Reader's own voices (Ema, Supertonic, Apple-based profiles, Anlatıcı) take the boost when each piece is
     /// rendered, with a look-ahead compressor (Level.apply): as plain gain into the fast live limiter it clipped (24 %
     /// of samples cut by over 3 dB at +14 dB), the crackle at high speed and with the music slider at 0.
-    private var rendersOwnVoice: Bool { VoiceProfile.with(id: voiceID) != nil || voiceID == ElevenLabs.readerVoiceID }
+    private var rendersOwnVoice: Bool { VoiceProfile.with(id: voiceID) != nil || isCloud }
+    private var isCloud: Bool { voiceID == ElevenLabs.readerVoiceID || voiceID == CloudVoice.readerVoiceID }
     var renderBoost: Double { rendersOwnVoice ? max(0, totalBoost) : 0 }
     private func boostChanged() { if rendersOwnVoice { restartSoon() } }
 
@@ -687,7 +688,7 @@ final class SpeechPlayer: NSObject {
         guard isSpeaking, !synthesizing, nextBlock < blocks.count else { return }
         if scheduledEnd - playhead > AVAudioFramePosition(48_000 * 30) { return }
         if voiceID == VoiceProfile.studio.id, let pack = studio, studioNext(pack) { return }
-        if voiceID == ElevenLabs.readerVoiceID { elevenNext(); return }
+        if isCloud { elevenNext(); return }
         guard let piece = nextPiece() else { return }
         let range = blocks[piece.block]
         let original = text.substring(with: NSRange(location: range.location + piece.offset, length: piece.length))
@@ -787,7 +788,7 @@ final class SpeechPlayer: NSObject {
     /// voice or the network, the paragraph is read by the Turkish system voice and reading never stops.
     private(set) var elevenProblem: String?
     /// The ElevenLabs voice, model or quality changed: read on with the new sound.
-    func elevenChanged() { if voiceID == ElevenLabs.readerVoiceID { applyBoost(); restartSoon() } }
+    func elevenChanged() { if isCloud { applyBoost(); restartSoon() } }
     private func elevenNext() {
         let bi = nextBlock
         let range = blocks[bi]
@@ -798,15 +799,17 @@ final class SpeechPlayer: NSObject {
         let spoken = SpokenText(full, options: options)
         if spoken.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { synthesizeNext(); return }
         let piece = Piece(block: bi, offset: offset, length: range.length - offset, language: baseLanguage)
-        let eleven = ElevenLabs.shared
-        guard eleven.ready else { elevenFallback(piece, problem: eleven.hasKey ? ElevenError.noVoice : ElevenError.noKey); return }
+        let cloud = voiceID == CloudVoice.readerVoiceID
+        let ready = cloud ? CloudVoice.shared.ready : ElevenLabs.shared.ready
+        let hasKey = cloud ? CloudVoice.shared.hasKey : ElevenLabs.shared.hasKey
+        guard ready else { elevenFallback(piece, problem: hasKey ? ElevenError.noVoice : ElevenError.noKey); return }
         synthesizing = true
         let gen = generation
         let from = offset == 0 ? 0 : spoken.spoken(at: offset)
         let speed = self.speed, boost = renderBoost
         Task { [weak self] in
             do {
-                let clip = try await eleven.synthesize(spoken.string)
+                let clip = cloud ? try await CloudVoice.shared.synthesize(spoken.string) : try await ElevenLabs.shared.synthesize(spoken.string)
                 let r = await withCheckedContinuation { (c: CheckedContinuation<RenderedSpeech?, Never>) in
                     ProfileRenderer.shared.queue.async { c.resume(returning: ElevenCache.render(clip, from: from, speed: speed, boost: boost)) }
                 }

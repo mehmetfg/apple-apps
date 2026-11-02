@@ -52,6 +52,7 @@ final class AppModel {
         listening.start(player)
         player.onFinished = { [weak self] id in self?.documentFinished(id) }
         ElevenLabs.shared.onChange = { [weak self] in self?.player.elevenChanged() }
+        CloudVoice.shared.onChange = { [weak self] in self?.player.elevenChanged() }
         // a finished book does not move and does not play until the reader starts a new reading of it
         player.mayMove = { [weak self] id, offset in
             guard let self, let d = self.store.document(id), d.isFinished else { return true }
@@ -286,7 +287,7 @@ final class AppModel {
     /// The voice chosen for a language: settings, else Ema Tok for Turkish, else the best installed voice.
     func voiceID(forLanguage l: String) -> String {
         let l = Voices.base(l)
-        if let id = settings.voiceByLanguage[l], id == ElevenLabs.readerVoiceID || (VoiceProfile.with(id: id)?.isAvailable ?? (Voices.voice(id) != nil)) {
+        if let id = settings.voiceByLanguage[l], id == ElevenLabs.readerVoiceID || id == CloudVoice.readerVoiceID || (VoiceProfile.with(id: id)?.isAvailable ?? (Voices.voice(id) != nil)) {
             return id
         }
         if l == "tr" { return VoiceProfile.emaTok.id }
@@ -295,13 +296,14 @@ final class AppModel {
 
     /// The open document's voice id: a Voice Reader profile ("vr.…") or a system voice identifier.
     var currentVoiceID: String {
-        if let id = currentDocument?.voiceID, id == ElevenLabs.readerVoiceID || VoiceProfile.with(id: id) != nil || Voices.voice(id) != nil { return id }
+        if let id = currentDocument?.voiceID, id == ElevenLabs.readerVoiceID || id == CloudVoice.readerVoiceID || VoiceProfile.with(id: id) != nil || Voices.voice(id) != nil { return id }
         return voiceID(forLanguage: currentDocument?.language ?? "tr")
     }
 
     var currentVoiceName: String {
         let id = currentVoiceID
         if id == ElevenLabs.readerVoiceID { return ElevenLabs.shared.displayName }
+        if id == CloudVoice.readerVoiceID { return CloudVoice.shared.displayName }
         return VoiceProfile.with(id: id)?.name ?? Voices.voice(id)?.name ?? "Ses"
     }
 
@@ -318,7 +320,7 @@ final class AppModel {
     }
 
     /// The current voice is a system voice (Yelda, Cem…): its speed is shown in words a minute, as in Voice Dream.
-    var isSystemVoice: Bool { VoiceProfile.with(id: currentVoiceID) == nil && currentVoiceID != ElevenLabs.readerVoiceID }
+    var isSystemVoice: Bool { VoiceProfile.with(id: currentVoiceID) == nil && currentVoiceID != ElevenLabs.readerVoiceID && currentVoiceID != CloudVoice.readerVoiceID }
 
     func tune(_ id: String) -> VoiceTune {
         settings.voiceTune[id] ?? VoiceTune(pitch: VoiceProfile.with(id: id) == nil ? settings.pitch : 1, volume: 1)

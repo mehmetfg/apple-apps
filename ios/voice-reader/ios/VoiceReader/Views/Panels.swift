@@ -358,6 +358,7 @@ struct AudioSettingsView: View {
     private func voiceName(for l: String) -> String {
         let id = l == documentLanguage ? model.currentVoiceID : model.voiceID(forLanguage: l)
         if id == ElevenLabs.readerVoiceID { return ElevenLabs.shared.displayName }
+        if id == CloudVoice.readerVoiceID { return CloudVoice.shared.displayName }
         return VoiceProfile.with(id: id)?.name ?? Voices.voice(id)?.name ?? "—"
     }
 }
@@ -471,6 +472,9 @@ private struct VoicePage: View {
                     } header: { Text("Stüdyo") } footer: {
                         Text("Bu kitap Mac'te büyük bir ses modeliyle önceden seslendirildi. Hazır olmayan yerleri Ema okur.")
                     }
+                }
+                CloudVoiceSection(isSelected: isSelected(CloudVoice.readerVoiceID)) {
+                    model.setVoice(id: CloudVoice.readerVoiceID, language: "tr", documentOnly: documentOnly)
                 }
                 ElevenVoiceSection(isSelected: isSelected(ElevenLabs.readerVoiceID)) {
                     model.setVoice(id: ElevenLabs.readerVoiceID, language: "tr", documentOnly: documentOnly)

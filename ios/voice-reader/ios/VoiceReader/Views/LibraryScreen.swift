@@ -54,6 +54,7 @@ struct LibraryScreen: View {
     @State private var importerShown = false
     @State private var promptShown = false
     @State private var elevenShown = false
+    @State private var cloudShown = false
     @State private var newFolderShown = false
     @State private var newFolderName = ""
     @State private var statsTab: StatsTab?
@@ -120,6 +121,7 @@ struct LibraryScreen: View {
         }
         .sheet(isPresented: $promptShown) { PromptBuilderView() }
         .sheet(isPresented: $elevenShown) { NavigationStack { ElevenSettingsPage() } }
+        .sheet(isPresented: $cloudShown) { NavigationStack { CloudSettingsPage() } }
         .fileImporter(isPresented: $importerShown, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { Task { await model.importFiles(urls) } }
         }
@@ -147,12 +149,13 @@ struct LibraryScreen: View {
         .task {                                   // test hook: -musictest opens the music mode on the last book
             let args = CommandLine.arguments
             guard args.contains("-musictest") || args.contains("-statstest") || args.contains("-markssheet") || args.contains("-prompttest")
-                    || args.contains("-eleventest") else { return }
+                    || args.contains("-eleventest") || args.contains("-cloudtest") else { return }
             try? await Task.sleep(for: .seconds(2))
             if args.contains("-musictest") { model.musicModeShown = true }
             if args.contains("-statstest") { statsTab = args.contains("road") ? .road : .reading }
             if args.contains("-prompttest") { promptShown = true }
             if args.contains("-eleventest") { elevenShown = true }
+            if args.contains("-cloudtest") { cloudShown = true }
             if args.contains("-markssheet") { model.marksSheetDoc = model.store.documents.first { !$0.highlights.isEmpty }?.id }
         }
         .task {                                   // test hook: -openreader shows the last book's reader
