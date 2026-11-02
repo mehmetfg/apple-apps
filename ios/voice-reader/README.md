@@ -668,3 +668,36 @@ hızlı eylemlerin telefonda.
 Harita `Artifacts/wise-path-akis.html` (kaynak `docs/wisepath-flow.dataflow.json`, archify dataflow; 9/9 denetim,
 0 hata, visual-check geçti). Açıklama `docs/FLOW-STE100.md` (ASD-STE100): bileşenler, ana akış, kayıt akışı, widget
 akışı, aksama noktaları ve yordamları, giderilenler. Asıl aksama: telefonun iCloud'u kayıtları Mac'e yüklemiyor.
+
+## 2026-11-02 — ElevenLabs sesi, her biçimi içe alma, dinleme için ilk temizlik, sıkı liste, istem oluşturucu
+
+Kullanıcı isteği: "Teoria'daki ElevenLabs işini Wise Path'e tatbik et" (Teoria'ya dokunulmadı); "Birlikte aç'ta görüneyim,
+docx, txt, epub, mobi, pdf; içe alırken TTS'e uygun olmayan biçimi ve gereksiz boşlukları dışarıda bırak"; "listeler büyük,
+kompakt görünüm"; "konuyu ve teknik ayrıntıyı yazayım, istemi kopyalayayım, başka bir yapay zekâda yapıştırayım, cevabı buraya alayım".
+
+- **ElevenLabs** (`Speech/ElevenLabs.swift`, `Views/ElevenViews.swift`): Teoria'nın istemcisi İngilizce adlarla taşındı. Anahtar
+  yalnız bu telefonun Keychain'inde (`wisepath.elevenlabs`), ses/model/kalite/önbellek sınırı ayarlarda. Ses › ElevenLabs bir
+  ses olarak seçilir (`vr.eleven`). Her paragraf **bütün** olarak bir kez üretilir (kelime zamanlarıyla) ve
+  `Application Support/WisePath/ElevenLabs/` altına yazılır; okumaya paragrafın ortasından başlanırsa ses o kelimeden kesilir,
+  böylece paragraf her başlangıç için yeniden üretilmez. Hız telefonda WSOLA ile (perde korunur), seviye `Level` ile.
+  Anahtar, ses, ağ ya da kredi yoksa o paragrafı Türkçe sistem sesi okur, uyarı Ses sayfasında görünür; okuma durmaz.
+- **İçe alma**: yeni biçimler MOBI/AZW/AZW3/PRC (`Import/MobiReader.swift`: PalmDOC, EXTH künyesi; DRM'li ve HUFF/CDIC
+  sıkıştırmalı kitaplar açık bir mesajla reddedilir), ODT, FB2, eski Word .doc (metin koşuları; başlık yok). Info.plist'e bu
+  türler ve `public.text` eklendi: Dosyalar'da ve paylaş menüsünde "Birlikte aç › Wise Path" çıkar.
+- **TextCleaner** (`Import/TextCleaner.swift`), bütün biçimlerin ortak ilk geçişi (`assemble` içinde): görünmez karakterler,
+  yumuşak tire, garip boşluklar; "....." → "…", "!!!" → "!"; kelimeye yapışık dipnot işaretleri; tek başına sayfa numarası,
+  ayraç (***), "Sayfa 3 / 120"; PDF'te çok sayfada tekrarlanan üst/alt bilgi; cümlenin ortasından kırılmış satırlar birleşir
+  ("soru-" + "su" → "sorusu"); uzun büyük harfli satır cümle olarak okunur. Başlıklar asla birleşmez ya da düşmez; PDF sayfa
+  başları yeni paragraflara eşlenir.
+- **Sıkı liste**: Kitaplarım › Görünüm › Sıkı liste: tek satır, küçük kapak, başlık + yazar, yüzde, ince ilerleme çizgisi.
+- **İstem oluşturucu** (`Views/PromptBuilder.swift`, + menüsü): konu, ayrıntı, biçim (Ders · Anlatı · Kitap özeti · Söyleşi),
+  uzunluk (1.500 / 4.000 / 7.000 kelime), dil → "İstemi kopyala" → Claude/ChatGPT'yi aç → cevabı kopyala → "Panodaki cevabı
+  kitaplığa ekle". İstem kulağa göre metin ister: yalnız `#`/`##` başlık, liste/tablo/simge/dipnot yok. Pano artık Markdown
+  başlıkları içindekilere çevirir.
+- Sınama bayrakları: `-prompttest`, `-eleventest`.
+
+**Sınanan:** simülatör derlemesi; TextCleaner Mac'te örnek metinle; MOBI okuyucusu elle üretilen sıkıştırmalı, EXTH'li bir
+dosyayla; simülatörde dağınık .txt ve .mobi bırakma klasöründen içe alındı (metin ve içindekiler dosyadan okundu); sıkı liste,
+istem oluşturucu ve ElevenLabs sayfası ekranda. iPhone 13 Pro Max'e kuruldu ve açıldı.
+**Sınanmayan:** gerçek ElevenLabs anahtarıyla üretim ve kelime izleme, kredi bittiğinde iPhone sesine geçiş, gerçek Kindle
+dosyaları (KF8), eski .doc, telefonda "Birlikte aç" listesinde görünme.

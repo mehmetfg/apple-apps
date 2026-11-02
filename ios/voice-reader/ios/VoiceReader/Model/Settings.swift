@@ -212,7 +212,7 @@ enum SortOrder: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
-    case spines, shelf, grid, list
+    case spines, shelf, grid, list, compact
     var id: String { rawValue }
     var name: String {
         switch self {
@@ -220,6 +220,7 @@ enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
         case .shelf: "Vitrin"
         case .grid: "Izgara"
         case .list: "Liste"
+        case .compact: "Sıkı liste"
         }
     }
     var symbol: String {
@@ -228,6 +229,7 @@ enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
         case .shelf: "books.vertical"
         case .grid: "square.grid.3x3"
         case .list: "list.bullet"
+        case .compact: "list.dash"
         }
     }
 }

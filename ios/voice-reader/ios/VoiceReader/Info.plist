@@ -9,6 +9,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>Belge</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
@@ -20,6 +22,18 @@
 				<string>public.html</string>
 				<string>public.rtf</string>
 				<string>net.daringfireball.markdown</string>
+				<string>public.text</string>
+				<string>public.utf8-plain-text</string>
+				<string>public.xhtml</string>
+				<string>com.apple.rtfd</string>
+				<string>com.apple.flat-rtfd</string>
+				<string>com.microsoft.word.doc</string>
+				<string>org.oasis-open.opendocument.text</string>
+				<string>com.amazon.mobi</string>
+				<string>com.amazon.azw3</string>
+				<string>com.amazon.azw</string>
+				<string>org.fictionbook.fb2</string>
+				<string>public.comma-separated-values-text</string>
 			</array>
 		</dict>
 	</array>
@@ -63,5 +77,94 @@
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Mobipocket e-book</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.amazon.mobi</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mobi</string>
+					<string>prc</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Kindle KF8 e-book</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.amazon.azw3</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>azw3</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Kindle e-book</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.amazon.azw</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>azw</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.xml</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>FictionBook</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.fictionbook.fb2</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>fb2</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>OpenDocument Text</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.oasis-open.opendocument.text</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>odt</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

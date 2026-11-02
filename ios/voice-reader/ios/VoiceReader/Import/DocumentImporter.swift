@@ -18,12 +18,16 @@ struct ImportedDocument: Sendable {
 
 enum ImportError: LocalizedError {
     case unsupported(String)
+    case locked(String)
+    case compressed(String)
     case unreadable(String)
     case empty(String)
 
     var errorDescription: String? {
         switch self {
         case .unsupported(let n): "“\(n)” biçimi desteklenmiyor."
+        case .locked(let n): "“\(n)” kilitli (DRM). Kindle'ın koruduğu kitaplar okunamaz; korumasız bir kopya (EPUB, MOBI) dene."
+        case .compressed(let n): "“\(n)” eski Kindle sıkıştırmasıyla (HUFF/CDIC) yazılmış. Calibre ile EPUB'a çevirip yeniden ekle."
         case .unreadable(let n): "“\(n)” okunamadı."
         case .empty(let n): "“\(n)” içinde okunacak metin bulunamadı. Taranmış bir PDF olabilir."
         }
@@ -43,6 +47,10 @@ enum DocumentImporter {
         case "html", "htm", "xhtml": result = try html(url, name: name, base: base)
         case "rtf", "rtfd": result = try rtf(url, name: name, base: base)
         case "md", "markdown": result = try markdown(url, name: name, base: base)
+        case "mobi", "azw", "azw3", "prc": result = try mobi(url, name: name, base: base)
+        case "odt": result = try odt(url, name: name, base: base)
+        case "fb2": result = try fb2(url, name: name, base: base)
+        case "doc": result = try doc(url, name: name, base: base)
         default:
             if ext == "txt" || ext.isEmpty || (UTType(filenameExtension: ext)?.conforms(to: .text) ?? false) {
                 result = try plain(url, name: name, base: base)
@@ -55,6 +63,13 @@ enum DocumentImporter {
     }
 
     static func fromClipboard(_ text: String) -> ImportedDocument? {
+        // an AI's answer (İstem oluşturucu) or any Markdown: headings become the table of contents
+        if text.range(of: #"(?m)^#{1,3} \S"#, options: .regularExpression) != nil {
+            let (paragraphs, headings) = parseMarkdown(text)
+            guard !paragraphs.isEmpty else { return nil }
+            let title = headings.first(where: { $0.level == 1 })?.title ?? String(paragraphs[0].prefix(60))
+            return assemble(title: title, author: nil, format: .clipboard, sourceName: "Pano", paragraphs: paragraphs, headings: headings)
+        }
         let paragraphs = splitParagraphs(text)
         guard !paragraphs.isEmpty else { return nil }
         let title = String(paragraphs[0].prefix(60))
@@ -67,6 +82,83 @@ enum DocumentImporter {
         guard let data = try? Data(contentsOf: url) else { throw ImportError.unreadable(name) }
         let text = decode(data)
         return assemble(title: base, author: nil, format: .txt, sourceName: name, paragraphs: splitParagraphs(text), headings: [])
+    }
+
+    private static func mobi(_ url: URL, name: String, base: String) throws -> ImportedDocument {
+        guard let data = try? Data(contentsOf: url) else { throw ImportError.unreadable(name) }
+        let book: MobiReader.Book
+        do { book = try MobiReader.read(data) }
+        catch MobiReader.Failure.drm { throw ImportError.locked(name) }
+        catch MobiReader.Failure.huffman { throw ImportError.compressed(name) }
+        catch { throw ImportError.unreadable(name) }
+        let html = book.html.replacingOccurrences(of: #"<mbp:pagebreak[^>]*>"#, with: "<p></p>", options: .regularExpression)
+        let out = MarkupText.convert(html)
+        let headings = out.headings.filter { $0.level <= 2 }
+        return assemble(title: book.title.flatMap { $0.isEmpty ? nil : $0 } ?? base, author: book.author, format: .mobi,
+                        sourceName: name, paragraphs: out.paragraphs, headings: headings)
+    }
+
+    /// OpenDocument text (LibreOffice, Pages export): content.xml's text:h / text:p as HTML headings and paragraphs.
+    private static func odt(_ url: URL, name: String, base: String) throws -> ImportedDocument {
+        guard let zip = try? ZipArchive(url: url), let xml = zip.data(for: "content.xml") else { throw ImportError.unreadable(name) }
+        var s = decode(xml)
+        for (a, b) in [(#"<text:h\b[^>]*>"#, "<h2>"), (#"</text:h>"#, "</h2>"), (#"<text:p\b[^>]*>"#, "<p>"), (#"</text:p>"#, "</p>"),
+                       (#"<text:(line-break|tab|s)\b[^>]*/>"#, " ")] {
+            s = s.replacingOccurrences(of: a, with: b, options: .regularExpression)
+        }
+        let out = MarkupText.convert(s)
+        var title = base, author: String?
+        if let meta = zip.data(for: "meta.xml") {
+            let m = SimpleXMLText.values(in: meta, for: ["title", "creator", "initial-creator"])
+            if let t = m["title"], !t.isEmpty { title = t }
+            author = (m["creator"] ?? m["initial-creator"]).flatMap { $0.isEmpty ? nil : $0 }
+        }
+        return assemble(title: title, author: author, format: .odt, sourceName: name, paragraphs: out.paragraphs, headings: out.headings)
+    }
+
+    /// FictionBook (common for Russian and Turkish e-book archives): XML with <section><title><p>; images left out.
+    private static func fb2(_ url: URL, name: String, base: String) throws -> ImportedDocument {
+        guard let data = try? Data(contentsOf: url) else { throw ImportError.unreadable(name) }
+        let raw = decode(data)
+        let meta = SimpleXMLText.values(in: data, for: ["book-title", "first-name", "last-name"])
+        var s = raw.replacingOccurrences(of: #"(?s)<binary\b.*?</binary>"#, with: "", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"(?s)<description\b.*?</description>"#, with: "", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"(?s)<title>(.*?)</title>"#, with: "<h2>$1</h2>", options: .regularExpression)
+        let out = MarkupText.convert(s)
+        let author = [meta["first-name"], meta["last-name"]].compactMap { $0 }.joined(separator: " ")
+        return assemble(title: meta["book-title"].flatMap { $0.isEmpty ? nil : $0 } ?? base, author: author.isEmpty ? nil : author,
+                        format: .fb2, sourceName: name, paragraphs: out.paragraphs, headings: out.headings)
+    }
+
+    /// Word 97–2003 (.doc): iOS has no reader for it. The text sits in the file as UTF-16 (or one byte a character in
+    /// older files); runs of readable text are taken, the binary around them is left. Headings are not known.
+    private static func doc(_ url: URL, name: String, base: String) throws -> ImportedDocument {
+        guard let data = try? Data(contentsOf: url) else { throw ImportError.unreadable(name) }
+        let wide = textRuns(String(decoding: data.withUnsafeBytes { Array($0.bindMemory(to: UInt16.self)) }.map { UInt16(littleEndian: $0) },
+                                   as: UTF16.self))
+        let turkish = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.windowsLatin5.rawValue)))
+        let narrow = textRuns(String(data: data, encoding: turkish) ?? "")
+        let best = wide.joined().count >= narrow.joined().count ? wide : narrow
+        return assemble(title: base, author: nil, format: .doc, sourceName: name, paragraphs: best, headings: [])
+    }
+
+    /// Readable stretches of a binary file: letters, digits, punctuation and spaces, at least 40 characters with
+    /// mostly letters; carriage returns end paragraphs (Word's paragraph mark).
+    private static func textRuns(_ s: String) -> [String] {
+        var runs: [String] = [], cur = ""
+        func end() {
+            let t = cur.trimmingCharacters(in: .whitespaces)
+            if t.count >= 40, Double(t.filter(\.isLetter).count) / Double(t.count) > 0.6 { runs.append(t) }
+            else if !runs.isEmpty, t.count >= 3, t.contains(where: \.isLetter), Double(t.filter(\.isLetter).count) / Double(t.count) > 0.7 { runs.append(t) }
+            cur = ""
+        }
+        for ch in s {
+            if ch == "\r" || ch == "\n" { end(); continue }
+            if ch.isLetter || ch.isNumber || ch.isPunctuation || ch == " " || "’‘“”«»–—…".contains(ch) { cur.append(ch) }
+            else { end() }
+        }
+        end()
+        return runs
     }
 
     private static func markdown(_ url: URL, name: String, base: String) throws -> ImportedDocument {
@@ -192,17 +284,11 @@ enum DocumentImporter {
 
     private static func pdf(_ url: URL, name: String, base: String) throws -> ImportedDocument {
         guard let doc = PDFDocument(url: url) else { throw ImportError.unreadable(name) }
-        var text = ""
-        var pages: [Int] = []
         var pageParagraphStart: [Int] = []
         var paragraphs: [String] = []
         for i in 0..<doc.pageCount {
-            pages.append((text as NSString).length)
             pageParagraphStart.append(paragraphs.count)
-            let raw = doc.page(at: i)?.string ?? ""
-            let ps = reflowPDF(raw)
-            paragraphs += ps
-            text += ps.map { $0 + "\n" }.joined()
+            paragraphs += reflowPDF(doc.page(at: i)?.string ?? "")
         }
         // headings from the PDF outline
         var headings: [(paragraph: Int, title: String, level: Int)] = []
@@ -220,8 +306,8 @@ enum DocumentImporter {
         let attrs = doc.documentAttributes ?? [:]
         let title = (attrs[PDFDocumentAttribute.titleAttribute] as? String).flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 } ?? base
         let author = (attrs[PDFDocumentAttribute.authorAttribute] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        var imported = assemble(title: title, author: author, format: .pdf, sourceName: name, paragraphs: paragraphs, headings: headings)
-        imported.content.pages = pages
+        var imported = assemble(title: title, author: author, format: .pdf, sourceName: name, paragraphs: paragraphs, headings: headings,
+                                pageStarts: pageParagraphStart)
         if let first = doc.page(at: 0) { imported.cover = CoverMaker.jpeg(fromPDFPage: first) }
         return imported
     }
@@ -285,7 +371,11 @@ enum DocumentImporter {
     }
 
     static func assemble(title: String, author: String?, format: DocumentFormat, sourceName: String,
-                         paragraphs: [String], headings: [(paragraph: Int, title: String, level: Int)]) -> ImportedDocument {
+                         paragraphs raw: [String], headings rawHeadings: [(paragraph: Int, title: String, level: Int)],
+                         pageStarts: [Int]? = nil) -> ImportedDocument {
+        // every format goes through the same first pass for listening (TextCleaner)
+        let clean = TextCleaner.clean(raw, headings: rawHeadings, paged: pageStarts != nil)
+        let paragraphs = clean.paragraphs, headings = clean.headings
         var offsets: [Int] = []
         var text = ""
         var length = 0
@@ -302,9 +392,14 @@ enum DocumentImporter {
         text.enumerateSubstrings(in: text.startIndex..., options: [.byWords, .substringNotRequired]) { _, _, _, _ in words += 1 }
         let rec = NLLanguageRecognizer()
         rec.processString(String(text.prefix(6000)))
+        let total = (text as NSString).length
+        let pages = (pageStarts ?? []).map { k in
+            let n = k < clean.index.count ? clean.index[k] : paragraphs.count
+            return n < offsets.count ? offsets[n] : total
+        }
         return ImportedDocument(
             title: title.trimmingCharacters(in: .whitespacesAndNewlines), author: author, format: format, sourceName: sourceName,
-            content: DocumentContent(text: text, chapters: chapters, pages: []),
+            content: DocumentContent(text: text, chapters: chapters, pages: pages),
             wordCount: words, language: rec.dominantLanguage?.rawValue)
     }
 }

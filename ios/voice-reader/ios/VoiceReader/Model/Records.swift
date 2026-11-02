@@ -3,7 +3,7 @@
 import Foundation
 
 enum DocumentFormat: String, Codable, CaseIterable, Sendable {
-    case pdf, epub, docx, html, rtf, txt, markdown, clipboard
+    case pdf, epub, docx, html, rtf, txt, markdown, clipboard, mobi, odt, fb2, doc
 
     var badge: String {
         switch self {
@@ -15,6 +15,10 @@ enum DocumentFormat: String, Codable, CaseIterable, Sendable {
         case .txt: "TXT"
         case .markdown: "MD"
         case .clipboard: "METİN"
+        case .mobi: "MOBI"
+        case .odt: "ODT"
+        case .fb2: "FB2"
+        case .doc: "DOC"
         }
     }
 }

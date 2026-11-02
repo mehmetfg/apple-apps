@@ -52,6 +52,8 @@ struct LibraryScreen: View {
     @Environment(AppModel.self) private var model
     @State private var path: [Route] = []
     @State private var importerShown = false
+    @State private var promptShown = false
+    @State private var elevenShown = false
     @State private var newFolderShown = false
     @State private var newFolderName = ""
     @State private var statsTab: StatsTab?
@@ -62,6 +64,10 @@ struct LibraryScreen: View {
         .pdf, .epub, .plainText, .text, .html, .rtf, .rtfd,
         UTType("org.openxmlformats.wordprocessingml.document") ?? .data,
         UTType("net.daringfireball.markdown") ?? .plainText,
+        UTType("com.microsoft.word.doc") ?? .data,
+        UTType("org.oasis-open.opendocument.text") ?? .data,
+        UTType("com.amazon.mobi") ?? .data, UTType("com.amazon.azw3") ?? .data, UTType("com.amazon.azw") ?? .data,
+        UTType("org.fictionbook.fb2") ?? .xml,
     ]
 
     var body: some View {
@@ -112,6 +118,8 @@ struct LibraryScreen: View {
             }
             .overlay { if model.importing { ProgressView("Ekleniyor…").padding().modifier(GlassPanel(cornerRadius: 16)) } }
         }
+        .sheet(isPresented: $promptShown) { PromptBuilderView() }
+        .sheet(isPresented: $elevenShown) { NavigationStack { ElevenSettingsPage() } }
         .fileImporter(isPresented: $importerShown, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { Task { await model.importFiles(urls) } }
         }
@@ -138,10 +146,13 @@ struct LibraryScreen: View {
         }
         .task {                                   // test hook: -musictest opens the music mode on the last book
             let args = CommandLine.arguments
-            guard args.contains("-musictest") || args.contains("-statstest") || args.contains("-markssheet") else { return }
+            guard args.contains("-musictest") || args.contains("-statstest") || args.contains("-markssheet") || args.contains("-prompttest")
+                    || args.contains("-eleventest") else { return }
             try? await Task.sleep(for: .seconds(2))
             if args.contains("-musictest") { model.musicModeShown = true }
             if args.contains("-statstest") { statsTab = args.contains("road") ? .road : .reading }
+            if args.contains("-prompttest") { promptShown = true }
+            if args.contains("-eleventest") { elevenShown = true }
             if args.contains("-markssheet") { model.marksSheetDoc = model.store.documents.first { !$0.highlights.isEmpty }?.id }
         }
         .task {                                   // test hook: -openreader shows the last book's reader
@@ -368,6 +379,7 @@ struct LibraryScreen: View {
             Menu {
                 Button { model.folder = nil; importerShown = true } label: { Label("Dosyalardan ekle", systemImage: "folder") }
                 Button { model.folder = nil; model.importClipboard() } label: { Label("Panodan ekle", systemImage: "doc.on.clipboard") }
+                Button { model.folder = nil; promptShown = true } label: { Label("İstem oluşturucu", systemImage: "wand.and.sparkles") }
                 Divider()
                 Button { newFolderShown = true } label: { Label("Yeni klasör", systemImage: "folder.badge.plus") }
             } label: { Image(systemName: "plus") }
@@ -563,6 +575,7 @@ struct FolderScreen: View {
     let scope: FolderScope
     var onOpen: (UUID) -> Void
     @State private var importerShown = false
+    @State private var promptShown = false
     @State private var renameShown = false
     @State private var renameText = ""
 
@@ -605,6 +618,7 @@ struct FolderScreen: View {
                 Menu {
                     Button { model.folder = scope.folderName; importerShown = true } label: { Label("Dosyalardan ekle", systemImage: "folder") }
                     Button { model.folder = scope.folderName; model.importClipboard() } label: { Label("Panodan ekle", systemImage: "doc.on.clipboard") }
+                    Button { model.folder = scope.folderName; promptShown = true } label: { Label("İstem oluşturucu", systemImage: "wand.and.sparkles") }
                     if let name = scope.folderName {
                         Divider()
                         Button { renameText = name; renameShown = true } label: { Label("Klasörü yeniden adlandır", systemImage: "pencil") }
@@ -613,6 +627,7 @@ struct FolderScreen: View {
                 .accessibilityLabel("Ekle")
             }
         }
+        .sheet(isPresented: $promptShown) { PromptBuilderView() }
         .fileImporter(isPresented: $importerShown, allowedContentTypes: LibraryScreen.importTypes, allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { Task { await model.importFiles(urls) } }
         }
@@ -642,6 +657,7 @@ struct DocumentCollection: View {
             case .shelf: shelf
             case .grid: grid
             case .list: list
+            case .compact: compact
             }
         }
         .alert("Yeniden adlandır", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
@@ -738,6 +754,21 @@ struct DocumentCollection: View {
         .padding(.bottom, 24)
     }
 
+    /// Every book on one line: about three times as many on a screen as the list.
+    private var compact: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(docs) { d in
+                Button { onOpen(d.id) } label: { CompactRow(doc: d) }
+                    .buttonStyle(.plain)
+                    .contextMenu { menu(d) }
+                if d.id != docs.last?.id { Divider().padding(.leading, 40) }
+            }
+        }
+        .modifier(GlassPanel(cornerRadius: 16))
+        .padding(.horizontal, 14)
+        .padding(.bottom, 24)
+    }
+
     @ViewBuilder private func menu(_ d: DocumentRecord) -> some View {
         Button { renameText = d.title; renaming = d } label: { Label("Yeniden adlandır", systemImage: "pencil") }
         Menu {
@@ -795,6 +826,38 @@ struct LibraryRow: View {
             }
         }
         .modifier(GlassPanel(cornerRadius: 18))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(doc.title), \(model.statusText(doc))\(playing ? ", okunuyor" : "")")
+    }
+}
+
+/// One line: a small cover, the title (author after it, faint), the percentage; a hairline of progress below.
+struct CompactRow: View {
+    @Environment(AppModel.self) private var model
+    let doc: DocumentRecord
+
+    private var playing: Bool { model.player.documentID == doc.id && model.player.isPlaying }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CoverView(doc: doc, width: 20, showsPlaying: false)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    if let f = doc.flag { Circle().fill(f.color).frame(width: 6, height: 6) }
+                    Text(doc.title).font(.subheadline.weight(.medium)).lineLimit(1).layoutPriority(1)
+                    if let a = doc.author { Text(a).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                }
+                ProgressBar(value: doc.progress).frame(height: 2)
+            }
+            if playing { PlayingBars(height: 12) }
+            Text(doc.isFinished ? "✓" : "%\(Int((doc.progress * 100).rounded()))")
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .frame(minWidth: 34, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .contentShape(Rectangle())
+        .background(playing ? model.settings.accent.wash : .clear)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(doc.title), \(model.statusText(doc))\(playing ? ", okunuyor" : "")")
     }
