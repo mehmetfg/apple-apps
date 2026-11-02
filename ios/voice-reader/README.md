@@ -701,3 +701,11 @@ dosyayla; simülatörde dağınık .txt ve .mobi bırakma klasöründen içe al�
 istem oluşturucu ve ElevenLabs sayfası ekranda. iPhone 13 Pro Max'e kuruldu ve açıldı.
 **Sınanmayan:** gerçek ElevenLabs anahtarıyla üretim ve kelime izleme, kredi bittiğinde iPhone sesine geçiş, gerçek Kindle
 dosyaları (KF8), eski .doc, telefonda "Birlikte aç" listesinde görünme.
+
+### 2026-11-02 (devam) — ilerleme çubuğu okuma yerini taşımaz; "Eski yere dön"
+
+Kullanıcı isteği: "çubuğu elle değiştirdiğimde, sayfaya çift dokunmadan okuma yeri olduğu yerde kalsın; elim değiyor ve saçma
+bir yere gidiyorum; eski yere dön düğmesi çıksın". Alt çubuktaki ilerleme çubuğu artık İçindekiler satırı gibi yalnız sayfayı
+o yere götürür (`ReaderScreen.show`); okuma yeri ancak çift dokunuşla ya da ▶ ile değişir. Çubuk bırakılınca sayfanın altında
+**Eski yere dön** kalır (kaybolmaz), basınca sayfa okuma yerine döner; çift dokunuşla okuma yeri değişince de kalkar.
+Sınanan: simülatörde çubuk sürüklendi, okuma yeri %0'da kaldı, düğme çıktı ve basınca kalktı; iPhone'a kuruldu.

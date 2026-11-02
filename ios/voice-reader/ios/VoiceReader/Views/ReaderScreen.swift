@@ -17,6 +17,7 @@ struct ReaderScreen: View {
     @State private var content: DocumentContent?
     @State private var following = true
     @State private var scrollRequest = 0
+    @State private var backShown = false               // "Eski yere dön" after the progress bar
     @State private var popover: Popover?
     @State private var searching = false
     @State private var noteSheet: NoteSheetItem?
@@ -164,7 +165,7 @@ struct ReaderScreen: View {
                 BikeBar(theme: theme)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if !chromeHidden {
-                PlayerBar(theme: theme, onJump: jump, onShow: show, onSearch: { searching = true })
+                PlayerBar(theme: theme, onJump: jump, onShow: show, onScrub: scrubbed, onSearch: { searching = true })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -213,7 +214,20 @@ struct ReaderScreen: View {
                                     .transition(.opacity)
                             }
                         }
-                        if !following && moving {
+                        if !following && backShown {
+                            // after the progress bar: stays until used, the reading place has not moved
+                            Button(action: goToCursor) {
+                                Label("Eski yere dön", systemImage: "arrow.uturn.backward")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 16).padding(.vertical, 11)
+                                    .background(accent.ink.opacity(0.78), in: Capsule())
+                                    .contentShape(Capsule().inset(by: -10))
+                            }
+                            .buttonStyle(.plain)
+                            .transition(.opacity)
+                            .accessibilityLabel("Eski yere dön: okuma yerine geri git")
+                        } else if !following && moving {
                             // the arrow points to where the voice is
                             Button(action: goToCursor) {
                                 Label("Konuşma imlecine git", systemImage: player.cursor < visibleOffset ? "arrow.up.to.line" : "arrow.down.to.line")
@@ -233,6 +247,8 @@ struct ReaderScreen: View {
             }
             .padding(.bottom, 10)
             .animation(.smooth(duration: 0.25), value: following)
+            .animation(.smooth(duration: 0.25), value: backShown)
+            .onChange(of: following) { _, f in if f { backShown = false } }
             .animation(.easeInOut(duration: 0.35), value: moving)
         }
         .overlay(alignment: .top) { RecordingStrip().padding(.top, 8) }
@@ -309,6 +325,12 @@ struct ReaderScreen: View {
 
     /// Contents, search: bring that place on screen and leave the reading position where it is. Reading moves there
     /// only by ▶ in the list or a double tap on the page; "Konuşma imlecine git" comes back.
+    /// The progress bar was let go: show that place, keep the reading place, and keep a way back on screen.
+    private func scrubbed(_ offset: Int) {
+        show(offset)
+        backShown = true
+    }
+
     private func show(_ offset: Int) {
         browsing = true
         following = false
@@ -501,6 +523,7 @@ struct PlayerBar: View {
     let theme: ReaderTheme
     var onJump: (Int, Bool?) -> Void
     var onShow: (Int) -> Void
+    var onScrub: (Int) -> Void
     var onSearch: () -> Void
     @State private var showLocations = false
     @State private var scrubbing: Double?
@@ -521,7 +544,7 @@ struct PlayerBar: View {
                 bar("magnifyingglass", "Belgede ara", action: onSearch)
             }
             .padding(.top, 6)
-            ProgressRow(scrubbing: $scrubbing, onJump: onJump)
+            ProgressRow(scrubbing: $scrubbing, onShow: onScrub)
             StatusRow()
         }
         .padding(.horizontal, 12)
@@ -578,7 +601,8 @@ private struct ProgressRow: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accent) private var accent
     @Binding var scrubbing: Double?
-    var onJump: (Int, Bool?) -> Void
+    /// The bar only brings a place on screen: a hand brushing it must not move the reading place (2026-11-02).
+    var onShow: (Int) -> Void
 
     var body: some View {
         let player = model.player
@@ -589,7 +613,7 @@ private struct ProgressRow: View {
         HStack(spacing: 10) {
             Text(Format.clock(elapsed)).frame(width: 58, alignment: .leading)
             Scrubber(value: value, fill: accent.fill, knob: accent.ink, onChanging: { scrubbing = $0 }, onEnded: { s in
-                onJump(player.sentenceStart(before: Int(Double(len) * s) + 1), nil)
+                onShow(player.sentenceStart(before: Int(Double(len) * s) + 1))
                 scrubbing = nil
             })
             Text(Format.clock(max(0, total - elapsed))).frame(width: 58, alignment: .trailing)
