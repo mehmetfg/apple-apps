@@ -189,7 +189,7 @@ struct MotorOyunu: View {
                     .padding(.bottom, 20)
                 }
             }
-            .background(Lekeler(renkler: [Tema.zaman, Tema.modal, Tema.perfect]))
+            .background { Lekeler(renkler: [Tema.zaman, Tema.modal, Tema.perfect]) }
             .overlay { if basari { Konfeti() } }
         }
     }
@@ -208,7 +208,7 @@ struct MotorOyunu: View {
                 Akis(aralik: 6, satirAraligi: 6) {
                     ForEach(Motor.okunus(hedef), id: \.0) { ad, r in
                         Text(ad).font(.subheadline.weight(.bold)).padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(Capsule().fill(r.opacity(0.15))).foregroundStyle(r)
+                            .background { Capsule().fill(r.opacity(0.15)) }.foregroundStyle(r)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -220,7 +220,7 @@ struct MotorOyunu: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .kart(16)
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(basari ? Tema.dogru : Oyun.motor.renk.opacity(0.3), lineWidth: basari ? 2 : 1))
+        .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(basari ? Tema.dogru : Oyun.motor.renk.opacity(0.3), lineWidth: basari ? 2 : 1) }
     }
 
     private func turuBaslat(_ n: Int) {
@@ -254,7 +254,7 @@ struct MotorOyunu: View {
             HStack {
                 Text("Cümle").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(.secondary)
                 Spacer()
-                Button { Ses.konus(Motor.cumle(sahne, ayar)) } label: { Image(systemName: "speaker.wave.2.fill") }
+                Button { Ses.konus(Motor.cumle(sahne, ayar)) } label: { Image(systemName: "speaker.wave.2.fill") }.accessibilityLabel("Dinle")
                 if kip == 0 {
                     Button {
                         Dokunus.hafif()
@@ -273,7 +273,7 @@ struct MotorOyunu: View {
                             .contentTransition(.interpolate)
                             .padding(.horizontal, p.tur == .ozne || p.tur == .nesne || p.tur == .ajan ? 0 : 6)
                             .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(p.tur == .ana || p.tur == .ozne || p.tur == .nesne || p.tur == .ajan ? .clear : p.renk.opacity(0.12)))
+                            .background { RoundedRectangle(cornerRadius: 8).fill(p.tur == .ana || p.tur == .ozne || p.tur == .nesne || p.tur == .ajan ? .clear : p.renk.opacity(0.12)) }
                             .overlay(alignment: .bottom) {
                                 if p.zaman { Capsule().fill(Tema.zaman).frame(height: 3).offset(y: 5) }
                             }
@@ -289,7 +289,7 @@ struct MotorOyunu: View {
             Akis(aralik: 6, satirAraligi: 6) {
                 ForEach(Motor.okunus(ayar), id: \.0) { ad, r in
                     Text(ad).font(.caption.weight(.semibold)).padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Capsule().fill(r.opacity(0.13))).foregroundStyle(r)
+                        .background { Capsule().fill(r.opacity(0.13)) }.foregroundStyle(r)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -313,7 +313,7 @@ struct MotorOyunu: View {
                 .font(.caption.weight(.bold)).textCase(.uppercase)
                 .foregroundStyle(.secondary)
             if let ilk = fiiller.first {
-                (Text("Zaman ve kişi yalnız ilk dişliye biner: ") + Text(ilk.metin).bold().foregroundColor(Tema.zaman))
+                Text("Zaman ve kişi yalnız ilk dişliye biner: \(Text(ilk.metin).bold().foregroundStyle(Tema.zaman))")
                     .font(.subheadline)
             }
             ForEach(Array(ciftler.enumerated()), id: \.offset) { _, c in
@@ -322,7 +322,7 @@ struct MotorOyunu: View {
                     Image(systemName: "arrow.right").font(.caption).foregroundStyle(.tertiary)
                     Text(c.0.talep ?? "").font(.system(.caption, design: .monospaced).weight(.bold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Capsule().fill(c.0.renk.opacity(0.14))).foregroundStyle(c.0.renk)
+                        .background { Capsule().fill(c.0.renk.opacity(0.14)) }.foregroundStyle(c.0.renk)
                     Image(systemName: "arrow.right").font(.caption).foregroundStyle(.tertiary)
                     Text(c.1.metin).font(Tema.ingilizce(.body, .bold)).foregroundStyle(c.1.renk == .primary ? Color.primary : c.1.renk)
                 }
@@ -343,7 +343,7 @@ struct MotorOyunu: View {
                 anahtarDugme("Şimdi", acik: !ayar.gecmis, renk: Tema.zaman) { ayar.gecmis = false }
                 anahtarDugme("Geçmiş", acik: ayar.gecmis, renk: Tema.zaman) { ayar.gecmis = true }
             }
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     anahtarDugme("modal yok", acik: ayar.modal == nil, renk: Tema.modal) { ayar.modal = nil }
                     ForEach(Motor.modallar, id: \.self) { m in
@@ -351,6 +351,7 @@ struct MotorOyunu: View {
                     }
                 }
             }
+            .scrollIndicators(.hidden)
             HStack(spacing: 8) {
                 kutuAnahtar("have + V3", alt: "geriye bakış", acik: ayar.perfect, renk: Tema.perfect) { ayar.perfect.toggle() }
                 kutuAnahtar("be + -ing", alt: "süren", acik: ayar.surec, renk: Tema.surec) { ayar.surec.toggle() }
@@ -368,7 +369,7 @@ struct MotorOyunu: View {
         } label: {
             Text(ad).font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 14).frame(minHeight: 40).frame(maxWidth: ad.count < 8 ? .infinity : nil)
-                .background(Capsule().fill(acik ? renk : renk.opacity(0.1)))
+                .background { Capsule().fill(acik ? renk : renk.opacity(0.1)) }
                 .foregroundStyle(acik ? .white : renk)
         }
         .buttonStyle(.plain)
@@ -387,7 +388,7 @@ struct MotorOyunu: View {
                 Text(alt).font(.caption2)
             }
             .frame(maxWidth: .infinity, minHeight: 86)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(acik ? renk : renk.opacity(0.1)))
+            .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(acik ? renk : renk.opacity(0.1)) }
             .foregroundStyle(acik ? .white : renk)
         }
         .buttonStyle(BasinStil())

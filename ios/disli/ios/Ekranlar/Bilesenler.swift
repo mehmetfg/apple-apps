@@ -148,7 +148,7 @@ struct YasaRozeti: View {
             .lineLimit(1)
             .padding(.horizontal, kucuk ? 8 : 10).padding(.vertical, kucuk ? 4 : 6)
             .foregroundStyle(Tema.renk(yasa.renk))
-            .background(Capsule().fill(Tema.renk(yasa.renk).opacity(0.13)))
+            .background { Capsule().fill(Tema.renk(yasa.renk).opacity(0.13)) }
     }
 }
 
@@ -207,12 +207,10 @@ struct TasGorunum: View {
         Text(metin)
             .font(Tema.ingilizce(.body, .medium))
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .background { RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(dolu ? Tema.yuzey : renk.opacity(0.12))
-                    .shadow(color: .black.opacity(dolu ? 0.08 : 0), radius: 2, y: 2)
-            )
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(renk.opacity(0.35), lineWidth: 1))
+                    .shadow(color: .black.opacity(dolu ? 0.08 : 0), radius: 2, y: 2) }
+            .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(renk.opacity(0.35), lineWidth: 1) }
     }
 }
 
@@ -238,7 +236,7 @@ struct TasTezgahi: View {
                     ForEach(dizi) { t in
                         TasGorunum(metin: t.metin, renk: renk, dolu: false)
                             .matchedGeometryEffect(id: t.id, in: ns)
-                            .onTapGesture { geriAl(t) }
+                            .onTapGesture { geriAl(t) }.accessibilityAddTraits(.isButton)
                     }
                 }
                 .padding(12)
@@ -249,7 +247,7 @@ struct TasTezgahi: View {
                 ForEach(banka) { t in
                     TasGorunum(metin: t.metin, renk: renk)
                         .matchedGeometryEffect(id: t.id, in: ns)
-                        .onTapGesture { koy(t) }
+                        .onTapGesture { koy(t) }.accessibilityAddTraits(.isButton)
                 }
             }
         }
@@ -302,7 +300,7 @@ struct OyunUstu: View {
             HStack {
                 Button(action: kapat) {
                     Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 36, height: 36)
-                        .background(Circle().fill(Color(.tertiarySystemFill)))
+                        .background { Circle().fill(Color(.tertiarySystemFill)) }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Kapat")

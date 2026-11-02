@@ -41,6 +41,10 @@ struct ReaderView: View {
     @State private var showSearch = false
     @State private var tapped: BookHighlight?
     @State private var recall: Isaret?
+    @ObservedObject private var notesStore = NotesStore.shared
+    @State private var noteRequest: NoteRequest?
+    @State private var showNotes = false
+    @State private var lastMark: TeoriaMark?
     @State private var redraw = 0                // bumps after an in-place mark so pages repaint
     @State private var toast: (String, TeoriaMark?)?
     @State private var query = ""
@@ -53,6 +57,8 @@ struct ReaderView: View {
     private var insight: BookInsight? { library.insights[book.id] }
     private var hidden: Set<String> { hideRepeats ? (insight?.dropped ?? []) : [] }
     private var positionKey: String { "teoria.reader.pos.\(book.id)" }
+    /// A sheet (note editor, notes, contents, search, a highlight) is up: keys and taps belong to it, never to the page behind.
+    private var sheetOpen: Bool { noteRequest != nil || showNotes || showTOC || showSearch || tapped != nil || recall != nil }
     private var listeningHere: Bool { voice.speaking && voice.bookID == book.id }
 
     #if os(macOS)
@@ -94,15 +100,24 @@ struct ReaderView: View {
         .sheet(isPresented: $showSearch) { searchSheet }
         .sheet(item: $tapped) { h in highlightSheet(h) }
         .sheet(item: $recall) { RecallSayfasi(isaret: $0).environmentObject(depo) }
+        .sheet(item: $noteRequest) { r in
+            NoteEditor(bookID: book.id, bookTitle: book.title, options: r.options).environmentObject(depo)
+        }
+        .sheet(isPresented: $showNotes) {
+            BookNotesView(bookID: book.id, bookTitle: book.title, options: { noteOptions() }, onJump: { a in
+                if let layout { go(page: layout.page(chapter: a.ch, block: a.b, offset: a.s)) }
+            })
+            .environmentObject(depo)
+        }
         .onChange(of: mode) { _, _ in refreshVisible() }
         .onChange(of: voice.live?.range.location) { _, _ in followVoice() }
         .onDisappear { if listeningHere { voice.stop() }; save() }
         #if os(macOS)
         .frame(minWidth: 720, minHeight: 620)
-        .onKeyPress(.rightArrow) { turn(+1); return .handled }
-        .onKeyPress(.leftArrow) { turn(-1); return .handled }
-        .onKeyPress(.space) { if listeningHere { voice.toggle() } else { turn(+1) }; return .handled }
-        .onKeyPress(.escape) { dismiss(); return .handled }
+        .onKeyPress(.rightArrow) { guard !sheetOpen else { return .ignored }; turn(+1); return .handled }
+        .onKeyPress(.leftArrow) { guard !sheetOpen else { return .ignored }; turn(-1); return .handled }
+        .onKeyPress(.space) { guard !sheetOpen else { return .ignored }; if listeningHere { voice.toggle() } else { turn(+1) }; return .handled }
+        .onKeyPress(.escape) { guard !sheetOpen else { return .ignored }; dismiss(); return .handled }
         .focusable()
         .focusEffectDisabled()
         #endif
@@ -294,11 +309,12 @@ struct ReaderView: View {
         guard e > s, e <= ns.length else { return }
         let q = ns.substring(with: NSRange(location: s, length: e - s)).trimmingCharacters(in: .whitespaces)
         let m = library.addMark(book: book.id, ch: ch, b: b, s: s, e: e, quote: q, color: markColor)
+        lastMark = m
         layout.apply(m.highlight)
         redraw += 1
         Dokunus.basari()
         withAnimation(.snappy) { toast = ("İşaretlendi", m) }
-        Task { try? await Task.sleep(nanoseconds: 5_000_000_000); if toast?.1?.id == m.id { withAnimation { toast = nil } } }
+        Task { try? await Task.sleep(for: .seconds(5)); if toast?.1?.id == m.id { withAnimation { toast = nil } } }
         LibraryStore.shared.scheduleSync(depo.kasa)
     }
 
@@ -319,6 +335,41 @@ struct ReaderView: View {
         var z = min(max(a, i), ns.length)
         while z < ns.length { let c = ns.character(at: z); z += 1; if enders.contains(c) { break } }
         return (a, z)
+    }
+
+    // MARK: notes
+
+    private func makeAnchor(ch: Int, b: Int, s: Int, e: Int) -> NoteAnchor? {
+        guard let blk = book.chapters[safe: ch]?.blocks[safe: b] else { return nil }
+        let ns = blk.x as NSString
+        guard s >= 0, e > s, e <= ns.length else { return nil }
+        let q = ns.substring(with: NSRange(location: s, length: e - s)).trimmingCharacters(in: .whitespacesAndNewlines)
+        return q.isEmpty ? nil : NoteAnchor(ch: ch, b: b, s: s, e: e, quote: q, chapterTitle: book.chapters[safe: ch]?.title)
+    }
+
+    /// First sentence of the page on screen.
+    private func pageAnchor() -> NoteAnchor? {
+        guard let layout, let i = visible[safe: current], let pg = layout.pages[safe: i] else { return nil }
+        let starts = layout.blockStarts[safe: pg.chapter] ?? [:]
+        for bi in starts.keys.sorted() {
+            guard let (st, len) = starts[bi], st + len > pg.range.location,
+                  let blk = book.chapters[safe: pg.chapter]?.blocks[safe: bi], !blk.isHeading else { continue }
+            let (a, z) = Self.sentence(blk.x, at: max(0, pg.range.location - st))
+            return makeAnchor(ch: pg.chapter, b: bi, s: a, e: z)
+        }
+        return nil
+    }
+
+    /// Places a note can hang on, nearest to the reader first: the sentence just marked, the one being heard, this page.
+    private func noteOptions() -> [(label: String, anchor: NoteAnchor)] {
+        var out: [(label: String, anchor: NoteAnchor)] = []
+        func add(_ label: String, _ a: NoteAnchor?) { if let a, !out.contains(where: { $0.anchor == a }) { out.append((label, a)) } }
+        if let m = lastMark, library.mark(m.id) != nil, Date().timeIntervalSince(Tarih.coz(m.date) ?? .distantPast) < 900 {
+            add("İşaretlediğin cümle", makeAnchor(ch: m.ch, b: m.b, s: m.s, e: m.e))
+        }
+        if listeningHere, let s = voice.currentSentence() { add("Dinlediğin cümle", makeAnchor(ch: s.ch, b: s.b, s: s.s, e: s.e)) }
+        add("Bu sayfa", pageAnchor())
+        return out
     }
 
     // MARK: listening
@@ -405,7 +456,7 @@ struct ReaderView: View {
                                         Spacer()
                                         if let layout { Text("s. \(layout.page(chapter: h.ch, block: h.b, offset: h.range.location) + 1)").font(.caption).monospacedDigit().foregroundStyle(.secondary) }
                                     }
-                                    (Text(h.before) + Text(h.match).bold().foregroundColor(Tema.uyari) + Text(h.after))
+                                    Text("\(Text(h.before))\(Text(h.match).bold().foregroundStyle(Tema.uyari))\(Text(h.after))")
                                         .font(.system(.callout, design: .serif)).foregroundStyle(Tema.metin).lineLimit(3)
                                 }
                             }
@@ -419,7 +470,7 @@ struct ReaderView: View {
             .onSubmit(of: .search) { runSearch(query) }
             .onChange(of: query) { _, q in
                 searchTask?.cancel()
-                searchTask = Task { try? await Task.sleep(nanoseconds: 250_000_000); if !Task.isCancelled { runSearch(q) } }
+                searchTask = Task { try? await Task.sleep(for: .milliseconds(250)); if !Task.isCancelled { runSearch(q) } }
             }
             .navigationTitle("Ara")
             #if os(iOS)
@@ -468,6 +519,8 @@ struct ReaderView: View {
                         barButton("list.bullet", "İçindekiler") { showTOC = true }
                         Spacer(minLength: 0)
                         barButton("magnifyingglass", "Ara", active: hitIndex != nil) { showSearch = true }
+                        barButton("square.and.pencil", "Not yaz ya da sesle anlat") { noteRequest = NoteRequest(options: noteOptions()) }
+                        barButton("note.text", "Bu kitaptaki notlar", active: !notesStore.notes(of: book.id).isEmpty) { showNotes = true }
                         barButton(listeningHere ? "headphones.circle.fill" : "headphones", "Dinle", active: listeningHere) {
                             if listeningHere { showVoice = true } else { listenFromHere() }
                         }
@@ -513,17 +566,20 @@ struct ReaderView: View {
                     barButton("xmark.circle.fill", "Aramayı kapat") { hitIndex = nil }
                 }
                 .padding(.leading, 12)
-                .background(Capsule().fill(.ultraThinMaterial))
+                .background { Capsule().fill(.ultraThinMaterial) }
                 .padding(.bottom, 8)
             }
             if let t = toast {
                 HStack(spacing: 12) {
                     Image(systemName: "highlighter").foregroundStyle(Marker.swatch(markColor))
                     Text(t.0).font(.callout.weight(.semibold))
-                    if let m = t.1 { Button("Geri al") { undo(m) }.font(.callout.weight(.semibold)) }
+                    if let m = t.1 {
+                        Button("Geri al") { undo(m) }.font(.callout.weight(.semibold))
+                        Button("Not ekle") { withAnimation { toast = nil }; noteRequest = NoteRequest(options: noteOptions()) }.font(.callout.weight(.semibold))
+                    }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Capsule().fill(.regularMaterial))
+                .background { Capsule().fill(.regularMaterial) }
                 .padding(.bottom, 10)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -606,7 +662,7 @@ struct ReaderView: View {
                         Image(systemName: "highlighter").padding(.horizontal, 12)
                     }
                     .font(.callout.weight(.semibold)).frame(height: 40)
-                    .background(Capsule().fill(Color(theme.accent).opacity(0.15)))
+                    .background { Capsule().fill(Color(theme.accent).opacity(0.15)) }
                     .foregroundStyle(Color(theme.accent)).contentShape(Capsule())
                 }
                 .accessibilityLabel("İşaretle")
@@ -615,7 +671,7 @@ struct ReaderView: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(.regularMaterial))
+        .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(.regularMaterial) }
         .padding(.horizontal, 10)
         #if os(iOS)
         .padding(.bottom, 26)
@@ -701,8 +757,8 @@ struct ReaderView: View {
                         Text(t.name).font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color(t.ink))
                             .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(t.background))
-                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(themeRaw == t.rawValue ? Color(t.accent) : .gray.opacity(0.3), lineWidth: themeRaw == t.rawValue ? 2 : 1))
+                            .background { RoundedRectangle(cornerRadius: 10).fill(t.background) }
+                            .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(themeRaw == t.rawValue ? Color(t.accent) : .gray.opacity(0.3), lineWidth: themeRaw == t.rawValue ? 2 : 1) }
                             .contentShape(Rectangle())
                     }.buttonStyle(.plain)
                 }
@@ -809,6 +865,16 @@ struct ReaderView: View {
                         }
                         .buttonStyle(.bordered)
                     }
+                    Button {
+                        let place = h.at.first.flatMap { makeAnchor(ch: $0.ch, b: $0.b, s: $0.s, e: $0.e) }
+                        tapped = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            var o = noteOptions()
+                            if let place { o.removeAll { $0.anchor == place }; o.insert(("İşaretlediğin yer", place), at: 0) }
+                            noteRequest = NoteRequest(options: o)
+                        }
+                    } label: { Label("Bu yere not yaz · sesle anlat", systemImage: "square.and.pencil") }
+                        .buttonStyle(.bordered)
                     if let own {
                         Button(role: .destructive) { tapped = nil; undo(own) } label: { Label("İşareti sil", systemImage: "trash") }
                             .buttonStyle(.bordered)

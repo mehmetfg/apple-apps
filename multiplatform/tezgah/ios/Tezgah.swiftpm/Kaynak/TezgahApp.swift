@@ -164,7 +164,7 @@ struct Ekran<Icerik: View>: View {
                             .frame(width: 20, height: 20)
                             .padding(10)
                             .background(.ultraThinMaterial, in: Circle())
-                    }
+                    }.accessibilityLabel("Ayarlar")
                 }
                 .padding(.trailing, 16)
                 .padding(.top, 4)

@@ -49,6 +49,7 @@ final class Uygulama: NSObject, NSApplicationDelegate {
     private var gozlem: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppUpdater.start()
         UserDefaults.standard.register(defaults: ["kalite": "dengeli", "dil": "tr", "claudeBaslik": true, "hud": true])
         if let o = Onizleme.klasor { MainActor.assumeIsolated { Onizleme.calistir(o) }; return }
         MainActor.assumeIsolated {
@@ -144,12 +145,12 @@ struct HUDGorunumu: View {
             }
             Button { k.bitir() } label: {
                 Image(systemName: "stop.fill").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 26, height: 26).background(Circle().fill(Color.kivilcim))
-            }.buttonStyle(.plain)
+                    .frame(width: 26, height: 26).background { Circle().fill(Color.kivilcim) }
+            }.accessibilityLabel("Kaydı bitir").buttonStyle(.plain)
         }
         .padding(.horizontal, 16).frame(width: 330, height: 64)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.08)))
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.08)) }
         .onAppear { nabiz = true }
     }
 }

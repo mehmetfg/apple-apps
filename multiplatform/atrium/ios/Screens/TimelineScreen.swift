@@ -81,7 +81,7 @@ struct TimelineScreen: View {
             Chart(bars) { b in
                 BarMark(x: .value("Gün", b.date, unit: .day), y: .value("Not", b.n))
                     .foregroundStyle(Palette.origin(b.origin))
-                    .cornerRadius(3)
+                    .clipShape(.rect(cornerRadius: 3))
             }
             .chartForegroundStyleScale(domain: Origin.allCases.map(\.label), range: Origin.allCases.map(Palette.origin))
             .chartXAxis { AxisMarks(values: .stride(by: .day, count: 2)) { _ in AxisValueLabel(format: .dateTime.day()) } }

@@ -3,10 +3,12 @@
 import ARKit
 import RealityKit
 import SwiftUI
+import PDMBus
 
 struct KameraEkrani: View {
     @EnvironmentObject var goz: Goz
     @EnvironmentObject var ses: Ses
+    @EnvironmentObject var network: NetworkWords
     @State private var secili: Kelime?
     @State private var elle = false
     @State private var secici = false
@@ -48,15 +50,16 @@ struct KameraEkrani: View {
 
     // MARK: etiketler
     private var etiketKatmani: some View {
-        ZStack {
+        let local = Kasa.bilinen
+        return ZStack {
             ForEach(goz.canlilar) { c in
                 CanliCerceve(c: c, gizli: sinav && !acilan.contains(c.kelime.en))
-                    .onTapGesture { dokun(c.kelime) }
+                    .onTapGesture { dokun(c.kelime) }.accessibilityAddTraits(.isButton)
             }
             ForEach(goz.gorunenler) { g in
-                EtiketGorunumu(g: g, gizli: sinav && !acilan.contains(g.kelime.en), bilinen: Kasa.bilinen.contains(g.kelime.en))
+                EtiketGorunumu(g: g, gizli: sinav && !acilan.contains(g.kelime.en), bilinen: network.isKnown(g.kelime.en, local: local))
                     .position(g.nokta)
-                    .onTapGesture { dokun(g.kelime) }
+                    .onTapGesture { dokun(g.kelime) }.accessibilityAddTraits(.isButton)
                     .contextMenu {
                         Button { ses.oku(g.kelime) } label: { Label("Dinle", systemImage: "speaker.wave.2") }
                         Button { var b = Kasa.bilinen; b.insert(g.kelime.en); Kasa.bilinen = b } label: { Label("Biliyorum", systemImage: "checkmark") }
@@ -68,7 +71,12 @@ struct KameraEkrani: View {
     }
 
     private func dokun(_ k: Kelime) {
-        if sinav, !acilan.contains(k.en) { acilan.insert(k.en); ses.oku(k); Haptik.secim(); return }
+        if sinav, !acilan.contains(k.en) {
+            // Sına: önce sesli söyledin, sonra açtın — ağa bir üretim denemesi olarak gider
+            acilan.insert(k.en); ses.oku(k); Haptik.secim()
+            Ag.bus.emit("word.practiced", subject: PDMSubject.word(k.en), data: ["via": "sina"])
+            return
+        }
         ses.oku(k)
         secili = k
     }
@@ -173,8 +181,8 @@ struct EtiketGorunumu: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.black.opacity(0.55)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(bilinen ? .white.opacity(0.3) : Color.saray, lineWidth: 1.5))
+        .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.black.opacity(0.55)) }
+        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(bilinen ? .white.opacity(0.3) : Color.saray, lineWidth: 1.5) }
         .overlay(alignment: .bottom) {
             Triangle().fill(bilinen ? .white.opacity(0.3) : Color.saray).frame(width: 12, height: 7).offset(y: 7)
         }

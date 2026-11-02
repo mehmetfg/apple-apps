@@ -1,0 +1,1359 @@
+{
+ "version": 2,
+ "note": "Poses are side views. Angles in degrees, 0 = right, 90 = up. facing 1: the front of the body is torso-90; facing -1: torso+90. bend > 0 rounds the spine (flexion). scale shortens a limb that points at the camera. Units: body height about 1.75.",
+ "bases": {
+  "supine": {
+   "hip": [
+    0.3,
+    0.1
+   ],
+   "torso": 180,
+   "head": 180,
+   "facing": 1,
+   "bend": 0,
+   "armN": [
+    0,
+    0
+   ],
+   "armF": [
+    2,
+    2
+   ],
+   "legN": [
+    50,
+    -75
+   ],
+   "legF": [
+    53,
+    -72
+   ]
+  },
+  "supineFlat": {
+   "hip": [
+    0.3,
+    0.1
+   ],
+   "torso": 180,
+   "head": 180,
+   "facing": 1,
+   "bend": 0,
+   "armN": [
+    0,
+    0
+   ],
+   "armF": [
+    2,
+    2
+   ],
+   "legN": [
+    0,
+    0
+   ],
+   "legF": [
+    1,
+    1
+   ]
+  },
+  "quad": {
+   "hip": [
+    0.35,
+    0.45
+   ],
+   "torso": 168,
+   "head": 182,
+   "facing": -1,
+   "bend": 0,
+   "armN": [
+    -90,
+    -90
+   ],
+   "armF": [
+    -88,
+    -88
+   ],
+   "legN": [
+    -90,
+    0
+   ],
+   "legF": [
+    -88,
+    2
+   ],
+   "footN": 0,
+   "footF": 2
+  },
+  "seat": {
+   "hip": [
+    0.3,
+    0.45
+   ],
+   "torso": 90,
+   "head": 90,
+   "facing": 1,
+   "bend": 0,
+   "armN": [
+    -90,
+    0
+   ],
+   "armF": [
+    -92,
+    -2
+   ],
+   "legN": [
+    0,
+    -90
+   ],
+   "legF": [
+    3,
+    -88
+   ]
+  },
+  "kneel": {
+   "hip": [
+    0.32,
+    0.45
+   ],
+   "torso": 90,
+   "head": 90,
+   "facing": 1,
+   "bend": 0,
+   "armN": [
+    -50,
+    -30
+   ],
+   "armF": [
+    -52,
+    -32
+   ],
+   "legN": [
+    0,
+    -90
+   ],
+   "legF": [
+    -103,
+    180
+   ],
+   "footF": 195
+  }
+ },
+ "moves": [
+  {
+   "id": "neck_stretch",
+   "name": "Boyun esnetme",
+   "slot": 1,
+   "seconds": 60,
+   "sides": false,
+   "area": "Boyun",
+   "dose": "4 yön · her biri 15 sn",
+   "why": "Gün boyu ekrana eğilen boyun yan ve arka kaslarda gerginlik biriktirir; dört yöne yavaş esnetme o yükü boşaltır.",
+   "steps": [
+    "Yatağın kenarında dik otur, omuzlar gevşek, eller dizlerde.",
+    "Kulağını omzuna doğru yana eğ (15 sn, iki yan); sonra çeneyi göğse indir (15 sn).",
+    "Başını hafifçe geriye kaldır, sonra sağa ve sola çevir; her biri birkaç saniye."
+   ],
+   "cues": [
+    "Omuzu kulağa kaldırma; baş omza iner.",
+    "Geriye eğmede boynu sıkıştırma, küçük bir açı yeter."
+   ],
+   "focus": [
+    "neck"
+   ],
+   "props": {
+    "seat": true
+   },
+   "video": {
+    "title": "NHS inform · Boyun egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-neck-problems"
+   },
+   "frames": [
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "d": 1.2
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "head": 52,
+     "d": 1.6
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "head": 52,
+     "d": 2.4
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "d": 1.4
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "head": 114,
+     "d": 1.4
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "head": 114,
+     "d": 1.4
+    }
+   ]
+  },
+  {
+   "id": "chin_tuck",
+   "name": "Çene içe çekme",
+   "slot": 1,
+   "seconds": 60,
+   "sides": false,
+   "area": "Boyun",
+   "dose": "8–10 tekrar · 2 sn tut",
+   "why": "Masa başında baş öne kayar; boynun derin kaslarını uyandırıp ense gerginliğini alır. Duruşun ilk düzeltmesi.",
+   "steps": [
+    "Yatağın kenarında dik otur, gözler ileri, omuzlar gevşek.",
+    "Başını eğmeden çeneni düz geriye çek; çift çene olur, ense uzar.",
+    "2 saniye tut, bırak. Hareket küçüktür, zorlamaz."
+   ],
+   "cues": [
+    "Başı öne eğme, yalnız geri kaydır.",
+    "Omuzlar gevşek kalsın."
+   ],
+   "focus": [
+    "neck"
+   ],
+   "props": {
+    "seat": true
+   },
+   "video": {
+    "title": "NHS inform · Boyun egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-neck-problems"
+   },
+   "frames": [
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "d": 1.2
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "torso": 91,
+     "head": 97,
+     "d": 0.8
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -80,
+      -10
+     ],
+     "armF": [
+      -82,
+      -12
+     ],
+     "torso": 91,
+     "head": 97,
+     "d": 2.0
+    }
+   ]
+  },
+  {
+   "id": "chest_opener",
+   "name": "Göğüs açma",
+   "slot": 2,
+   "seconds": 60,
+   "sides": false,
+   "area": "Omuz · göğüs",
+   "dose": "Eller arkada kenetli · 3 × 15 sn",
+   "why": "Öne kapanan göğüs kaslarını uzatır, omuzları geri getirir; kambur duruşun doğrudan karşı hareketi.",
+   "steps": [
+    "Dik otur ya da ayakta dur; ellerini arkada, belin hizasında kenetle.",
+    "Kürek kemiklerini geri ve aşağı çek, kollarını hafifçe uzat; göğüs öne açılsın.",
+    "15 saniye kal, bırak, üç kez. Alternatif: kapı kenarına ön kolunu yasla, gövdeyi öne döndür."
+   ],
+   "cues": [
+    "Beli çukurlaştırma, açılan göğüs olsun.",
+    "Çene hafifçe içeride kalsın."
+   ],
+   "focus": [
+    "shoulder",
+    "thoracic"
+   ],
+   "props": {
+    "seat": true
+   },
+   "video": {
+    "title": "NHS · Esneklik egzersizleri (video)",
+    "url": "https://www.nhs.uk/live-well/exercise/flexibility-exercises/"
+   },
+   "frames": [
+    {
+     "base": "seat",
+     "d": 1.2
+    },
+    {
+     "base": "seat",
+     "torso": 95,
+     "head": 96,
+     "bend": -0.025,
+     "armN": [
+      -104,
+      -118
+     ],
+     "armF": [
+      -106,
+      -120
+     ],
+     "d": 1.8
+    },
+    {
+     "base": "seat",
+     "torso": 95,
+     "head": 96,
+     "bend": -0.025,
+     "armN": [
+      -108,
+      -122
+     ],
+     "armF": [
+      -110,
+      -124
+     ],
+     "d": 3.0
+    }
+   ]
+  },
+  {
+   "id": "scapular_squeeze",
+   "name": "Kürek kemiği sıkıştırma",
+   "slot": 2,
+   "seconds": 60,
+   "sides": false,
+   "area": "Boyun · omuz",
+   "dose": "8 tekrar · 3 sn tut",
+   "why": "Öne düşen omuzları geri toplar, boynun yükünü sırta dağıtır. Duruş bozukluğunun karşı hareketi.",
+   "steps": [
+    "Yatağın kenarına dik otur, dirsekler 90 derece bükülü.",
+    "Dirsekleri geriye götürüp kürek kemiklerini birbirine ve aşağıya doğru sık.",
+    "Çene hafifçe içeride, göğüs açık. 3 saniye tut, bırak."
+   ],
+   "cues": [
+    "Omuzları kulağa kaldırma.",
+    "Beli çukurlaştırma, sırt dik."
+   ],
+   "focus": [
+    "shoulder",
+    "neck"
+   ],
+   "props": {
+    "seat": true
+   },
+   "video": {
+    "title": "NHS inform · Boyun egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-neck-problems"
+   },
+   "frames": [
+    {
+     "base": "seat",
+     "d": 1.4
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -118,
+      -6
+     ],
+     "armF": [
+      -120,
+      -8
+     ],
+     "torso": 92,
+     "head": 92,
+     "d": 1.4
+    },
+    {
+     "base": "seat",
+     "armN": [
+      -118,
+      -6
+     ],
+     "armF": [
+      -120,
+      -8
+     ],
+     "torso": 92,
+     "head": 92,
+     "d": 2.6
+    }
+   ]
+  },
+  {
+   "id": "cat_cow",
+   "name": "Kedi – inek",
+   "slot": 3,
+   "seconds": 60,
+   "sides": false,
+   "area": "Bel · sırt",
+   "dose": "5–6 yavaş tekrar",
+   "why": "Omurgayı baştan sona ağrısız açıklıkta hareket ettirir; gün boyu oturmanın sertliğini çözer.",
+   "steps": [
+    "Dört ayak üstüne gel: eller omuz altında, dizler kalça altında.",
+    "Nefes alırken göğsü öne aç, beli hafifçe çukurlaştır, bakış ileri (inek).",
+    "Nefes verirken sırtı tavana doğru yuvarla, çene göğse (kedi)."
+   ],
+   "cues": [
+    "Ağrısız açıklıkta kal, sona kadar zorlamak yok.",
+    "Hareketi nefes yönetsin."
+   ],
+   "focus": [
+    "lowback",
+    "thoracic"
+   ],
+   "video": {
+    "title": "NHS inform · Bel egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-back-pain/"
+   },
+   "frames": [
+    {
+     "base": "quad",
+     "bend": -0.07,
+     "head": 158,
+     "hip": [
+      0.35,
+      0.44
+     ],
+     "d": 2.0
+    },
+    {
+     "base": "quad",
+     "bend": -0.07,
+     "head": 158,
+     "hip": [
+      0.35,
+      0.44
+     ],
+     "d": 1.0
+    },
+    {
+     "base": "quad",
+     "bend": 0.09,
+     "head": 238,
+     "hip": [
+      0.35,
+      0.46
+     ],
+     "d": 2.5
+    },
+    {
+     "base": "quad",
+     "bend": 0.09,
+     "head": 238,
+     "hip": [
+      0.35,
+      0.46
+     ],
+     "d": 1.0
+    }
+   ]
+  },
+  {
+   "id": "child_pose",
+   "name": "Çocuk pozu",
+   "slot": 3,
+   "seconds": 60,
+   "sides": false,
+   "area": "Sırt · omuz",
+   "dose": "Dört ayaktan geriye otur · 5 nefes kal",
+   "why": "Omurgayı uzatır, sırt ve omuz kaslarını gevşetir; yatmadan önce en sakinleştirici esnemelerden biri.",
+   "steps": [
+    "Dört ayak üstünden başla.",
+    "Kalçanı topuklarına doğru geri götür, alnını yere ya da yastığa bırak.",
+    "Kollar önde uzansın; her nefes verişte omuzlar biraz daha gevşesin."
+   ],
+   "cues": [
+    "Dizlerin rahatsızsa aralarını aç ya da altına yastık koy.",
+    "Kalça topuğa değmezse araya yastık koy."
+   ],
+   "focus": [
+    "thoracic",
+    "shoulder",
+    "lowback"
+   ],
+   "video": {
+    "title": "NHS · Esneklik egzersizleri (video)",
+    "url": "https://www.nhs.uk/live-well/exercise/flexibility-exercises/"
+   },
+   "frames": [
+    {
+     "base": "quad",
+     "d": 1.5
+    },
+    {
+     "base": "quad",
+     "hip": [
+      0.38,
+      0.17
+     ],
+     "torso": 182,
+     "head": 200,
+     "bend": 0.05,
+     "armN": [
+      -175,
+      -180
+     ],
+     "armF": [
+      -173,
+      -178
+     ],
+     "legN": [
+      -162,
+      0
+     ],
+     "legF": [
+      -160,
+      2
+     ],
+     "d": 2.5
+    },
+    {
+     "base": "quad",
+     "hip": [
+      0.38,
+      0.17
+     ],
+     "torso": 182,
+     "head": 200,
+     "bend": 0.05,
+     "armN": [
+      -175,
+      -180
+     ],
+     "armF": [
+      -173,
+      -178
+     ],
+     "legN": [
+      -162,
+      0
+     ],
+     "legF": [
+      -160,
+      2
+     ],
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "knee_to_chest",
+   "name": "Tek dizi göğse çekme",
+   "slot": 3,
+   "seconds": 60,
+   "sides": true,
+   "area": "Bel · kalça",
+   "dose": "Her yan 20 sn",
+   "why": "Bel kaslarını ve kalçanın arkasını nazikçe uzatır; yatmadan önce beli gevşetir.",
+   "steps": [
+    "Sırtüstü yat, dizler bükülü.",
+    "Bir dizi iki elinle tutup göğsüne doğru çek; öteki ayak yerde kalsın.",
+    "Hafif bir gerilme hissedince orada kal, sakin nefes al."
+   ],
+   "cues": [
+    "Başı ve omuzları yerde bırak.",
+    "Ağrı değil, yumuşak bir gerilme."
+   ],
+   "focus": [
+    "lowback",
+    "hip"
+   ],
+   "video": {
+    "title": "NHS · Siyatik için hareketler (video)",
+    "url": "https://www.nhs.uk/live-well/exercise/exercises-sciatica-problems/"
+   },
+   "frames": [
+    {
+     "base": "supine",
+     "d": 1.2
+    },
+    {
+     "base": "supine",
+     "legN": [
+      128,
+      -15
+     ],
+     "armN": [
+      55,
+      25
+     ],
+     "armF": [
+      58,
+      28
+     ],
+     "head": 176,
+     "d": 2.0
+    },
+    {
+     "base": "supine",
+     "legN": [
+      130,
+      -13
+     ],
+     "armN": [
+      56,
+      26
+     ],
+     "armF": [
+      59,
+      29
+     ],
+     "head": 176,
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "pelvic_tilt",
+   "name": "Pelvik tilt",
+   "slot": 3,
+   "seconds": 60,
+   "sides": false,
+   "area": "Bel",
+   "dose": "6–8 tekrar · 3 sn tut",
+   "why": "Belin derin karın kaslarıyla (transversus) korunmasını öğretir; bel ağrısında fizyoterapinin ilk hareketidir.",
+   "steps": [
+    "Sırtüstü yat, dizler bükülü, ayaklar yerde.",
+    "Göbeği hafifçe içe çek, belinin altındaki boşluğu yere bastır; kalça hafifçe döner.",
+    "3 saniye tut, nefesi tutmadan bırak."
+   ],
+   "cues": [
+    "Kalçayı yerden kaldırma.",
+    "Nefes akmaya devam etsin."
+   ],
+   "focus": [
+    "lowback"
+   ],
+   "video": {
+    "title": "NHS inform · Bel egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-back-pain/"
+   },
+   "frames": [
+    {
+     "base": "supine",
+     "bend": -0.035,
+     "d": 1.4
+    },
+    {
+     "base": "supine",
+     "bend": 0.03,
+     "hip": [
+      0.3,
+      0.095
+     ],
+     "d": 1.4
+    },
+    {
+     "base": "supine",
+     "bend": 0.03,
+     "hip": [
+      0.3,
+      0.095
+     ],
+     "d": 2.4
+    }
+   ]
+  },
+  {
+   "id": "hip_flexor",
+   "name": "Kalça önü esnetmesi",
+   "slot": 4,
+   "seconds": 60,
+   "sides": true,
+   "area": "Kalça · bel",
+   "dose": "Her yan 20 sn",
+   "why": "Uzun oturmak kalça önünü kısaltır, beli öne çeker. Bu esnetme beli rahatlatır, duruşu dikleştirir.",
+   "steps": [
+    "Yarım diz çök: bir diz yerde (altına yastık), öteki ayak önde, diz 90 derece.",
+    "Kalçanı hafifçe sık, gövdeyi dik tutarak ağırlığı öne kaydır.",
+    "Arkadaki bacağın kalça önünde gerilme hissedince kal."
+   ],
+   "cues": [
+    "Beli çukurlaştırma, kalça altına girsin.",
+    "Öndeki diz ayak bileğini geçmesin."
+   ],
+   "focus": [
+    "hip",
+    "lowback"
+   ],
+   "props": {
+    "cushion": true
+   },
+   "video": {
+    "title": "NHS inform · Bel egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-back-pain/"
+   },
+   "frames": [
+    {
+     "base": "kneel",
+     "d": 1.4
+    },
+    {
+     "base": "kneel",
+     "hip": [
+      0.38,
+      0.44
+     ],
+     "legN": [
+      0,
+      -98
+     ],
+     "legF": [
+      -111,
+      180
+     ],
+     "torso": 92,
+     "armN": [
+      -46,
+      -34
+     ],
+     "armF": [
+      -48,
+      -36
+     ],
+     "d": 2.0
+    },
+    {
+     "base": "kneel",
+     "hip": [
+      0.38,
+      0.44
+     ],
+     "legN": [
+      0,
+      -98
+     ],
+     "legF": [
+      -111,
+      180
+     ],
+     "torso": 92,
+     "armN": [
+      -46,
+      -34
+     ],
+     "armF": [
+      -48,
+      -36
+     ],
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "figure_four",
+   "name": "Dört (piriformis) esnetmesi",
+   "slot": 4,
+   "seconds": 60,
+   "sides": true,
+   "area": "Kalça · bel",
+   "dose": "Her yan 20 sn",
+   "why": "Kalçanın derin dönücü kaslarını gevşetir; oturmaktan kasılan ve bele, bacağa vuran gerginliği alır.",
+   "steps": [
+    "Sırtüstü yat, dizler bükülü.",
+    "Bir ayak bileğini öteki dizin üstüne koy; bacaklar '4' rakamı gibi.",
+    "Alttaki uyluğu iki elinle tutup göğsüne çek; kalçanın arkasında gerilme hissedeceksin."
+   ],
+   "cues": [
+    "Başı yerde tut.",
+    "Dizine baskı değil, uyluğu çek."
+   ],
+   "focus": [
+    "hip"
+   ],
+   "video": {
+    "title": "NHS · Siyatik için hareketler (video)",
+    "url": "https://www.nhs.uk/live-well/exercise/exercises-sciatica-problems/"
+   },
+   "frames": [
+    {
+     "base": "supine",
+     "legN": [
+      75,
+      -25
+     ],
+     "scale": {
+      "legN": [
+       1,
+       0.38
+      ]
+     },
+     "d": 1.4
+    },
+    {
+     "base": "supine",
+     "legF": [
+      104,
+      -16
+     ],
+     "legN": [
+      112,
+      -24
+     ],
+     "scale": {
+      "legN": [
+       1,
+       0.38
+      ]
+     },
+     "armN": [
+      58,
+      20
+     ],
+     "armF": [
+      60,
+      22
+     ],
+     "d": 2.0
+    },
+    {
+     "base": "supine",
+     "legF": [
+      106,
+      -14
+     ],
+     "legN": [
+      114,
+      -22
+     ],
+     "scale": {
+      "legN": [
+       1,
+       0.38
+      ]
+     },
+     "armN": [
+      59,
+      21
+     ],
+     "armF": [
+      61,
+      23
+     ],
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "hamstring_towel",
+   "name": "Havluyla arka bacak",
+   "slot": 4,
+   "seconds": 60,
+   "sides": true,
+   "area": "Bacak · diz",
+   "dose": "Her yan 20 sn",
+   "why": "Arka bacak kasları gergin olunca leğeni çeker, beli ve dizi zorlar. Havlu, beli korurken esnetir.",
+   "steps": [
+    "Sırtüstü yat, bir bacak yerde düz.",
+    "Öteki ayağın tabanına havlu geçir, bacağı düz tutarak yukarı kaldır.",
+    "Diz düz, gerilme bacağın arkasında hissedilene kadar havluyu çek; orada kal."
+   ],
+   "cues": [
+    "Yerdeki bacak düz kalsın.",
+    "Dizi kilitleme, yumuşak düz."
+   ],
+   "focus": [
+    "hamstring",
+    "knee"
+   ],
+   "props": {
+    "towel": true
+   },
+   "video": {
+    "title": "NHS inform · Diz egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/leg-and-foot-problems-and-conditions/exercises-for-knee-problems/"
+   },
+   "frames": [
+    {
+     "base": "supineFlat",
+     "legN": [
+      62,
+      62
+     ],
+     "armN": [
+      62,
+      62
+     ],
+     "armF": [
+      64,
+      64
+     ],
+     "d": 1.4
+    },
+    {
+     "base": "supineFlat",
+     "legN": [
+      80,
+      80
+     ],
+     "armN": [
+      70,
+      70
+     ],
+     "armF": [
+      72,
+      72
+     ],
+     "d": 2.0
+    },
+    {
+     "base": "supineFlat",
+     "legN": [
+      81,
+      81
+     ],
+     "armN": [
+      71,
+      71
+     ],
+     "armF": [
+      73,
+      73
+     ],
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "heel_slide",
+   "name": "Topuk kaydırma",
+   "slot": 4,
+   "seconds": 60,
+   "sides": true,
+   "area": "Diz",
+   "dose": "Her yan 8 tekrar",
+   "why": "Dizi yük bindirmeden tam açıklıkta çalıştırır; eklem sıvısını dolaştırır, sabah tutukluğunu azaltır.",
+   "steps": [
+    "Sırtüstü yat, bacaklar düz.",
+    "Bir topuğu yerde kaydırarak kalçana doğru çek; diz bükülür.",
+    "Rahat olan yere kadar git, sonra yavaşça düzelt."
+   ],
+   "cues": [
+    "Topuk yerden ayrılmasın.",
+    "Acı veren yere zorlamak yok."
+   ],
+   "focus": [
+    "knee"
+   ],
+   "video": {
+    "title": "NHS inform · Diz egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/leg-and-foot-problems-and-conditions/exercises-for-knee-problems/"
+   },
+   "frames": [
+    {
+     "base": "supineFlat",
+     "d": 1.6
+    },
+    {
+     "base": "supineFlat",
+     "legN": [
+      55,
+      -62
+     ],
+     "d": 1.8
+    },
+    {
+     "base": "supineFlat",
+     "legN": [
+      55,
+      -62
+     ],
+     "d": 0.6
+    }
+   ]
+  },
+  {
+   "id": "diaphragm_breath",
+   "name": "Diyafram nefesi",
+   "slot": 5,
+   "seconds": 60,
+   "sides": false,
+   "area": "Nefes · gevşeme",
+   "dose": "6 nefes · 4 sn al, 6 sn ver",
+   "why": "Göğüs yerine karınla nefes almak boyun ve omuzdaki yardımcı nefes kaslarını dinlendirir; uzun veriş uykuya geçişi kolaylaştırır.",
+   "steps": [
+    "Sırtüstü yat, dizler bükülü; bir elin göbeğinde, öteki göğsünde.",
+    "Burundan 4 sayıda al: karnındaki el yükselsin, göğüsteki el kıpırdamasın.",
+    "Ağızdan 6 sayıda yavaşça ver; omuzlar ve bel yere bırakılsın."
+   ],
+   "cues": [
+    "Nefesi zorlamak yok, halkayı izle.",
+    "Başın dönerse normal nefese dön."
+   ],
+   "focus": [
+    "breath"
+   ],
+   "breath": {
+    "in": 4,
+    "out": 6
+   },
+   "video": {
+    "title": "NHS · Nefes egzersizi (stres)",
+    "url": "https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/breathing-exercises-for-stress/"
+   },
+   "frames": [
+    {
+     "base": "supine",
+     "armN": [
+      10,
+      0
+     ],
+     "armF": [
+      0,
+      160
+     ],
+     "scale": {
+      "armN": [
+       0.6,
+       0.5
+      ],
+      "armF": [
+       0.5,
+       0.4
+      ]
+     },
+     "bend": -0.045,
+     "d": 4.0
+    },
+    {
+     "base": "supine",
+     "armN": [
+      10,
+      0
+     ],
+     "armF": [
+      0,
+      160
+     ],
+     "scale": {
+      "armN": [
+       0.6,
+       0.5
+      ],
+      "armF": [
+       0.5,
+       0.4
+      ]
+     },
+     "bend": 0.0,
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "supine_twist",
+   "name": "Sırtüstü omurga burgusu",
+   "slot": 5,
+   "seconds": 60,
+   "sides": true,
+   "area": "Bel · sırt",
+   "dose": "Her yan 30 sn · uzun nefes",
+   "why": "Dizleri yana bırakmak bel ve sırt kaslarını döndürerek uzatır; omurgayı yatmadan önce sıfırlar.",
+   "steps": [
+    "Sırtüstü yat, dizler bükülü, kollar iki yana açık, avuçlar yukarı.",
+    "Dizleri birlikte yavaşça bir yana bırak; başını öteki yana çevir.",
+    "Omuzlar yerde kalsın; her nefes verişte biraz daha gevşe, sonra öteki yan."
+   ],
+   "cues": [
+    "Omuz yerden kalkıyorsa dizleri o kadar indirme.",
+    "Dizlerin arasına yastık koyabilirsin."
+   ],
+   "focus": [
+    "lowback",
+    "thoracic"
+   ],
+   "video": {
+    "title": "NHS inform · Bel egzersizleri (videolu)",
+    "url": "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/neck-and-back-problems-and-conditions/exercises-for-back-pain/"
+   },
+   "frames": [
+    {
+     "base": "supine",
+     "d": 1.4
+    },
+    {
+     "base": "supine",
+     "legN": [
+      30,
+      -40
+     ],
+     "legF": [
+      32,
+      -38
+     ],
+     "scale": {
+      "legN": [
+       0.75,
+       0.8
+      ],
+      "legF": [
+       0.75,
+       0.8
+      ]
+     },
+     "d": 2.4
+    },
+    {
+     "base": "supine",
+     "legN": [
+      20,
+      -30
+     ],
+     "legF": [
+      22,
+      -28
+     ],
+     "scale": {
+      "legN": [
+       0.66,
+       0.7
+      ],
+      "legF": [
+       0.66,
+       0.7
+      ]
+     },
+     "d": 6.0
+    }
+   ]
+  },
+  {
+   "id": "legs_up_wall",
+   "name": "Bacaklar duvarda · nefes",
+   "slot": 5,
+   "seconds": 60,
+   "sides": false,
+   "area": "Uykuya geçiş",
+   "dose": "6 nefes · 4 sn al, 6 sn ver",
+   "why": "Uzun nefes verme sinir sistemini dinlenme kipine alır; bacaklar yukarıda, bel yerde, beden uykuya hazırlanır.",
+   "steps": [
+    "Kalçanı duvara yaklaştır, sırtüstü yat, bacakları duvara uzat.",
+    "Kollar yanlarda, avuçlar yukarı.",
+    "Burundan 4 sayıda al, ağızdan 6 sayıda yavaşça ver. Halka büyürken al, küçülürken ver."
+   ],
+   "cues": [
+    "Bacaklarda karıncalanma olursa dizleri bük.",
+    "Saymayı halkaya bırak."
+   ],
+   "focus": [
+    "breath"
+   ],
+   "props": {
+    "wall": 0.345
+   },
+   "breath": {
+    "in": 4,
+    "out": 6
+   },
+   "video": {
+    "title": "NHS · Nefes egzersizi (stres)",
+    "url": "https://www.nhs.uk/mental-health/self-help/guides-tools-and-activities/breathing-exercises-for-stress/"
+   },
+   "frames": [
+    {
+     "base": "supineFlat",
+     "legN": [
+      90,
+      90
+     ],
+     "legF": [
+      88,
+      92
+     ],
+     "armN": [
+      8,
+      2
+     ],
+     "armF": [
+      12,
+      4
+     ],
+     "bend": -0.02,
+     "d": 4.0
+    },
+    {
+     "base": "supineFlat",
+     "legN": [
+      90,
+      90
+     ],
+     "legF": [
+      88,
+      92
+     ],
+     "armN": [
+      8,
+      2
+     ],
+     "armF": [
+      12,
+      4
+     ],
+     "bend": 0.015,
+     "d": 6.0
+    }
+   ]
+  }
+ ],
+ "slots": [
+  {
+   "n": 1,
+   "name": "Boyun",
+   "where": "oturarak",
+   "pool": [
+    "neck_stretch",
+    "chin_tuck"
+   ]
+  },
+  {
+   "n": 2,
+   "name": "Omuz · göğüs",
+   "where": "oturarak",
+   "pool": [
+    "chest_opener",
+    "scapular_squeeze"
+   ]
+  },
+  {
+   "n": 3,
+   "name": "Omurga",
+   "where": "yerde",
+   "pool": [
+    "pelvic_tilt",
+    "cat_cow",
+    "child_pose",
+    "knee_to_chest"
+   ]
+  },
+  {
+   "n": 4,
+   "name": "Kalça · bacak",
+   "where": "yerde",
+   "pool": [
+    "heel_slide",
+    "knee_to_chest",
+    "figure_four",
+    "hip_flexor",
+    "hamstring_towel"
+   ]
+  },
+  {
+   "n": 5,
+   "name": "Kapanış · nefes",
+   "where": "sırtüstü",
+   "pool": [
+    "diaphragm_breath",
+    "legs_up_wall",
+    "supine_twist"
+   ]
+  }
+ ],
+ "sets": {
+  "A": {
+   "name": "AÇ",
+   "theme": "Göğsü, omurgayı, kalça önünü aç",
+   "moves": [
+    "neck_stretch",
+    "chest_opener",
+    "cat_cow",
+    "hip_flexor",
+    "diaphragm_breath"
+   ]
+  },
+  "B": {
+   "name": "BÜK",
+   "theme": "Boynu yana bük, sırtı yuvarla, beli bur",
+   "moves": [
+    "neck_stretch",
+    "scapular_squeeze",
+    "child_pose",
+    "figure_four",
+    "supine_twist"
+   ]
+  },
+  "C": {
+   "name": "ÇEK",
+   "theme": "Çeneyi, dizi, bacağı çek",
+   "moves": [
+    "chin_tuck",
+    "scapular_squeeze",
+    "knee_to_chest",
+    "hamstring_towel",
+    "legs_up_wall"
+   ]
+  }
+ },
+ "redFlags": [
+  "Bacağa inen uyuşukluk ya da güç kaybı",
+  "İdrar ya da dışkı kontrolünde değişiklik, kasıkta uyuşma",
+  "Gece dinlenince geçmeyen ya da giderek artan ağrı",
+  "Düşme, darbe sonrası ağrı ya da ateşle birlikte bel ağrısı",
+  "Eklemde keskin, batan ağrı ya da şişlik"
+ ]
+}

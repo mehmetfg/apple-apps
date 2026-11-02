@@ -17,12 +17,13 @@ struct Ana: View {
                         switch t.gorunum {
                         case .bugun: BugunGorunum()
                         case .gecmis: GecmisGorunum()
+                        case .dinleme: ListeningView()
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     if let b = t.bildirim {
                         Text(b).font(.callout).padding(.horizontal, 16).padding(.vertical, 10)
-                            .background(Capsule().fill(.regularMaterial)).shadow(radius: 6, y: 2).padding(.bottom, 22)
+                            .background { Capsule().fill(.regularMaterial) }.shadow(radius: 6, y: 2).padding(.bottom, 22)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
@@ -43,8 +44,9 @@ struct Ana: View {
         .onDrop(of: [UTType.fileURL], isTargeted: nil) { birak($0) }
         .sheet(isPresented: $t.kuizAcik) { KuizSayfasi().environmentObject(t) }
         .sheet(item: Binding(get: { t.gramerSayfa.map(GramerListe.init) }, set: { t.gramerSayfa = $0?.konular })) { _ in
-            GramerSayfasi().environmentObject(t)
+            GrammarSheet().environmentObject(t)
         }
+        .sheet(isPresented: $t.wordsOpen) { WordsSheet().environmentObject(t) }
     }
 
     /// Pencereye sürüklenen gün JSON'ları içe aktarılır.
@@ -66,6 +68,7 @@ struct Ana: View {
     var haritaVar: Bool { t.gorunum == .bugun && (t.o?.adim == .cumle || t.o?.adim == .bitis) }
     var baslik: String {
         if t.gorunum == .gecmis { return "Geçmiş" }
+        if t.gorunum == .dinleme { return "Dinleme" }
         guard let o = t.o else { return "Cümle" }
         return "Gün \(o.gun.no) · \(o.gun.ad)" + (o.tekrar ? " · tekrar" : "")
     }
@@ -85,9 +88,16 @@ struct AracCubugu: ToolbarContent {
                 }
                 .help("Dokunulan süre — 2 dakikadan uzun boşluk sayılmaz")
             }
-            Button { t.gramerAc() } label: { Label("Gramer", systemImage: "book.closed") }.help("Bugünün gramer konuları (⌥G)")
+            Button { t.wordsOpen = true } label: { Label("Kelimeler", systemImage: "character.book.closed") }
+                .help("Bugünün ve önceki günün kelimeleri: Türkçesi, tanımı, sesi (⇧⌘L)")
+            Button { t.gramerAc() } label: { Label("Gramer", systemImage: "book.closed") }.help("Bugünün gramer konuları + 3 soruluk alıştırma (⌥G)")
             Button { t.kuizAcik = true } label: { Label("Kuiz", systemImage: "sparkles") }.help("Kuiz promptu → Gemini (⌘K)")
             SesMenusu()
+            Menu {
+                Picker("Tema", selection: $t.theme) { ForEach(AppTheme.allCases) { Label($0.label, systemImage: $0.icon).tag($0) } }
+                    .pickerStyle(.inline).labelsHidden()
+            } label: { Label("Tema", systemImage: t.theme.icon) }
+            .help("Tema: Sistem · Açık · Koyu")
             if haritaVar {
                 Button { t.haritaAcik.toggle() } label: { Label("Metin haritası", systemImage: "sidebar.right") }.help("Metin haritası (⌘0)")
             }
@@ -168,12 +178,13 @@ struct KenarCubugu: View {
             }
             Section("Arşiv") {
                 satir(simge: "clock.arrow.circlepath", ad: "Geçmiş", secili: t.gorunum == .gecmis) { t.gorunum = .gecmis }
+                satir(simge: "headphones", ad: "Dinleme", secili: t.gorunum == .dinleme) { t.gorunum = .dinleme }
                 satir(simge: "book.closed", ad: "Gramer döngüsü", secili: false) { t.gramerI = -1; t.gramerAc(nil, -1) }
             }
         }
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
-        .background(Color(red: 0.035, green: 0.041, blue: 0.058))
+        .background(Renk.kenar)
         .safeAreaInset(edge: .bottom) { TelefonOzeti().padding(10) }
     }
 
@@ -197,7 +208,8 @@ struct TelefonOzeti: View {
                 Text(h.basladi ? "Telefonda çalışıldı" : h.paket ? "Telefonda henüz yok" : "Paket yok").font(.caption.weight(.semibold))
             }
             HStack(spacing: 10) {
-                Label("\(h.dinleme)", systemImage: "headphones").foregroundStyle(h.dinleme > 0 ? Renk.yesil : .secondary)
+                Label(h.listenSeconds > 0 ? "\(h.dinleme) · \(Listening.minutes(Double(h.listenSeconds)))" : "\(h.dinleme)", systemImage: "headphones")
+                    .foregroundStyle(h.dinleme > 0 || h.listenSeconds > 0 ? Renk.yesil : .secondary)
                 Label(h.okuma ? "✓" : "—", systemImage: "book").foregroundStyle(h.okuma ? Renk.yesil : .secondary)
                 Label("\(h.kayit)", systemImage: "mic").foregroundStyle(h.kayit > 0 ? Renk.yesil : .secondary)
                 if !h.takildi.isEmpty { Label("\(h.takildi.count)", systemImage: "arrow.counterclockwise").foregroundStyle(Renk.sari).help("Telefonda takıldığın cümle") }
@@ -206,7 +218,7 @@ struct TelefonOzeti: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Renk.kart2))
+        .background { RoundedRectangle(cornerRadius: 10).fill(Renk.kart2) }
         .help("Memories (iPhone) ile ortak klasörden canlı okunur")
     }
 }

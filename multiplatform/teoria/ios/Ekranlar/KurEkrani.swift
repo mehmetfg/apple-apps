@@ -120,7 +120,7 @@ struct KurEkrani: View {
                 Image(systemName: yapilan.isEmpty ? "xmark" : "checkmark")
                     .font(.system(size: 15, weight: .bold))
                     .frame(width: 36, height: 36)
-                    .background(Circle().fill(Tema.yuzey2))
+                    .background { Circle().fill(Tema.yuzey2) }
                     .foregroundStyle(Tema.ikincil)
             }
             .buttonStyle(.plain)
@@ -176,7 +176,7 @@ struct KurEkrani: View {
                     .lineSpacing(3)
                     .padding(18)
                     .tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
+                    .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
                     .textSelection(.enabled)
             }
             Text(k.soru)
@@ -238,10 +238,10 @@ struct KurEkrani: View {
                     }
                     .padding(16)
                     .tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(puan != nil && dogru ? Tema.basari.opacity(0.12) : (puan != nil && sec ? Tema.uyari.opacity(0.10) : Tema.yuzey)))
-                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(puan != nil && dogru ? Tema.basari.opacity(0.5) : Tema.cizgi, lineWidth: 1))
+                    .background { RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(puan != nil && dogru ? Tema.basari.opacity(0.12) : (puan != nil && sec ? Tema.uyari.opacity(0.10) : Tema.yuzey)) }
+                    .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(puan != nil && dogru ? Tema.basari.opacity(0.5) : Tema.cizgi, lineWidth: 1) }
                 }
                 .buttonStyle(.plain)
                 .disabled(puan != nil)
@@ -257,18 +257,18 @@ struct KurEkrani: View {
                 ForEach(Array(dizilen.enumerated()), id: \.offset) { i, p in
                     Button { if puan == nil { secimT += 1; dizilen.remove(at: i) } } label: {
                         Text(p).font(Tema.serif(.body)).padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(Capsule().fill(Tema.vurgu.opacity(0.14))).foregroundStyle(Tema.metin)
+                            .background { Capsule().fill(Tema.vurgu.opacity(0.14)) }.foregroundStyle(Tema.metin)
                     }.buttonStyle(.plain)
                 }
             }
             .frame(minHeight: 50, alignment: .topLeading)
             .padding(12).tamGenislik()
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Tema.cizgi, style: StrokeStyle(lineWidth: 1, dash: [5])))
+            .background { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Tema.cizgi, style: StrokeStyle(lineWidth: 1, dash: [5])) }
             AkanYerlesim(aralik: 8) {
                 ForEach(Array(havuz.enumerated()), id: \.offset) { _, p in
                     Button { secimT += 1; withAnimation(.snappy) { dizilen.append(p) } } label: {
                         Text(p).font(Tema.serif(.body)).padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(Capsule().fill(Tema.yuzey)).overlay(Capsule().strokeBorder(Tema.cizgi))
+                            .background { Capsule().fill(Tema.yuzey) }.overlay { Capsule().strokeBorder(Tema.cizgi) }
                             .foregroundStyle(Tema.metin)
                     }.buttonStyle(.plain).disabled(puan != nil)
                 }
@@ -282,7 +282,7 @@ struct KurEkrani: View {
                 .font(Tema.serif(.title2))
                 .textFieldStyle(.plain)
                 .padding(16)
-                .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+                .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
                 .focused($odak)
                 .autocorrectionDisabled()
                 .disabled(puan != nil)
@@ -308,7 +308,7 @@ struct KurEkrani: View {
                     .disabled(karsilastir)
             }
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+            .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
             if karsilastir {
                 VStack(alignment: .leading, spacing: 10) {
                     Bolumbasi(metin: k.kademe >= 5 ? "Bir örnek ses" : "Kaynak", sembol: "text.quote", renk: Tema.basari)
@@ -324,7 +324,7 @@ struct KurEkrani: View {
                     if let a = k.aciklama { Text(a).font(.callout).foregroundStyle(Tema.ikincil) }
                 }
                 .padding(16).tamGenislik()
-                .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.basari.opacity(0.07)))
+                .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.basari.opacity(0.07)) }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
@@ -343,7 +343,7 @@ struct KurEkrani: View {
             if let a = k.aciklama, k.tip != .yaz { Text(a).font(.callout).foregroundStyle(Tema.ikincil) }
         }
         .padding(16).tamGenislik()
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill((p >= 0.7 ? Tema.basari : Tema.uyari).opacity(0.08)))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill((p >= 0.7 ? Tema.basari : Tema.uyari).opacity(0.08)) }
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
     }
 
@@ -416,7 +416,7 @@ struct KurEkrani: View {
                     } label: {
                         Text(s.1).font(.system(size: 14, weight: .semibold))
                             .frame(maxWidth: .infinity).padding(.vertical, 13)
-                            .background(Capsule().fill(oneri == s.0 ? Tema.vurgu : Tema.vurgu.opacity(0.12)))
+                            .background { Capsule().fill(oneri == s.0 ? Tema.vurgu : Tema.vurgu.opacity(0.12)) }
                             .foregroundStyle(oneri == s.0 ? Color.white : Tema.vurgu)
                     }
                     .buttonStyle(.plain)
@@ -527,7 +527,7 @@ struct KurOzetEkrani: View {
                     Label("\(h.ad) K\(simdi)'ya çıktı · \(Evre.of(simdi).rawValue)", systemImage: "arrow.up.circle.fill")
                         .font(.headline).foregroundStyle(Tema.hat(h))
                         .padding(.horizontal, 16).padding(.vertical, 10)
-                        .background(Capsule().fill(Tema.hat(h).opacity(0.12)))
+                        .background { Capsule().fill(Tema.hat(h).opacity(0.12)) }
                 }
             }
             Text("Bu hafta \(depo.durum.buHaftaKur) kür.").font(.footnote).foregroundStyle(Tema.soluk)

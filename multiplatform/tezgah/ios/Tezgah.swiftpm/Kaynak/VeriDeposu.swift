@@ -146,7 +146,7 @@ final class VeriDeposu: ObservableObject {
                     try? fm.startDownloadingUbiquitousItem(at: url)
                 }
             }
-            try await Task.sleep(nanoseconds: 500_000_000)
+            try await Task.sleep(for: .milliseconds(500))
         }
         throw HataMesaji("tezgah.json bu klasörde bulunamadı. Vault'un kendisini (Personel Data Management) seçtiğinden emin ol; Mac'te pano bir kez çalışmış olmalı.")
     }

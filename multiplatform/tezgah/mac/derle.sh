@@ -4,7 +4,8 @@
 #   zsh Artifacts/_ortak/app/derle.sh /Applications
 # Çıkan uygulama hem Apple Silicon hem Intel Mac'te çalışır (ikinci Mac için).
 set -e
-cd "$(dirname "$0")"
+UPDATER="${0:A:h:h:h:h}/shared/AppUpdater"   # resolved before cd: $0 may be relative
+cd "${0:A:h}"
 HEDEF="${1:-$HOME/Applications}"
 APP="$HEDEF/Tezgâh.app"
 GECICI="$(mktemp -d)"
@@ -12,7 +13,7 @@ trap 'rm -rf "$GECICI"' EXIT
 
 echo "→ derleniyor (arm64 + x86_64)…"
 for MIMARI in arm64 x86_64; do
-  swiftc -O -swift-version 5 -target "$MIMARI-apple-macos13.0" main.swift araclar.swift \
+  swiftc -O -swift-version 5 -target "$MIMARI-apple-macos13.0" main.swift araclar.swift "$UPDATER/AppUpdater.swift" \
     -o "$GECICI/Tezgah-$MIMARI" -framework Cocoa -framework WebKit -framework ServiceManagement -framework Carbon
 done
 lipo -create "$GECICI/Tezgah-arm64" "$GECICI/Tezgah-x86_64" -output "$GECICI/Tezgah"
@@ -37,11 +38,10 @@ cp "$GECICI/Tezgah" "$APP/Contents/MacOS/Tezgah"
 cp Info.plist "$APP/Contents/Info.plist"
 cp Tezgah.icns "$APP/Contents/Resources/Tezgah.icns"
 codesign --force --deep --sign - "$APP" >/dev/null
+[ "$HEDEF" = "$HOME/Applications" ] && zsh "$UPDATER/publish.sh" "$APP" Tezgah   # iCloud update for the other Mac
 touch "$APP"
 # ikinci Mac için hazır kopya (kur.command önce bunu kullanır)
 mkdir -p dagitim
 rm -f dagitim/Tezgah.zip
 ditto -c -k --keepParent "$APP" dagitim/Tezgah.zip
-DIST_DIR="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personel Data Management/_araçlar/dagitim"   # iCloud copy for the other Mac
-[ -d "$DIST_DIR" ] && cp dagitim/Tezgah.zip "$DIST_DIR/"
 echo "✓ hazır: $APP  (+ dagitim/Tezgah.zip)"

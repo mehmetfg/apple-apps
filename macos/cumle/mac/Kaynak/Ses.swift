@@ -223,6 +223,7 @@ final class Kaydedici: NSObject, ObservableObject, AVAudioRecorderDelegate {
         return await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
             let b = Biriktirici()
             t.recognitionTask(with: istek) { sonuc, hata in
+                _ = t   // the recognizer must stay alive until the task ends, or the callback never fires
                 if b.bitti { return }
                 if let sonuc {
                     b.ekle(sonuc.bestTranscription.formattedString, parcaSonu: sonuc.speechRecognitionMetadata != nil)

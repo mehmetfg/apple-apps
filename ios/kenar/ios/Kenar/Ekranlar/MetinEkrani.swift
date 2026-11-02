@@ -31,7 +31,7 @@ struct MetinEkrani: View {
             .navigationDestination(for: String.self) { BolumEkrani(bolumId: $0) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { ayarlar = true } label: { Image(systemName: "gearshape") }
+                    Button { ayarlar = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Ayarlar")
                 }
             }
             .sheet(isPresented: $ayarlar) { AyarlarEkrani() }
@@ -70,7 +70,7 @@ struct MetinEkrani: View {
         return Button { rota.git(h.adres) } label: {
             HStack(spacing: 12) {
                 Image(systemName: "arrow.turn.down.right").font(.title3.weight(.semibold)).foregroundStyle(.white)
-                    .frame(width: 40, height: 40).background(Circle().fill(Color.kalem))
+                    .frame(width: 40, height: 40).background { Circle().fill(Color.kalem) }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("SIRADAKİ HAMLE").font(.caption2.weight(.bold)).tracking(1).foregroundStyle(Color.kalem)
                     Text(h.cumle).font(.callout.weight(.medium)).foregroundStyle(Color.murekkep).multilineTextAlignment(.leading)
@@ -79,7 +79,7 @@ struct MetinEkrani: View {
                 Image(systemName: "chevron.right").foregroundStyle(.tertiary)
             }
             .padding(14)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.kalem.opacity(0.08)))
+            .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.kalem.opacity(0.08)) }
         }
         .buttonStyle(.plain)
     }
@@ -98,7 +98,7 @@ struct MetinEkrani: View {
             if let h = uretimHatasi { Text(h).font(.footnote).foregroundStyle(.red) }
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.kart))
+        .background { RoundedRectangle(cornerRadius: 16).fill(Color.kart) }
         .confirmationDialog("Metin Üretim klasörüne bitmiş iş olarak yazılsın mı?", isPresented: $uretimSorusu, titleVisibility: .visible) {
             Button("Gönder") { Task { uretimHatasi = await merkez.uretimeGonder() } }
         }
@@ -143,7 +143,7 @@ struct BolumKarti: View {
             }
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.kart))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(b.bitti ? Color.bolum(b.no).opacity(0.5) : Color.cizgi, lineWidth: b.bitti ? 1.2 : 0.6))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.kart) }
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(b.bitti ? Color.bolum(b.no).opacity(0.5) : Color.cizgi, lineWidth: b.bitti ? 1.2 : 0.6) }
     }
 }

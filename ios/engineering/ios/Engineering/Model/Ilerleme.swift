@@ -1,4 +1,5 @@
 import Foundation
+import PDMBus
 import Observation
 
 /// Telefonda kalan tek kayıt. Bilerek yok: seri, vade, borç, günlük hedef (vault kuralı).
@@ -23,6 +24,8 @@ final class Ilerleme {
 
     private var dosya = Dosya()
     private let url: URL
+    /// PDM Ağı: biten dersler ve "biliyorum" terimleri `_bus/events/engineering/<cihaz>.jsonl`'e gider.
+    @ObservationIgnored let bus = PDMBus(app: "engineering")
 
     init() {
         let klasor = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -59,6 +62,9 @@ final class Ilerleme {
         if let eski = dosya.biten[dersId] { k.kez = eski.kez + 1 }
         dosya.biten[dersId] = k
         kaydet()
+        var d: [String: PDMValue] = ["quiz": .int(quiz), "quiz_total": .int(quizToplam), "times": .int(k.kez)]
+        if let cpu, let cpuToplam { d["cpu"] = .int(cpu); d["cpu_total"] = .int(cpuToplam) }
+        bus.emit("lesson.done", subject: PDMSubject.lesson(dersId), data: d)
     }
 
     func cumleYaz(_ dersId: String, _ metin: String) {
@@ -68,7 +74,13 @@ final class Ilerleme {
     }
 
     func bilinenDegistir(_ terim: Terim) {
-        if dosya.bilinen.contains(terim.id) { dosya.bilinen.remove(terim.id) } else { dosya.bilinen.insert(terim.id) }
+        if dosya.bilinen.contains(terim.id) {
+            dosya.bilinen.remove(terim.id)
+            bus.emit("term.learning", subject: PDMSubject.term(terim.id), data: ["via": "undo"])
+        } else {
+            dosya.bilinen.insert(terim.id)
+            bus.emit("term.known", subject: PDMSubject.term(terim.id))
+        }
         kaydet()
     }
 

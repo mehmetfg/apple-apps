@@ -6,6 +6,7 @@
 // iPhone (2026-10-07): üst çubuk sabit durmaz — başlık kayarak gider, yerine küçük bir konum kapsülü kalır.
 //   Başlıkta "Okuduğun" şeridi (dokun = o kitabın işaretleri), sekme hapları, güncelle düğmesi.
 // Gün değişince araya sessiz gün ayracı girer. Kendi gönderini (yorum · alıntı · fikir) silebilirsin.
+// iPhone (2026-10-30): gönderiye dokunmak onu tam ekran Okuma odasında açar (OkumaOdasi.swift); kart menüsünde Kopyala · Kitapta aç.
 import SwiftUI
 
 enum AkisSekmesi: String, CaseIterable, Identifiable {
@@ -128,6 +129,8 @@ struct AkisListesi: View {
     @State private var acik: String?
     @State private var alinti: AlintiHedefi?
     @State private var kitapSuzgec: String?
+    @State private var oda: OdaIstegi?          // iPhone: dokunulan gönderi tam ekran okuma odasında açılır
+    @State private var kitapIstegi: Isaret?     // Kitapta aç: cümlenin geçtiği bölüm
     @State private var ustGecti = false
     @FocusState private var aramaOdak: Bool
     @Namespace private var cizgi
@@ -186,6 +189,21 @@ struct AkisListesi: View {
             AlintiSayfasi(hedef: h).environmentObject(depo)
         }
         .sheet(isPresented: $ozelSayfa) { ozelAralik }
+        .kitaptaAc($kitapIstegi)
+        #if os(iOS)
+        .fullScreenCover(item: $oda) { OkumaOdasi(istek: $0).environmentObject(depo) }
+        #endif
+    }
+
+    /// Gönderiye dokunuş: Mac'te sağ bölme; iPhone'da tam ekran okuma odası (yaz = yazma kutusuna odaklan).
+    private func odadaAc(_ x: Isaret, yaz: Bool = false) {
+        if let sec { sec(x); return }
+        #if os(iOS)
+        Dokunus.secim()
+        oda = OdaIstegi(isaret: x, yaz: yaz)
+        #else
+        withAnimation(.snappy) { acik = acik == x.id ? nil : x.id }
+        #endif
     }
 
     // MARK: iPhone — kayan başlık + konum kapsülü
@@ -196,9 +214,9 @@ struct AkisListesi: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     kapak.id("ust")
-                        .background(GeometryReader { g in
+                        .background { GeometryReader { g in
                             Color.clear.preference(key: AkisKaydirma.self, value: g.frame(in: .named("akis")).maxY)
-                        })
+                        } }
                     LazyVStack(alignment: .leading, spacing: 0) { icerik }
                 }
                 .frame(maxWidth: 640).frame(maxWidth: .infinity)
@@ -293,8 +311,8 @@ struct AkisListesi: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(etkin ? Tema.vurgu : Tema.metin)
                 .frame(width: 38, height: 38)
-                .background(Circle().fill(.ultraThinMaterial))
-                .overlay(Circle().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5))
+                .background { Circle().fill(.ultraThinMaterial) }
+                .overlay { Circle().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5) }
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
@@ -303,7 +321,7 @@ struct AkisListesi: View {
     private var okudugunSeridi: some View { kitapSuzgeci(boy: 54, yazili: true) }
 
     private var sekmeHaplari: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 ForEach(AkisSekmesi.allCases) { s in
                     let sec = sekme == s
@@ -313,8 +331,8 @@ struct AkisListesi: View {
                         Label(s.ad, systemImage: sec ? s.sembol + ".fill" : s.sembol)
                             .font(.system(size: 14, weight: .semibold))
                             .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(Capsule().fill(sec ? Tema.metin : Tema.yuzey))
-                            .overlay(Capsule().strokeBorder(Tema.cizgi.opacity(sec ? 0 : 0.8), lineWidth: 0.6))
+                            .background { Capsule().fill(sec ? Tema.metin : Tema.yuzey) }
+                            .overlay { Capsule().strokeBorder(Tema.cizgi.opacity(sec ? 0 : 0.8), lineWidth: 0.6) }
                             .foregroundStyle(sec ? Tema.arka : Tema.ikincil)
                             .contentTransition(.symbolEffect(.replace))
                     }
@@ -324,6 +342,7 @@ struct AkisListesi: View {
             }
             .padding(.horizontal, 18)
         }
+        .scrollIndicators(.hidden)
         .padding(.horizontal, -18)
     }
 
@@ -341,8 +360,8 @@ struct AkisListesi: View {
             }
             .font(.system(size: 13.5, weight: .semibold))
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .background(Capsule().fill(.regularMaterial))
-            .overlay(Capsule().strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5))
+            .background { Capsule().fill(.regularMaterial) }
+            .overlay { Capsule().strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5) }
             .shadow(color: .black.opacity(0.10), radius: 12, y: 4)
             .frame(maxWidth: 300)
         }
@@ -356,9 +375,12 @@ struct AkisListesi: View {
         Array(depo.akis.kitaplar.filter(\.suruyor).sorted { $0.sonZaman > $1.sonZaman }.prefix(12))
     }
 
-    /// Okuduğun kitaplar — yuvarlak kapak, halka okunan yüzdeyi çizer. Dokun: akış o kitaba süzülür; yine dokun: süzgeç kalkar.
+    /// Okuduğun kitaplar — rafta duran küçük kapaklar; altındaki ince çubuk okunan yüzdeyi çizer.
+    /// Dokun: akış o kitaba süzülür (kapak hafifçe kalkar); yine dokun: süzgeç kalkar.
     private func kitapSuzgeci(boy: CGFloat, yazili: Bool) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        let en = yazili ? boy * 0.85 : boy * 0.72
+        let cubuk: CGFloat = yazili ? 3 : 2
+        return ScrollView(.horizontal) {
             HStack(alignment: .top, spacing: yazili ? 14 : 10) {
                 ForEach(surenKitaplar) { k in
                     let sec = kitapSuzgec == k.id
@@ -368,15 +390,22 @@ struct AkisListesi: View {
                         Dokunus.secim()
                     } label: {
                         VStack(spacing: yazili ? 6 : 0) {
-                            ZStack {
-                                Circle().stroke(Tema.cizgi, lineWidth: yazili ? 3 : 2.5)
-                                Circle().trim(from: 0, to: max(0.02, Double(k.yuzde) / 100))
-                                    .stroke(sec ? Tema.vurgu : r, style: StrokeStyle(lineWidth: yazili ? 3 : 2.5, lineCap: .round))
-                                    .rotationEffect(.degrees(-90))
-                                KitapAvatari(id: k.id, baslik: k.baslik, boy: boy)
+                            VStack(spacing: yazili ? 5 : 3) {
+                                KitapKapagi(id: k.id, baslik: k.baslik, genislik: en)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: max(4, en * 0.1), style: .continuous)
+                                            .strokeBorder(Tema.vurgu, lineWidth: sec ? 2 : 0)
+                                    }
+                                    .offset(y: sec ? -3 : 0)
+                                Capsule().fill(Tema.cizgi)
+                                    .frame(width: en, height: cubuk)
+                                    .overlay(alignment: .leading) {
+                                        Capsule().fill(sec ? Tema.vurgu : r)
+                                            .frame(width: max(cubuk, en * min(1, Double(k.yuzde) / 100)))
+                                    }
                             }
-                            .frame(width: boy + 10, height: boy + 10)
-                            .scaleEffect(sec ? 1.06 : 1)
+                            .padding(.top, 4)
+                            .frame(width: max(en, yazili ? 70 : en))
                             if yazili {
                                 Text(k.baslik.kodsuz).font(.system(size: 11, weight: sec ? .bold : .medium))
                                     .foregroundStyle(sec ? Tema.metin : Tema.ikincil).lineLimit(1).frame(width: 70)
@@ -393,6 +422,7 @@ struct AkisListesi: View {
             }
             .padding(.horizontal, yazili ? 18 : 14).padding(.vertical, 2)
         }
+        .scrollIndicators(.hidden)
         .padding(.horizontal, yazili ? -18 : 0)
     }
 
@@ -406,8 +436,8 @@ struct AkisListesi: View {
             Image(systemName: gorunum.sembol).font(.system(size: 15, weight: .semibold)).foregroundStyle(Tema.metin)
                 #if os(iOS)
                 .frame(width: 38, height: 38)
-                .background(Circle().fill(.ultraThinMaterial))
-                .overlay(Circle().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5))
+                .background { Circle().fill(.ultraThinMaterial) }
+                .overlay { Circle().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5) }
                 #else
                 .frame(width: 36, height: 36)
                 #endif
@@ -425,12 +455,12 @@ struct AkisListesi: View {
                 .autocorrectionDisabled()
                 .submitLabel(.search)
             if !arama.isEmpty {
-                Button { arama = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Tema.soluk) }.buttonStyle(.plain)
+                Button { arama = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Tema.soluk) }.accessibilityLabel("Aramayı temizle").buttonStyle(.plain)
             }
         }
         .font(.system(size: 15))
         .padding(.horizontal, 14).padding(.vertical, 9)
-        .background(Capsule().fill(Tema.yuzey2))
+        .background { Capsule().fill(Tema.yuzey2) }
     }
 
     // MARK: Mac — sabit üst satır
@@ -460,12 +490,13 @@ struct AkisListesi: View {
     private var ustSatir: some View {
         VStack(spacing: 0) {
             HStack(spacing: 4) {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: sec == nil ? 20 : 16) {
                         ForEach(AkisSekmesi.allCases) { s in sekmeDugmesi(s) }
                     }
                     .padding(.leading, 16).padding(.trailing, 8)
                 }
+                .scrollIndicators(.hidden)
                 if suzgecAcik && sekme != .benim {
                     zamanMenusu.transition(.move(edge: .trailing).combined(with: .opacity))
                     turMenusu.transition(.move(edge: .trailing).combined(with: .opacity))
@@ -574,7 +605,7 @@ struct AkisListesi: View {
             Text(m).font(.system(size: 13, weight: .semibold)).lineLimit(1)
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
-        .background(Capsule().fill(etkin ? Tema.vurgu.opacity(0.14) : Tema.yuzey2))
+        .background { Capsule().fill(etkin ? Tema.vurgu.opacity(0.14) : Tema.yuzey2) }
         .foregroundStyle(etkin ? Tema.vurgu : Tema.metin)
     }
 
@@ -613,8 +644,8 @@ struct AkisListesi: View {
         }
         if seckiGorunur, let x = depo.gununCumlesi() {
             SeckiKarti(isaret: x, boy: seckiBoy,
-                       ac: { if let sec { sec(x) } },
-                       yaz: { if let sec { sec(x) } else { alinti = AlintiHedefi(isaret: x, rol: "yorum") } })
+                       ac: { odadaAc(x) },
+                       yaz: { odadaAc(x, yaz: true) })
                 .padding(.horizontal, 12).padding(.top, 12)
                 .belirme(0, etkin: depo.hareket)
         }
@@ -639,7 +670,7 @@ struct AkisListesi: View {
                         SenGonderisi(olay: olay, alintila: { i in alinti = AlintiHedefi(isaret: i, rol: "alinti") },
                                      perde: perdeli != nil && olay.hedef == perdeli, yogunluk: gorunum)
                             .contentShape(Rectangle())
-                            .onTapGesture { if let sec, let h = olay.hedef, let x = depo.isaret(h) { sec(x) } }
+                            .onTapGesture { if let h = olay.hedef, let x = depo.isaret(h) { odadaAc(x) } }.accessibilityAddTraits(.isButton)
                     case .tek(.isaret(let i)):
                         isaretGonderisi(i)
                     }
@@ -691,11 +722,9 @@ struct AkisListesi: View {
     private func isaretGonderisi(_ x: Isaret) -> some View {
         GonderiSatiri(isaret: x, acik: acik == x.id, secili: secili == x.id, perde: perdeli == x.id,
                       secilebilir: sec == nil, yogunluk: gorunum, sesAc: sesAc,
-                      alintila: { alinti = AlintiHedefi(isaret: x, rol: $0) })
+                      alintila: { alinti = AlintiHedefi(isaret: x, rol: $0) }, kitaptaAc: { kitapIstegi = $0 })
             .contentShape(Rectangle())
-            .onTapGesture {
-                if let sec { sec(x) } else { withAnimation(.snappy) { acik = acik == x.id ? nil : x.id } }
-            }
+            .onTapGesture { odadaAc(x) }.accessibilityAddTraits(.isButton)
     }
 
     private var bos: some View {
@@ -733,7 +762,7 @@ struct AkisListesi: View {
 
 // MARK: - Avatar
 
-/// Gönderi avatarı: kitabın kapağından yuvarlak kesit; kapak yoksa kitap renginde baş harf.
+/// Gönderi avatarı: kitabın mini kapağı (2:3, `boy` = yükseklik); kapak yoksa kitap renginde baş harf.
 struct KitapAvatari: View {
     let id: String
     let baslik: String
@@ -742,6 +771,7 @@ struct KitapAvatari: View {
 
     var body: some View {
         let r = Tema.kitap(id)
+        let sekil = RoundedRectangle(cornerRadius: max(2, boy * 0.1), style: .continuous)
         ZStack {
             if let resim {
                 #if canImport(UIKit)
@@ -750,14 +780,15 @@ struct KitapAvatari: View {
                 Image(nsImage: resim).resizable().scaledToFill()
                 #endif
             } else {
-                Circle().fill(r.opacity(0.18))
+                sekil.fill(r.opacity(0.18))
                 Text(String(kisa.prefix(1)).uppercased(with: Dil.tr))
                     .font(.system(size: boy * 0.42, weight: .bold, design: .serif)).foregroundStyle(r)
             }
         }
-        .frame(width: boy, height: boy)
-        .clipShape(Circle())
-        .overlay(Circle().strokeBorder(Color.primary.opacity(0.08)))
+        .frame(width: (boy * 0.68).rounded(), height: boy)
+        .clipShape(sekil)
+        .overlay { sekil.strokeBorder(Color.primary.opacity(0.08)) }
+        .shadow(color: .black.opacity(0.12), radius: 1, y: 0.5)
         .onAppear { if resim == nil { resim = KapakDeposu.resim(id) } }
     }
 
@@ -786,6 +817,7 @@ struct GonderiSatiri: View {
     var yogunluk: AkisGorunumu = .kart
     var sesAc: (String?) -> Void
     var alintila: (String) -> Void = { _ in }   // yalnız sağ bölme ve iPhone alıntı sayfası kullanır; soldaki kartta düğmesi yok
+    var kitaptaAc: ((Isaret) -> Void)? = nil    // verilirse menüde "Kitapta aç": cümlenin geçtiği bölüm
     @State private var ustunde = false
 
     private var kucuk: Bool { yogunluk != .kart }
@@ -801,6 +833,9 @@ struct GonderiSatiri: View {
         .onHover { h in withAnimation(.easeOut(duration: 0.15)) { ustunde = h } }
         #endif
         .contextMenu {
+            Button { kopyala() } label: { Label("Kopyala", systemImage: "doc.on.doc") }
+            if let kitaptaAc { Button { kitaptaAc(isaret) } label: { Label("Kitapta aç", systemImage: "book") } }
+            Divider()
             Button { sesAc(isaret.id) } label: { Label("Sesli not", systemImage: "mic") }
             Button { depo.hatirlat(isaret.id) } label: { Label("Tekrar havuzuna al", systemImage: "bell") }
             Button { depo.favori(isaret.id) } label: { Label("Favori", systemImage: "heart") }
@@ -900,12 +935,15 @@ struct GonderiSatiri: View {
             if gorunur(yer) > 0 { eylem(yer ? "bookmark.fill" : "bookmark", nil, yer ? Tema.vurgu : Tema.soluk, "Yer işareti") { depo.yerIsareti(isaret.id) } }
             Spacer(minLength: 0)
             Menu {
+                Button { kopyala() } label: { Label("Kopyala", systemImage: "doc.on.doc") }
+                if let kitaptaAc { Button { kitaptaAc(isaret) } label: { Label("Kitapta aç", systemImage: "book") } }
+                Divider()
                 Button {
                     if let u = XPaylas.adres(XPaylas.sigdir(yorum: "", alinti: isaret.metin, kaynak: isaret.kisaBaslik)) { ac(u) }
                 } label: { Label("X'te paylaş", systemImage: "paperplane") }
                 ShareLink(item: "“\(isaret.metin)” — \(isaret.kisaBaslik)") { Label("Paylaş…", systemImage: "square.and.arrow.up") }
             } label: {
-                Image(systemName: "square.and.arrow.up").font(.system(size: kucuk ? 11.5 : 13)).foregroundStyle(Tema.soluk)
+                Image(systemName: "ellipsis.circle").font(.system(size: kucuk ? 11.5 : 13)).foregroundStyle(Tema.soluk)
                     .frame(width: kucuk ? 22 : 28, height: kucuk ? 22 : 28)
             }
             .menuStyle(.button).buttonStyle(.plain)
@@ -914,6 +952,12 @@ struct GonderiSatiri: View {
             .opacity(gorunur(false))
         }
         .padding(.leading, kucuk ? 13 : 16)
+    }
+
+    private func kopyala() {
+        Pano.kopyala("“\(isaret.metin)” — \(isaret.kisaBaslik)")
+        Dokunus.basari()
+        depo.bildirim = "Cümle kopyalandı"
     }
 
     /// iPhone'da hep; Mac'te fare üstündeyken, seçiliyken ya da eylem açıksa.
@@ -994,7 +1038,7 @@ struct SenGonderisi: View {
                 #if os(iOS)
                 HStack(spacing: 22) {
                     if let h = hedef {
-                        Button { alintila(h) } label: { Image(systemName: "arrow.2.squarepath") }.buttonStyle(.plain)
+                        Button { alintila(h) } label: { Image(systemName: "arrow.2.squarepath") }.accessibilityLabel("Alıntıla").buttonStyle(.plain)
                     }
                     Button {
                         let m = hedef.map { XPaylas.sigdir(yorum: olay.metin ?? "", alinti: $0.metin, kaynak: $0.kisaBaslik) } ?? String((olay.metin ?? "").prefix(280))
@@ -1053,8 +1097,8 @@ struct AlintiKarti: View {
             .padding(.top, 4)
         }
         .padding(12).tamGenislik()
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.arka.opacity(0.6)))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Tema.cizgi))
+        .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.arka.opacity(0.6)) }
+        .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Tema.cizgi) }
     }
 }
 
@@ -1189,7 +1233,7 @@ struct TurRozeti: View {
             Text(t?.ad ?? "işaret").font(.system(size: 11.5, weight: .semibold)).lineLimit(1)
         }
         .padding(.horizontal, 8).padding(.vertical, 3)
-        .background(Capsule().fill(r.opacity(0.13)))
+        .background { Capsule().fill(r.opacity(0.13)) }
         .foregroundStyle(r)
         .fixedSize()
     }

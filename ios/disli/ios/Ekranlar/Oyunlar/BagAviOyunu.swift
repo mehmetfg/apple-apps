@@ -54,7 +54,7 @@ struct BagAviOyunu: View {
                     .transition(.opacity)
                 }
             }
-            .background(Lekeler(renkler: [renk, Tema.renk("turkuaz"), Tema.renk("gul")]))
+            .background { Lekeler(renkler: [renk, Tema.renk("turkuaz"), Tema.renk("gul")]) }
             .onAppear { if turlar.isEmpty { kur() } }
         }
     }
@@ -73,7 +73,7 @@ struct BagAviOyunu: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .kart(16)
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(r.opacity(0.35), lineWidth: 1))
+        .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(r.opacity(0.35), lineWidth: 1) }
     }
 
     private func baglanti(_ t: BagTuru) -> some View {
@@ -82,7 +82,7 @@ struct BagAviOyunu: View {
         return ZStack {
             Rectangle().fill(acik ? yr : Color.secondary.opacity(0.3)).frame(width: 3, height: 54)
             Circle().fill(acik ? yr : Tema.yuzey).frame(width: 52, height: 52)
-                .overlay(Circle().stroke(acik ? yr : Color.secondary.opacity(0.3), lineWidth: 2))
+                .overlay { Circle().stroke(acik ? yr : Color.secondary.opacity(0.3), lineWidth: 2) }
                 .scaleEffect(nabiz ? 1.08 : 1)
             if acik {
                 Cizim(ad: t.yasa.id, renk: .white, boy: 40, zemin: false).transition(.scale.combined(with: .opacity))
@@ -104,7 +104,7 @@ struct BagAviOyunu: View {
         .foregroundStyle(r)
         .frame(maxWidth: .infinity, minHeight: 104)
         .padding(.horizontal, 6)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(r.opacity(0.12)))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(r.opacity(0.12)) }
     }
 
     private func aciklama(_ t: BagTuru) -> some View {
@@ -119,7 +119,7 @@ struct BagAviOyunu: View {
                 }
             } label: {
                 Text("Sonraki").font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 50)
-                    .background(Capsule().fill(renk))
+                    .background { Capsule().fill(renk) }
             }
             .buttonStyle(.plain)
         }

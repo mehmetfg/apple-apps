@@ -89,6 +89,15 @@ final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate {
 
 final class SahneTemsilcisi: NSObject, UIWindowSceneDelegate {
     static var bekleyen: String?
+    /// Uygulama içi ada ayrı, saydam bir pencerede durur: TabView'ın üstündeki katman iOS 26'da tazelenmiyordu,
+    /// ayrıca açık sayfaların (detay) da üstünde kalır. Bkz. Ada.swift.
+    var adaPenceresi: AdaPenceresi?
+
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
+        guard let ws = scene as? UIWindowScene else { return }
+        adaPenceresi = AdaPenceresi.kur(ws)
+    }
+
     func sceneDidBecomeActive(_ scene: UIScene) {
         if let t = SahneTemsilcisi.bekleyen {
             SahneTemsilcisi.bekleyen = nil

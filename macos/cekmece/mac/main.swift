@@ -153,7 +153,7 @@ struct Liste: View {
                             ForEach(g.ogeler) { o in
                                 Satir(o: o, secili: o.id == m.secili, tazelik: m.tazelik)
                                     .id(o.id)
-                                    .onTapGesture { ac(o) }
+                                    .onTapGesture { ac(o) }.accessibilityAddTraits(.isButton)
                                     .onHover { if $0 { m.secili = o.id } }
                             }
                         }
@@ -221,6 +221,8 @@ final class Temsilci: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ n: Notification) {
         Temsilci.shared = self
+        AppUpdater.start()
+        AppUpdater.startHub()   // keeps every other published app current on this Mac, even while it is closed
         simge = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         simge.button?.image = NSImage(systemSymbolName: "square.grid.2x2", accessibilityDescription: "Uygulamalarım")
         simge.button?.toolTip = "Uygulamalarım (⌃⌥U)"

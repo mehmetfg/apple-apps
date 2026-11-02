@@ -120,7 +120,7 @@ struct TerimKarti: View {
             Spacer(minLength: 0)
             Button { Ses.shared.soyle(metin) } label: {
                 Image(systemName: "speaker.wave.2").font(.footnote).foregroundStyle(Tema.soluk)
-            }.buttonStyle(.plain)
+            }.accessibilityLabel("Listen").buttonStyle(.plain)
         }
     }
 }
@@ -132,11 +132,11 @@ struct SesDugmeleri: View {
             Button { Ses.shared.soyle(metin) } label: {
                 Image(systemName: "speaker.wave.2.fill").frame(width: 38, height: 38)
                     .background(Tema.kart2, in: Circle())
-            }
+            }.accessibilityLabel("Listen")
             Button { Ses.shared.soyle(metin, yavas: true) } label: {
                 Image(systemName: "tortoise.fill").frame(width: 38, height: 38)
                     .background(Tema.kart2, in: Circle())
-            }
+            }.accessibilityLabel("Listen slowly")
         }
         .font(.callout)
         .foregroundStyle(Tema.murekkep)

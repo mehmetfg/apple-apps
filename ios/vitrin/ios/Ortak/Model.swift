@@ -15,6 +15,8 @@ struct Kelime: Codable, Hashable {
     var c: String
     var p: String
     var au: String
+    /// PDM Ağı'nın gerekçesi ("Cümle · Gün 23 masada", "Cümle'de zorlandın") — yalnız odak kelimelerinde
+    var neden: String? = nil
 }
 
 struct Alinti: Codable, Hashable {

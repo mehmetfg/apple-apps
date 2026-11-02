@@ -75,6 +75,28 @@ struct Paket: Codable {
     let surum: String
     let uretildi: String
     let kelimeler: [Kelime]
+    /// Cümle Tezgâhı: masadaki gün ve önden hazırlanmış günler (veri.py `cumle_gunleri`)
+    var cumle: CumlePaket? = nil
+}
+
+/// Cümle Tezgâhı'nın günleri — her gün 6 yeni kelime, geçtiği cümle ve Türkçesi.
+struct CumlePaket: Codable, Hashable {
+    let masa: Int
+    let gunler: [CumleGun]
+}
+
+struct CumleGun: Codable, Hashable {
+    let gun: Int
+    let baslik: String
+    let tema: String
+    let kelimeler: [CumleKelime]
+}
+
+struct CumleKelime: Codable, Hashable {
+    let w: String
+    /// Kelimenin geçtiği Tezgâh cümlesi ve Türkçesi
+    let en: String
+    let tr: String
 }
 
 /// Bir kelimenin öğrenme durumu (FSRS).

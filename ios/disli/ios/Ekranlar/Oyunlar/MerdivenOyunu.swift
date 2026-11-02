@@ -49,7 +49,7 @@ struct MerdivenOyunu: View {
                     .onChange(of: dizi) { _, d in if sonuc == nil, d.count == cevap(z).count { denetle(z) } }
                 }
             }
-            .background(Lekeler(renkler: [renk, Tema.renk("mor"), Tema.renk("kehribar")]))
+            .background { Lekeler(renkler: [renk, Tema.renk("mor"), Tema.renk("kehribar")]) }
             .onAppear { if zincirler.isEmpty { kur() } }
         }
     }
@@ -82,9 +82,9 @@ struct MerdivenOyunu: View {
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(n == bi && sonuc == nil ? renk.opacity(0.1) : Tema.yuzey))
-                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(n == bi ? renk.opacity(0.6) : .clear, lineWidth: 1.5))
+                    .background { RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(n == bi && sonuc == nil ? renk.opacity(0.1) : Tema.yuzey) }
+                    .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(n == bi ? renk.opacity(0.6) : .clear, lineWidth: 1.5) }
                     .padding(.leading, CGFloat(n) * 14)   // basamaklar aşağı doğru iner
                     .opacity(n > bi ? 0.5 : 1)
                 }
@@ -134,7 +134,7 @@ struct MerdivenOyunu: View {
             Button { ilerle(z) } label: {
                 Text(bi + 1 < z.basamaklar.count ? "Bir basamak daha" : "Sonraki merdiven")
                     .font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 50)
-                    .background(Capsule().fill(renk))
+                    .background { Capsule().fill(renk) }
             }
             .buttonStyle(.plain)
         }

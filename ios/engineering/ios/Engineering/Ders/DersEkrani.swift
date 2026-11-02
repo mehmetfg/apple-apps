@@ -75,7 +75,7 @@ struct DersEkrani: View {
                 Button { dismiss() } label: {
                     Image(systemName: "xmark").font(.body.weight(.semibold)).foregroundStyle(Tema.murekkep)
                         .frame(width: 36, height: 36).background(Tema.kart2, in: Circle())
-                }
+                }.accessibilityLabel("Close")
                 HStack(spacing: 3) {
                     ForEach(adimlar.indices, id: \.self) { k in
                         Capsule().fill(k <= i ? renk : Tema.cizgi).frame(height: 5)
@@ -200,7 +200,7 @@ struct KancaAdimi: View {
                 HStack {
                     TurkceDestek(metin: ders.kanca_tr)
                     Spacer()
-                    Button { Ses.shared.soyle(ders.kanca) } label: { Image(systemName: "speaker.wave.2") }
+                    Button { Ses.shared.soyle(ders.kanca) } label: { Image(systemName: "speaker.wave.2") }.accessibilityLabel("Listen")
                         .foregroundStyle(Tema.soluk)
                 }
             }
@@ -298,8 +298,8 @@ struct KodAdimi: View {
                     TurkceDestek(metin: n.tr)
                 }
                 .kartYuzey(14)
-                .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Tema.vurgu, lineWidth: secili == n.satir ? 1.5 : 0))
-                .onTapGesture { withAnimation(.snappy) { secili = n.satir } }
+                .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(Tema.vurgu, lineWidth: secili == n.satir ? 1.5 : 0) }
+                .onTapGesture { withAnimation(.snappy) { secili = n.satir } }.accessibilityAddTraits(.isButton)
             }
 
             if let c {
@@ -394,7 +394,7 @@ struct ParsonsAdimi: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(acik ? Tema.kart : (renk?.opacity(0.28) ?? Color.white.opacity(0.06)),
                         in: RoundedRectangle(cornerRadius: 9))
-            .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(acik ? Tema.cizgi : .clear, lineWidth: 0.5))
+            .overlay { RoundedRectangle(cornerRadius: 9).strokeBorder(acik ? Tema.cizgi : .clear, lineWidth: 0.5) }
     }
 
     private func kontrol() {
@@ -489,11 +489,11 @@ struct SozlukAdimi: View {
                         Text(t.terim).font(.system(.title3, design: .rounded, weight: .bold))
                         Text(t.ipa).font(.system(.footnote, design: .serif)).foregroundStyle(Tema.soluk)
                         Spacer()
-                        Button { Ses.shared.soyle(t.terim) } label: { Image(systemName: "speaker.wave.2.fill") }
+                        Button { Ses.shared.soyle(t.terim) } label: { Image(systemName: "speaker.wave.2.fill") }.accessibilityLabel("Listen")
                             .foregroundStyle(Tema.murekkep)
                         Button { ilerleme.bilinenDegistir(t) } label: {
                             Image(systemName: ilerleme.biliyor(t) ? "checkmark.seal.fill" : "seal")
-                        }
+                        }.accessibilityLabel(ilerleme.biliyor(t) ? "Known — tap to unmark" : "Mark as known")
                         .foregroundStyle(ilerleme.biliyor(t) ? Tema.dogru : Tema.soluk)
                     }
                     Text(t.tr).font(.subheadline.weight(.semibold)).foregroundStyle(Tema.vurgu)
@@ -563,7 +563,7 @@ struct BitisAdimi: View {
                     .lineLimit(2...5)
                     .padding(12)
                     .background(Tema.kart, in: RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Tema.cizgi, lineWidth: 0.5))
+                    .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Tema.cizgi, lineWidth: 0.5) }
             }
             Button("Finish") {
                 ilerleme.cumleYaz(ders.id, cumle)

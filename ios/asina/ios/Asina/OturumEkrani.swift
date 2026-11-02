@@ -59,7 +59,7 @@ struct OturumEkrani: View {
             Button { kapat() } label: {
                 Image(systemName: "xmark").font(.body.weight(.semibold)).foregroundStyle(R.ikincil)
                     .frame(width: 36, height: 36)
-            }
+            }.accessibilityLabel("Kapat")
             GeometryReader { g in
                 ZStack(alignment: .leading) {
                     Capsule().fill(R.cizgi)
@@ -171,13 +171,12 @@ struct OturumEkrani: View {
                     Button { oturum.secParcacik(p) } label: {
                         Text(p).font(.kelime(22, .medium)).foregroundStyle(R.murekkep)
                             .frame(maxWidth: .infinity).padding(.vertical, 18)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .background { RoundedRectangle(cornerRadius: 16, style: .continuous)
                                     .fill(c != nil && buDogru ? R.dogru.opacity(0.12)
-                                          : c != nil && buSecilen ? R.yanlis.opacity(0.12) : R.yuzey))
-                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                          : c != nil && buSecilen ? R.yanlis.opacity(0.12) : R.yuzey) }
+                            .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .stroke(c != nil && buDogru ? R.dogru : c != nil && buSecilen ? R.yanlis : R.cizgi,
-                                        lineWidth: c != nil && (buDogru || buSecilen) ? 1.5 : 1))
+                                        lineWidth: c != nil && (buDogru || buSecilen) ? 1.5 : 1) }
                             .opacity(c != nil && !buDogru && !buSecilen ? 0.5 : 1)
                     }
                     .buttonStyle(Bas())
@@ -208,8 +207,8 @@ struct OturumEkrani: View {
                 .focused($odak)
                 .padding(.vertical, 14).padding(.horizontal, 16)
                 .background(R.yuzey, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(oturum.cevap == nil ? R.cizgi : (oturum.cevap!.dogru ? R.dogru : R.yanlis), lineWidth: 1.5))
+                .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(oturum.cevap == nil ? R.cizgi : (oturum.cevap!.dogru ? R.dogru : R.yanlis), lineWidth: 1.5) }
                 .disabled(oturum.cevap != nil)
                 .onSubmit { if !yazilan.isEmpty { oturum.yaz(yazilan) } }
                 .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { odak = true } }
@@ -246,7 +245,7 @@ struct OturumEkrani: View {
             .onTapGesture {
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) { acik = true }
                 Ses.ortak.soyle(s.kelime, oxford: depo.ayar.oxfordSesi)
-            }
+            }.accessibilityAddTraits(.isButton)
             .padding(.top, 20)
         }
     }
@@ -269,13 +268,12 @@ struct OturumEkrani: View {
                     }
                     .padding(.horizontal, 18).padding(.vertical, 16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .background { RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(c != nil && buDogru ? R.dogru.opacity(0.12)
-                                  : c != nil && buSecilen ? R.yanlis.opacity(0.12) : R.yuzey))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                  : c != nil && buSecilen ? R.yanlis.opacity(0.12) : R.yuzey) }
+                    .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(c != nil && buDogru ? R.dogru : c != nil && buSecilen ? R.yanlis : R.cizgi,
-                                lineWidth: c != nil && (buDogru || buSecilen) ? 1.5 : 1))
+                                lineWidth: c != nil && (buDogru || buSecilen) ? 1.5 : 1) }
                     .opacity(c != nil && !buDogru && !buSecilen ? 0.5 : 1)
                 }
                 .buttonStyle(Bas())

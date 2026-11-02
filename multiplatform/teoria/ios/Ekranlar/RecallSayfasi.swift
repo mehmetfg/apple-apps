@@ -107,9 +107,9 @@ struct RecallSayfasi: View {
             TextEditor(text: metin).font(.system(size: 17, design: .serif)).lineSpacing(4)
                 .scrollContentBackground(.hidden).focused($odak).padding(10).frame(minHeight: yukseklik)
         }
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .strokeBorder(odak ? Tema.vurgu.opacity(0.5) : Tema.cizgi, lineWidth: odak ? 1.2 : 0.7))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .strokeBorder(odak ? Tema.vurgu.opacity(0.5) : Tema.cizgi, lineWidth: odak ? 1.2 : 0.7) }
     }
 
     // MARK: 1 · Çağır
@@ -134,7 +134,7 @@ struct RecallSayfasi: View {
         let u = cagriKelimeleri
         return asilKelimeler.reduce(Text("")) { t, w in
             let r: Color = !icerik(w) ? Tema.metin : (yakalandi(w, u) ? Tema.basari : Tema.uyari)
-            return t + Text(w + " ").foregroundColor(r)
+            return t + Text(w + " ").foregroundStyle(r)
         }
     }
 
@@ -163,7 +163,7 @@ struct RecallSayfasi: View {
                 ForEach([(0.0, "Kaçırdım"), (0.5, "Kısmen"), (0.85, "Yakaladım"), (1.0, "Tam")], id: \.0) { s in
                     Button { puan = s.0; Dokunus.secim() } label: {
                         Text(s.1).font(.system(size: 13.5, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(Capsule().fill(puan == s.0 ? kr : kr.opacity(0.12)))
+                            .background { Capsule().fill(puan == s.0 ? kr : kr.opacity(0.12)) }
                             .foregroundStyle(puan == s.0 ? Color.white : kr)
                     }
                     .buttonStyle(.plain)

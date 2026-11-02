@@ -32,7 +32,7 @@ struct SesKayitSayfasi: View {
                             Text(k).font(.caption).foregroundStyle(Tema.soluk)
                         }
                         .padding(16).tamGenislik()
-                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+                        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
                     }
                 }
                 Text(hedef == nil ? "Aklındaki fikri anlat: ne düşünüyorsun, neden?" :
@@ -42,7 +42,7 @@ struct SesKayitSayfasi: View {
                 if yaziKipi {
                     TextEditor(text: $yaziNot).font(Tema.serif(.title3)).scrollContentBackground(.hidden)
                         .padding(12).frame(minHeight: 180)
-                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+                        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
                     Button("Notu kaydet") {
                         depo.ekle(Olay(tur: .kendiCumle, hedef: hedef, deger: hedef == nil ? nil : bakti, metin: yaziNot,
                                        rol: hedef == nil ? nil : "fikir"))
@@ -164,8 +164,8 @@ struct SesSatiri: View {
                     Button { oynatici.cal(dosya, kimlik: olay.id) } label: {
                         Image(systemName: oynatici.calan == olay.id ? "stop.fill" : "play.fill")
                             .font(.system(size: 15, weight: .bold)).frame(width: 40, height: 40)
-                            .background(Circle().fill(Tema.vurgu.opacity(0.14))).foregroundStyle(Tema.vurgu)
-                    }
+                            .background { Circle().fill(Tema.vurgu.opacity(0.14)) }.foregroundStyle(Tema.vurgu)
+                    }.accessibilityLabel(oynatici.calan == olay.id ? "Durdur" : "Dinle")
                     .buttonStyle(.plain)
                     .disabled(!FileManager.default.fileExists(atPath: dosya.path))
                     VStack(alignment: .leading, spacing: 3) {
@@ -183,7 +183,7 @@ struct SesSatiri: View {
                 }
                 if acik, let t = bilgi?.dokum {
                     Text(t).font(Tema.serif(.callout)).foregroundStyle(Tema.metin).textSelection(.enabled)
-                        .padding(12).background(RoundedRectangle(cornerRadius: 14).fill(Tema.yuzey2))
+                        .padding(12).background { RoundedRectangle(cornerRadius: 14).fill(Tema.yuzey2) }
                 }
                 if bilgi?.dokum != nil {
                     Button(acik ? "Dökümü gizle" : "Dökümü göster") { withAnimation(.snappy) { acik.toggle() } }
@@ -219,7 +219,7 @@ struct SesSatiri: View {
             if let s = d.soru { Label(s, systemImage: "questionmark.bubble").font(.footnote.weight(.medium)).foregroundStyle(Tema.vurgu) }
         }
         .padding(12).tamGenislik()
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.basari.opacity(0.07)))
+        .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.basari.opacity(0.07)) }
     }
 
     private func puan(_ ad: String, _ p: Int) -> some View {

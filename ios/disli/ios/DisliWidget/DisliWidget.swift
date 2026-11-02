@@ -56,7 +56,7 @@ struct DisliGorunum: View {
                     }
                     .padding(10)
                     .frame(maxWidth: 150, maxHeight: .infinity, alignment: .topLeading)
-                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey.opacity(0.75)))
+                    .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey.opacity(0.75)) }
                 }
             }
         default:

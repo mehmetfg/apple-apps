@@ -47,7 +47,7 @@ private struct YuvarlakDugme<N: AppIntent>: View {
                 .font(.system(size: boy * 0.42, weight: .semibold))
                 .foregroundStyle(renk)
                 .frame(width: boy, height: boy)
-                .background(Circle().fill(renk.opacity(0.14)))
+                .background { Circle().fill(renk.opacity(0.14)) }
         }
         .buttonStyle(.plain)
     }
@@ -174,7 +174,7 @@ struct AforizmaWidgetGorunum: View {
                 }
                 .padding(11)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(r.opacity(0.09)))
+                .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(r.opacity(0.09)) }
             }
             HStack {
                 if a.isaret {
@@ -264,12 +264,12 @@ struct HatirlaWidgetGorunum: View {
                         Button(intent: HatirlaCevap(kart: k.id, hatirladi: false)) {
                             Label("Bilemedim", systemImage: "xmark").font(.system(size: 12, weight: .semibold))
                                 .frame(maxWidth: .infinity).padding(.vertical, 7)
-                                .background(Capsule().fill(Tema.uyari.opacity(0.15))).foregroundStyle(Tema.uyari)
+                                .background { Capsule().fill(Tema.uyari.opacity(0.15)) }.foregroundStyle(Tema.uyari)
                         }.buttonStyle(.plain)
                         Button(intent: HatirlaCevap(kart: k.id, hatirladi: true)) {
                             Label("Hatırladım", systemImage: "checkmark").font(.system(size: 12, weight: .semibold))
                                 .frame(maxWidth: .infinity).padding(.vertical, 7)
-                                .background(Capsule().fill(Tema.basari.opacity(0.16))).foregroundStyle(Tema.basari)
+                                .background { Capsule().fill(Tema.basari.opacity(0.16)) }.foregroundStyle(Tema.basari)
                         }.buttonStyle(.plain)
                     }
                 }
@@ -281,7 +281,7 @@ struct HatirlaWidgetGorunum: View {
                     }
                     .font(.system(size: 12, weight: .semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 9)
-                    .background(Capsule().fill(r.opacity(0.14))).foregroundStyle(r)
+                    .background { Capsule().fill(r.opacity(0.14)) }.foregroundStyle(r)
                 }.buttonStyle(.plain)
             }
         }
@@ -614,14 +614,14 @@ struct KurWidgetGorunum: View {
             orta
             GokyuzuMini(oturmus: anlik.oturmus, toplam: anlik.toplamKavram)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.vurgu.opacity(0.06)))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.vurgu.opacity(0.06)) }
             HStack {
                 Image(systemName: "play.fill")
                 Text(bitti ? "Bir kür daha" : "Kürü başlat").fontWeight(.semibold)
             }
             .font(.system(size: 14))
             .frame(maxWidth: .infinity).padding(.vertical, 10)
-            .background(Capsule().fill(Tema.vurgu)).foregroundStyle(.white)
+            .background { Capsule().fill(Tema.vurgu) }.foregroundStyle(.white)
             .widgetAccentable()
         }
         .widgetURL(URL(string: "teoria://kur"))

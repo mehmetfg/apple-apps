@@ -13,6 +13,10 @@ final class TelefonDeposu: ObservableObject {
     @Published private(set) var esitleniyor = false
     @Published private(set) var sonEsitleme: Date?
     @Published private(set) var gonderilmemis = 0
+    /// Vault'a yazılmış ama iCloud'un henüz Mac'e yüklemediği kayıtlar (son 14 gün) ve iCloud'un kendi hata metni.
+    /// 2026-10: telefon kayıtları "gönderildi" sayıyordu, iCloud ise günlerce hiçbirini yüklemedi; artık görünür.
+    @Published private(set) var bulutBekleyen = 0
+    @Published private(set) var bulutHata: String?
 
     private let kok = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Kivilcim")
     private var kayit: URL { KayitMerkezi.kayitKlasoru }
@@ -111,7 +115,7 @@ final class TelefonDeposu: ObservableObject {
         defer { esitleniyor = false }
         let kayit = self.kayit, olay = olayDosyasi, dizinK = dizinKopyasi, sinifK = sinifKopyasi
         let g = gonderilen
-        let sonuc: ([String: Int], Bool)? = await Kasa.shared.ile { veri in
+        let sonuc: ([String: Int], Bool, Int, String?)? = await Kasa.shared.ile { veri in
             var yeni = g
             for u in (try? FileManager.default.contentsOfDirectory(at: kayit, includingPropertiesForKeys: nil)) ?? [] where u.pathExtension == "json" {
                 guard let v = try? Data(contentsOf: u), let k = try? JSONDecoder().decode(Kunye.self, from: v) else { continue }
@@ -137,11 +141,26 @@ final class TelefonDeposu: ObservableObject {
             }
             let s = veri.appendingPathComponent("siniflar.json")
             if Kasa.indir(s, bekle: 2), let v = Kasa.koordineliOku(s) { try? v.write(to: sinifK, options: .atomic) }
-            return (yeni, cekildi)
+            // yazdık; iCloud gerçekten yükledi mi? (son 14 günün kayıtları)
+            let sinir = Zaman.iso(Date().addingTimeInterval(-14 * 86400)).prefix(10).replacingOccurrences(of: "-", with: "")
+            var bekleyen = 0
+            var hata: String?
+            for id in yeni.keys where id.prefix(8) >= sinir {
+                let u = veri.appendingPathComponent("ses/\(id.prefix(4))-\(id.dropFirst(4).prefix(2))/\(id).m4a")
+                guard let d = try? u.resourceValues(forKeys: [.ubiquitousItemIsUploadedKey, .ubiquitousItemUploadingErrorKey]) else { continue }
+                if d.ubiquitousItemIsUploaded == false { bekleyen += 1 }
+                if hata == nil, let e = d.ubiquitousItemUploadingError { hata = e.localizedDescription }
+            }
+            return (yeni, cekildi, bekleyen, hata)
         }
-        if let (yeni, _) = sonuc {
+        if let (yeni, _, bekleyen, hata) = sonuc {
             gonderilen = yeni
             sonEsitleme = Date()
+            if bekleyen != bulutBekleyen || hata != bulutHata {
+                Tani.yaz("iCloud: yüklenmeyi bekleyen \(bekleyen) kayıt" + (hata.map { " · hata: \($0)" } ?? ""))
+            }
+            bulutBekleyen = bekleyen
+            bulutHata = hata
         }
         kur()
     }

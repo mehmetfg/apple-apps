@@ -94,7 +94,7 @@ struct KestirmeRehberi: View {
                 Button { if let u = URL(string: "shortcuts://") { ac(u) } } label: {
                     Label("Kestirmeler'i aç", systemImage: "arrow.up.forward.app").fontWeight(.semibold)
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(RoundedRectangle(cornerRadius: 18).fill(Renkler.vurgu)).foregroundStyle(.black)
+                        .background { RoundedRectangle(cornerRadius: 18).fill(Renkler.vurgu) }.foregroundStyle(.black)
                 }
                 .padding(16).background(.ultraThinMaterial)
             }

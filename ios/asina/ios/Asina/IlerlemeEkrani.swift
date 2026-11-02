@@ -170,7 +170,7 @@ struct IlerlemeEkrani: View {
             Chart(veri, id: \.0) { g, n in
                 BarMark(x: .value("Gün", g, unit: .day), y: .value("Tekrar", n))
                     .foregroundStyle(R.asama(.asina).gradient)
-                    .cornerRadius(4)
+                    .clipShape(.rect(cornerRadius: 4))
             }
             .chartXAxis {
                 AxisMarks(values: .stride(by: .day, count: 2)) { _ in

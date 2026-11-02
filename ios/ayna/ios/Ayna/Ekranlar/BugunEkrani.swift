@@ -21,7 +21,7 @@ struct BugunEkrani: View {
                         Button { rota.sekme = 3 } label: {
                             Label("Önce vault klasörünü seç (Ayarlar › Vault) — kayıtlar Mac'e oradan gider.", systemImage: "folder.badge.questionmark")
                                 .font(.footnote.weight(.semibold)).padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.orange.opacity(0.2)))
+                                .background { RoundedRectangle(cornerRadius: 12).fill(Color.orange.opacity(0.2)) }
                         }.buttonStyle(.plain)
                     }
                     anaKart
@@ -63,7 +63,7 @@ struct BugunEkrani: View {
         Button { rota.kayit = KayitIstegi(tur: .gun, istem: "Gününü anlat", aciklama: "Bugün ne oldu? Sabahtan akşama, 60-90 saniye. Mükemmel olması gerekmez; kendi kelimelerinle.") } label: {
             HStack(spacing: 16) {
                 Image(systemName: "mic.fill").font(.system(size: 28, weight: .semibold)).foregroundStyle(.black)
-                    .frame(width: 64, height: 64).background(Circle().fill(Color.ayna))
+                    .frame(width: 64, height: 64).background { Circle().fill(Color.ayna) }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Gününü anlat").font(.title2.weight(.bold)).foregroundStyle(.white)
                     Text("90 saniye, İngilizce. Gece Mac düzeltir, sabah kulağında.").font(.subheadline).foregroundStyle(.white.opacity(0.7))
@@ -71,7 +71,7 @@ struct BugunEkrani: View {
                 Spacer(minLength: 0)
             }
             .padding(18)
-            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(LinearGradient(colors: [Color(red: 0.10, green: 0.18, blue: 0.27), Color(red: 0.05, green: 0.08, blue: 0.13)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+            .background { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(LinearGradient(colors: [Color(red: 0.10, green: 0.18, blue: 0.27), Color(red: 0.05, green: 0.08, blue: 0.13)], startPoint: .topLeading, endPoint: .bottomTrailing)) }
         }
         .buttonStyle(.plain)
     }
@@ -97,7 +97,7 @@ struct BugunEkrani: View {
             } else if fotolar.isEmpty {
                 Text("Bugün fotoğraf yok.").font(.footnote).foregroundStyle(.secondary)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 10) {
                         ForEach(fotolar, id: \.localIdentifier) { a in
                             Button { rota.kayit = KayitIstegi(tur: .an, istem: "Bu fotoğraf (\(a.creationDate?.formatted(date: .omitted, time: .shortened) ?? ""))", aciklama: "Ne görüyorsun, o an ne oldu, nasıl hissettin?", foto: a.localIdentifier) } label: {
@@ -106,6 +106,7 @@ struct BugunEkrani: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
             }
         }
     }
@@ -167,7 +168,7 @@ struct BugunEkrani: View {
             Spacer()
             Image(systemName: "mic").foregroundStyle(.white.opacity(0.4))
         }
-        .padding(12).background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.07)))
+        .padding(12).background { RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.07)) }
     }
 }
 

@@ -6,6 +6,7 @@
 import Foundation
 import SwiftUI
 import WidgetKit
+import PDMBus
 
 struct Ayarlar: Codable, Equatable {
     var yeniSayisi = 10
@@ -20,6 +21,10 @@ struct Ayarlar: Codable, Equatable {
     var oxfordSesi = true
     var otomatikSes = true
     var onceHatirla = false
+    /// Cümle Tezgâhı'nın günün 6 kelimesinin her biri günde kaç kez bildirim olarak gelsin
+    var cumleTekrar = 2
+    /// Ayar göçü: 1 = VocuTeach (bildirim sayısı 6 → 10)
+    var ayarSurum = 1
 
     init() {}
 
@@ -38,6 +43,13 @@ struct Ayarlar: Codable, Equatable {
         oxfordSesi = try c.decodeIfPresent(Bool.self, forKey: .oxfordSesi) ?? v.oxfordSesi
         otomatikSes = try c.decodeIfPresent(Bool.self, forKey: .otomatikSes) ?? v.otomatikSes
         onceHatirla = try c.decodeIfPresent(Bool.self, forKey: .onceHatirla) ?? v.onceHatirla
+        cumleTekrar = try c.decodeIfPresent(Int.self, forKey: .cumleTekrar) ?? v.cumleTekrar
+        ayarSurum = try c.decodeIfPresent(Int.self, forKey: .ayarSurum) ?? 0
+        if ayarSurum < 1 {
+            // VocuTeach: daha çok maruz kalma — eski varsayılan 6 bildirim 10'a çıkar.
+            bildirimSayisi = max(bildirimSayisi, 10)
+            ayarSurum = 1
+        }
     }
 }
 
@@ -55,6 +67,8 @@ struct Kayit: Codable {
     var ayiklandi: Set<String> = []
     var ayar = Ayarlar()
     var olusturma = Date()
+    /// Cümle Tezgâhı günü elle seçildiyse (vault bağlı değilken masa ilerlemezse)
+    var cumleSecim: Int? = nil
 
     init() {}
 
@@ -70,6 +84,7 @@ struct Kayit: Codable {
         ayiklandi = try c.decodeIfPresent(Set<String>.self, forKey: .ayiklandi) ?? []
         ayar = (try? c.decodeIfPresent(Ayarlar.self, forKey: .ayar)) ?? Ayarlar()
         olusturma = try c.decodeIfPresent(Date.self, forKey: .olusturma) ?? Date()
+        cumleSecim = try c.decodeIfPresent(Int.self, forKey: .cumleSecim)
     }
 }
 
@@ -80,8 +95,14 @@ final class Depo: ObservableObject {
     @Published var kayit = Kayit()
     @Published var acilacakKelime: Kelime?
     @Published var paketSurum = ""
+    @Published private(set) var cumlePaket: CumlePaket?
 
     let kasa = Kasa()
+    /// PDM Ağı: kararlar `_bus/events/vocuteach/` altına olay olarak gider; odak `_bus/state/words.json`'dan gelir.
+    let bus = PDMBus(app: "vocuteach", vaultRoot: { Kasa.kokCoz() })
+    @Published private(set) var busRapor: PDMBus.Report?
+    /// Ağın bugünkü odak kelimeleri (Cümle'nin günü, zorlandıkların, Kelime Eki) — App Group önbelleğinden
+    @Published private(set) var agOdak: [PDMFocusWord] = []
     private var dizin: [Int: Int] = [:]
     private var adDizin: [String: Int] = [:]
     private var depoSirali: [Kelime] = []
@@ -110,6 +131,7 @@ final class Depo: ObservableObject {
         }.value
         self.kayit = kayit
         if let p = await Self.paketOku() { paketKur(p) }
+        agOdak = PDMBus.cachedWords()?.openFocus() ?? []
         yuklendi = true
         // Uygulama kapalıyken bildirimden gelen eylemler
         if let l = UserDefaults.standard.array(forKey: "bekleyenEylem") as? [String] {
@@ -138,10 +160,48 @@ final class Depo: ObservableObject {
     private func paketKur(_ p: Paket) {
         kelimeler = p.kelimeler
         paketSurum = p.surum
-        dizin = Dictionary(uniqueKeysWithValues: p.kelimeler.enumerated().map { ($1.i, $0) })
+        dizin = Dictionary(p.kelimeler.enumerated().map { ($1.i, $0) }, uniquingKeysWith: { ilk, _ in ilk })   // a word listed twice must not crash
         adDizin = Dictionary(p.kelimeler.enumerated().map { ($1.w, $0) }, uniquingKeysWith: { a, _ in a })
         depoSirali = p.kelimeler.filter { $0.s == "d" && !$0.isPV }.sorted { ($0.o ?? 0) < ($1.o ?? 0) }
         pvSirali = p.kelimeler.filter { $0.isPV }.sorted { ($0.o ?? 0) < ($1.o ?? 0) }
+        cumlePaket = p.cumle
+        // Masa elle seçilen günü geçtiyse seçim düşer; masa artık doğru günü gösteriyor.
+        if let s = kayit.cumleSecim, let m = p.cumle?.masa, m >= s { kayit.cumleSecim = nil }
+    }
+
+    // MARK: Cümle Tezgâhı
+
+    /// Bugün gösterilen Cümle günü: elle seçilen, yoksa masadaki.
+    var cumleGunu: CumleGun? {
+        guard let p = cumlePaket else { return nil }
+        let hedef = kayit.cumleSecim ?? p.masa
+        return p.gunler.first { $0.gun == hedef } ?? p.gunler.first
+    }
+
+    var cumleGunNumaralari: [Int] { cumlePaket?.gunler.map(\.gun) ?? [] }
+
+    func cumleGunuSec(_ n: Int) {
+        kayit.cumleSecim = n == cumlePaket?.masa ? nil : n
+        // Bugünün listesi yeni günün kelimeleriyle yeniden kurulsun
+        if let g = cumleGunu { cumleyiOneAl(g) }
+        kaydet()
+    }
+
+    /// Bugünün Cümle kelimeleri: (Oxford kaydı, Tezgâh cümlesi)
+    var cumleKelimeleri: [(Kelime, CumleKelime)] {
+        (cumleGunu?.kelimeler ?? []).compactMap { c in kelime(ad: c.w).map { ($0, c) } }
+    }
+
+    /// Cümle kelimelerini bugünün yeni kelimelerinin başına koyar (bilinen/zaten öğrenilen hariç).
+    private func cumleyiOneAl(_ g: CumleGun) {
+        let gun = Date().gunAnahtari
+        var l = kayit.gunYenileri[gun] ?? []
+        let ekle = g.kelimeler.compactMap { kelime(ad: $0.w) }
+            .filter { kayit.kararlar[$0.w] == nil && !l.contains($0.i) }
+            .map(\.i)
+        guard !ekle.isEmpty else { return }
+        l = ekle + l
+        kayit.gunYenileri[gun] = l
     }
 
     func kelime(_ id: Int) -> Kelime? { dizin[id].map { kelimeler[$0] } }
@@ -154,7 +214,7 @@ final class Depo: ObservableObject {
         let k = kayit
         kayitGorevi?.cancel()
         kayitGorevi = Task.detached(priority: .utility) {
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            try? await Task.sleep(for: .milliseconds(300))
             if Task.isCancelled { return }
             if let v = try? JSONEncoder().encode(k) { try? v.write(to: Self.kayitURL, options: .atomic) }
         }
@@ -177,10 +237,37 @@ final class Depo: ObservableObject {
         let aday = depoSirali.lazy.filter { self.dokunulmamis($0) && !bugunkuler.contains($0.i) }
         let pvAday = pvSirali.lazy.filter { self.dokunulmamis($0) && !bugunkuler.contains($0.i) }
         let n = ayar.yeniSayisi, m = ayar.pvSayisi
-        if ofset == 0 { return Array(aday.prefix(n)) + Array(pvAday.prefix(m)) }
+        if ofset == 0 {
+            let cumle = cumleKelimeleri.map(\.0).filter { self.dokunulmamis($0) }
+            let cs = Set(cumle.map(\.i))
+            // Ağın odağı günlük sayının içinden yer alır; toplam değişmez.
+            let odak = Array(agOdakKelimeleri.filter { !cs.contains($0.i) }.prefix(n))
+            let os = cs.union(odak.map(\.i))
+            return cumle + odak + Array(aday.filter { !os.contains($0.i) }.prefix(n - odak.count)) + Array(pvAday.prefix(m))
+        }
         // Gelecek günler (widget/bildirim için): bugünkülerin ardından gelenler
         let k = ofset - 1
         return Array(aday.dropFirst(k * n).prefix(n)) + Array(pvAday.dropFirst(k * m).prefix(m))
+    }
+
+    /// Ağın odak kelimelerinden VocuTeach deposunda karşılığı olan ve henüz dokunulmamışlar, ağın sırasıyla.
+    var agOdakKelimeleri: [Kelime] {
+        agOdak.compactMap { kelime(ad: $0.word) ?? kelime(ad: $0.word.lowercased()) }.filter { dokunulmamis($0) && !$0.isPV }
+    }
+
+    /// Bugünün sabit listesine sonradan gelen odak kelimelerini koyar; yerlerine sıradan depo kelimeleri çıkar.
+    private func agOdaginiOneAl() {
+        let g = Date().gunAnahtari
+        guard var l = kayit.gunYenileri[g] else { return }
+        let ekle = agOdakKelimeleri.filter { !l.contains($0.i) }.prefix(ayar.yeniSayisi).map(\.i)
+        guard !ekle.isEmpty else { return }
+        let korunan = Set(cumleKelimeleri.map(\.0.i) + agOdakKelimeleri.map(\.i))
+        var cikar = ekle.count
+        for i in stride(from: l.count - 1, through: 0, by: -1) where cikar > 0 {
+            if let k = kelime(l[i]), dokunulmamis(k), !k.isPV, !korunan.contains(k.i) { l.remove(at: i); cikar -= 1 }
+        }
+        kayit.gunYenileri[g] = Array(ekle) + l
+        kaydet()
     }
 
     func bugunuSabitle() {
@@ -190,6 +277,12 @@ final class Depo: ObservableObject {
             // Eski günlerin listeleri gereksiz; son 14 gün kalsın.
             let esik = Date().gun(-14).gunAnahtari
             kayit.gunYenileri = kayit.gunYenileri.filter { $0.key >= esik }
+            kaydet()
+        } else if let cg = cumleGunu, let l = kayit.gunYenileri[g],
+                  cg.kelimeler.contains(where: { c in
+                      kelime(ad: c.w).map { !l.contains($0.i) && kayit.kararlar[$0.w] == nil } ?? false }) {
+            // Cümle Tezgâhı'nın günü değişti ya da bu özellikten önce sabitlenmiş liste
+            cumleyiOneAl(cg)
             kaydet()
         } else if ayar.pvSayisi > 0, var l = kayit.gunYenileri[g],
                   !l.contains(where: { kelime($0)?.isPV == true }) {
@@ -276,6 +369,8 @@ final class Depo: ObservableObject {
         guard let eski = kayit.kartlar[k.w] else { return tanis(k, n) }
         let ayniGun = eski.son >= Date().gunBasi
         kayit.kartlar[k.w] = FSRS.tekrar(eski, n)
+        // Kart "tanıdık" eşiğini (21 gün) ilk kez geçti: ağa word.learning (eski köprünün `tanidik` listesi)
+        if eski.kararlilik < 21, (kayit.kartlar[k.w]?.kararlilik ?? 0) >= 21 { olay("word.learning", k, ["stability": .int(21)]) }
         kayit.oneAlinan.removeAll { $0 == k.i }
         if !ayniGun { gunuIsle { $0.tekrar += 1; if n != .unuttum { $0.dogru += 1 } } }
         degisti()
@@ -284,6 +379,7 @@ final class Depo: ObservableObject {
     func biliyorum(_ k: Kelime) {
         kayit.kararlar[k.w] = .biliyorum
         kayit.kartlar[k.w] = nil
+        olay("word.known", k)
         degisti()
     }
 
@@ -296,17 +392,18 @@ final class Depo: ObservableObject {
     }
 
     func ayikla(_ k: Kelime, biliyor: Bool) {
-        if biliyor { kayit.kararlar[k.w] = .biliyorum } else { kayit.ayiklandi.insert(k.w) }
+        if biliyor { kayit.kararlar[k.w] = .biliyorum; olay("word.known", k, ["via": "ayikla"]) } else { kayit.ayiklandi.insert(k.w) }
         degisti()
     }
 
     func ayiklamaGeriAl(_ k: Kelime) {
-        if kayit.kararlar[k.w] == .biliyorum { kayit.kararlar[k.w] = nil }
+        if kayit.kararlar[k.w] == .biliyorum { kayit.kararlar[k.w] = nil; olay("word.learning", k, ["via": "undo"]) }
         kayit.ayiklandi.remove(k.w)
         degisti()
     }
 
     func geriAl(_ k: Kelime) {
+        if kayit.kararlar[k.w] == .biliyorum { olay("word.learning", k, ["via": "undo"]) }
         kayit.kararlar[k.w] = nil
         kayit.kartlar[k.w] = nil
         degisti()
@@ -314,6 +411,7 @@ final class Depo: ObservableObject {
 
     /// Depodan bir kelimeyi bugünün listesine alır.
     func simdiOgren(_ k: Kelime) {
+        if kayit.kararlar[k.w] == .biliyorum { olay("word.learning", k, ["via": "learn-now"]) }
         kayit.kararlar[k.w] = nil
         let g = Date().gunAnahtari
         var l = kayit.gunYenileri[g] ?? yeniler().map(\.i)
@@ -361,7 +459,7 @@ final class Depo: ObservableObject {
         kaydet()
         planGorevi?.cancel()
         planGorevi = Task {
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            try? await Task.sleep(for: .milliseconds(1500))
             if Task.isCancelled { return }
             planla()
         }
@@ -392,9 +490,33 @@ final class Depo: ObservableObject {
             let k = kayit.gunler[Date().gun(-i).gunAnahtari]
             return (k?.yeni ?? 0) + (k?.tekrar ?? 0)
         }
-        let a = Anlik(guncel: Date(), gunler: gunler, bugunHedef: bugunHedef, bugunYapilan: bugunYapilan,
+        let cg = cumleGunu
+        let cumle = cumleKelimeleri.map { k, c -> WKelime in
+            var w = wk(k, asama: kayit.kartlar[k.w]?.asama.rawValue ?? -1)
+            w.cg = cg?.gun
+            w.cu = c.en.isEmpty ? nil : c.en
+            w.ct = c.tr.isEmpty ? nil : c.tr
+            return w
+        }
+        // Widget'ın kelime listesinde de Cümle kelimeleri her iki kelimeden birinde gelsin.
+        if !cumle.isEmpty {
+            for (anahtar, l) in gunler {
+                let cs = Set(cumle.map(\.w))
+                let geri = l.filter { !cs.contains($0.w) }
+                var out: [WKelime] = []
+                for i in 0..<max(cumle.count, geri.count) {
+                    out.append(cumle[i % cumle.count])
+                    if i < geri.count { out.append(geri[i]) }
+                }
+                gunler[anahtar] = out
+            }
+        }
+        var a = Anlik(guncel: Date(), gunler: gunler, bugunHedef: bugunHedef, bugunYapilan: bugunYapilan,
                       seri: seri, asina: sayim(.asina), oturmus: sayim(.oturmus) + sayim(.kalici),
                       depoKalan: depoKalan, hafta: hafta)
+        a.cumle = cumle
+        a.cumleGun = cg?.gun
+        a.cumleBaslik = cg?.baslik
         Paylasim.yaz(a)
         Paylasim.ayar.set(ayar.onceHatirla, forKey: Paylasim.hatirlaAnahtari)
         Paylasim.ayar.set(ayar.oxfordSesi, forKey: Paylasim.oxfordAnahtari)
@@ -419,13 +541,31 @@ final class Depo: ObservableObject {
     }
 
     func eslestir() async {
-        guard kasa.bagli else { return }
-        if let p = await kasa.paketAl(mevcut: paketSurum) {
-            if let v = try? JSONEncoder().encode(p) { try? v.write(to: Self.paketURL, options: .atomic) }
-            paketKur(p)
+        if kasa.bagli {
+            if let p = await kasa.paketAl(mevcut: paketSurum) {
+                if let v = try? JSONEncoder().encode(p) { try? v.write(to: Self.paketURL, options: .atomic) }
+                paketKur(p)
+                planla()
+            }
+            await kasa.ilerlemeYaz(ilerleme())
+        }
+        // PDM Ağı: bekleyen olaylar vault'a, ağın durumu App Group'a (vault yoksa olaylar telefonda bekler)
+        let r = await bus.sync()
+        busRapor = r
+        let odak = PDMBus.cachedWords()?.openFocus() ?? []
+        if odak != agOdak {
+            agOdak = odak
+            agOdaginiOneAl()
             planla()
         }
-        await kasa.ilerlemeYaz(ilerleme())
+    }
+
+    /// Bir kelime kararını ağa yazar. Deyimsel fiiller Örgü'nün kelime havuzuna ait değil; ağa gitmez.
+    private func olay(_ tur: String, _ k: Kelime, _ ek: [String: PDMValue] = [:]) {
+        guard !k.isPV else { return }
+        var d = ek
+        if !k.c.isEmpty { d["cefr"] = .string(k.c) }
+        bus.emit(tur, subject: PDMSubject.word(k.w), data: d)
     }
 
     /// Vault'a giden özet — Örgü motorunun `ice-aktar` biçimiyle uyumlu.
@@ -444,7 +584,7 @@ final class Depo: ObservableObject {
         let gunler = kayit.gunler.filter { $0.key >= Date().gun(-60).gunAnahtari }
             .mapValues { ["yeni": $0.yeni, "tekrar": $0.tekrar, "dogru": $0.dogru, "dakika": Int($0.sure / 60)] }
         return [
-            "kaynak": "Aşina (iPhone)",
+            "kaynak": "VocuTeach (iPhone)",
             "tarih": Date().gunAnahtari,
             "an": ISO8601DateFormatter().string(from: Date()),
             "paket": paketSurum,
@@ -465,7 +605,7 @@ final class Depo: ObservableObject {
         switch eylem {
         case Bildirim.sorEylemi: oneAl(id)
         case Bildirim.biliyordumEylemi: kayit.maruz += 1; kaydet()
-        case Bildirim.dinleEylemi: break          // ses AsinaApp temsilcisinde, uygulama açılmadan çalar
+        case Bildirim.dinleEylemi, Bildirim.cumleDinleEylemi: break   // ses AsinaApp temsilcisinde, uygulama açılmadan çalar
         default:
             if let k = kelime(id) {
                 acilacakKelime = k

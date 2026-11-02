@@ -2,6 +2,7 @@
 //   okur:  01 - English Learning/_projects/asina/veri/kelimeler.json   (Mac'te veri.py üretir)
 //   yazar: 01 - English Learning/_projects/asina/telefon/ilerleme.json (Mac'te veri.py işler)
 import Foundation
+import PDMBus
 
 @MainActor
 final class Kasa: ObservableObject {
@@ -13,8 +14,16 @@ final class Kasa: ObservableObject {
     private let anahtar = "kasa.yerimi"
     private var klasor: URL?
 
+    /// Seçilen vault klasörü (PDMBus'ın vault erişimi için; ana iş parçacığı dışından da okunur).
+    nonisolated static func kokCoz() -> URL? {
+        PDMVault.resolveBookmark(UserDefaults.standard.data(forKey: "kasa.yerimi"))
+    }
+
     init() {
-        if let v = UserDefaults.standard.data(forKey: anahtar) {
+        if let u = PDMVault.simulatorOverride {   // yalnız simülatör sınaması: SIMCTL_CHILD_PDM_VAULT
+            klasor = u; bagli = true; klasorAdi = u.lastPathComponent
+        }
+        if !bagli, let v = UserDefaults.standard.data(forKey: anahtar) {
             var eski = false
             if let u = try? URL(resolvingBookmarkData: v, options: [], relativeTo: nil, bookmarkDataIsStale: &eski) {
                 klasor = u
@@ -69,7 +78,7 @@ final class Kasa: ObservableObject {
             let fm = FileManager.default
             try? fm.startDownloadingUbiquitousItem(at: u)
             for _ in 0..<20 where !fm.fileExists(atPath: u.path) {
-                try? await Task.sleep(nanoseconds: 250_000_000)
+                try? await Task.sleep(for: .milliseconds(250))
             }
             do {
                 var veri = Data()

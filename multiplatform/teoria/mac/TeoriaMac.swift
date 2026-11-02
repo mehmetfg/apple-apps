@@ -7,9 +7,19 @@ import UserNotifications
 final class MacTemsilci: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     static var rota: ((String) -> Void)?
 
+    /// The whole app (window frame, toolbar, menus, sheets, settings) follows the choice, not only the SwiftUI content.
+    static func temayiUygula(_ t: TemaSecimi) {
+        NSApp.appearance = switch t {
+        case .sistem: nil
+        case .acik: NSAppearance(named: .aqua)
+        case .koyu: NSAppearance(named: .darkAqua)
+        }
+    }
+
     func applicationDidFinishLaunching(_ n: Notification) {
         UNUserNotificationCenter.current().delegate = self
         Bildirim.kategorileriKaydet()
+        AppUpdater.start()
     }
 
     func userNotificationCenter(_ c: UNUserNotificationCenter, willPresent n: UNNotification) async -> UNNotificationPresentationOptions {
@@ -27,10 +37,11 @@ final class MacTemsilci: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
 /// Üst sekmeler (pencere araç çubuğunun ortasında). Ayarlar ⌘, ile ayrı pencerede.
 enum MacBolum: String, CaseIterable, Identifiable, Hashable {
-    case bugun, atolye, kur, akis, kitaplar, mufredat, sozluk, ses
+    case sabah, bugun, atolye, kur, akis, kitaplar, mufredat, sozluk, ses, notlar
     var id: String { rawValue }
     var ad: String {
         switch self {
+        case .sabah: "Sabah"
         case .bugun: "Bugün"
         case .atolye: "Atölye"
         case .kur: "Kür"
@@ -39,10 +50,12 @@ enum MacBolum: String, CaseIterable, Identifiable, Hashable {
         case .mufredat: "Müfredat"
         case .sozluk: "Sözlük"
         case .ses: "Ses"
+        case .notlar: "Notlarım"
         }
     }
     var sembol: String {
         switch self {
+        case .sabah: "sunrise"
         case .bugun: "sun.max"
         case .atolye: "pencil.and.outline"
         case .kur: "circle.dashed.inset.filled"
@@ -51,9 +64,10 @@ enum MacBolum: String, CaseIterable, Identifiable, Hashable {
         case .mufredat: "map"
         case .sozluk: "character.book.closed"
         case .ses: "waveform"
+        case .notlar: "square.and.pencil"
         }
     }
-    var kisayol: KeyEquivalent { KeyEquivalent(Character("\((MacBolum.allCases.firstIndex(of: self) ?? 0) + 1)")) }
+    var kisayol: KeyEquivalent { KeyEquivalent(Character("\(((MacBolum.allCases.firstIndex(of: self) ?? 0) + 1) % 10)")) }
 }
 
 @main
@@ -78,12 +92,23 @@ struct TeoriaMacApp: App {
                     .keyboardShortcut("k", modifiers: .command)
                 Button("Sesli not") { NotificationCenter.default.post(name: .init("teoria.rota"), object: "ses") }
                     .keyboardShortcut("r", modifiers: [.command, .shift])
+                Button("Defter · hızlı not") { NotificationCenter.default.post(name: .init("teoria.rota"), object: "defter") }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
                 Divider()
                 ForEach(MacBolum.allCases) { b in
                     Button(b.ad) { NotificationCenter.default.post(name: .init("teoria.rota"), object: "bolum:" + b.rawValue) }
                         .keyboardShortcut(b.kisayol, modifiers: .command)
                 }
                 Divider()
+                Button("Temayı değiştir: Sistem → Açık → Koyu") {
+                    let sira = TemaSecimi.allCases
+                    let i = sira.firstIndex(of: depo.tema) ?? 0
+                    depo.temaHam = sira[(i + 1) % sira.count].rawValue
+                }
+                .keyboardShortcut("t", modifiers: [.command, .option])
+                Divider()
+                Button("Güncelle · Voice Reader + Voice Dream") { Task { await depo.guncelle() } }
+                    .keyboardShortcut("r", modifiers: .command)
                 Button("Vault ile eşitle") { Task { await depo.esitleSimdi() } }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
             }
@@ -114,10 +139,14 @@ struct MacKok: View {
     @State private var kurDakika: Int?
     @State private var sesHedef: String??
     @State private var seciliIsaret: Isaret?
+    @AppStorage("defterAcik") private var defterAcik = false
+    @State private var defterOdak = 0
 
     var body: some View {
         Group {
             switch bolum {
+            case .sabah:
+                MorningView(wide: true)
             case .bugun:
                 BugunEkrani(kurBaslat: { kurDakika = $0; bolum = .kur }, sesAc: { sesHedef = .some($0) }, genis: true)
             case .atolye:
@@ -139,11 +168,17 @@ struct MacKok: View {
                 SozlukEkrani(genis: true)
             case .ses:
                 SesListesi(sesAc: { sesHedef = .some($0) })
+            case .notlar:
+                NotlarimEkrani(genis: true)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Tema.arka)
         .bildirimSeridi()
+        .inspector(isPresented: $defterAcik) {
+            DefterPanel(focusRequest: defterOdak)
+                .inspectorColumnWidth(min: 260, ideal: 320, max: 460)
+        }
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 HStack(spacing: 8) {
@@ -155,18 +190,27 @@ struct MacKok: View {
             }
             ToolbarItem(placement: .principal) {
                 SimgeSecici(secenekler: MacBolum.allCases.map { .init(deger: $0, ad: $0.ad, sembol: $0.sembol) },
-                            secili: $bolum, esit: false)
+                            secili: $bolum, sikisik: true, esit: false)
                     .fixedSize()
             }
             ToolbarItemGroup(placement: .primaryAction) {
+                Menu {
+                    Picker("Tema", selection: $depo.temaHam) {
+                        ForEach(TemaSecimi.allCases) { t in Label(t.ad, systemImage: t.sembol).tag(t.rawValue) }
+                    }
+                    .pickerStyle(.inline).labelsHidden()
+                } label: { Image(systemName: depo.tema.sembol) }
+                    .menuIndicator(.hidden)
+                    .help("Görünüm: Sistem · Açık · Koyu (⌥⌘T)")
                 if depo.esitleniyor && !depo.guncelleniyor { ProgressView().controlSize(.small) }
                 Button { Task { await depo.guncelle() } } label: {
                     if depo.guncelleniyor { ProgressView().controlSize(.small) }
-                    else { Label("Güncelle", systemImage: "arrow.triangle.2.circlepath") }
+                    else { Label("Güncelle", systemImage: "arrow.triangle.2.circlepath").labelStyle(.titleAndIcon) }
                 }
                 .disabled(depo.guncelleniyor)
-                .keyboardShortcut("r", modifiers: .command)
-                .help("Voice Dream'den güncelle: yeni işaretler, okuma yüzdesi, yeni metinler (⌘R)")
+                .help("Voice Reader ve Voice Dream'den güncelle: yeni kitaplar, işaretler, dinleme yüzdesi (⌘R) · 10 dakikada bir kendiliğinden")
+                Button { defterAc() } label: { Label("Defter", systemImage: "note.text") }
+                    .help("Defter: her ekrandan hızlı not, ↩ ile kaydet (⇧⌘N)")
                 Button { sesHedef = .some(nil) } label: { Label("Sesli not", systemImage: "mic") }
                     .help("Sesli not (⇧⌘R)")
                 Button { kurDakika = depo.kurDakika; bolum = .kur } label: { Label("Kür", systemImage: "play.fill") }
@@ -179,18 +223,40 @@ struct MacKok: View {
         .onReceive(NotificationCenter.default.publisher(for: .init("teoria.rota"))) { n in rota(n.object as? String ?? "") }
         .onReceive(NotificationCenter.default.publisher(for: .init("teoria.kutu"))) { _ in depo.kutuyuAl() }
         .onAppear {
+            MacTemsilci.temayiUygula(depo.tema)
             MacTemsilci.rota = { rota($0) }
             Task { await depo.esitleSimdi(); await Bildirim.planla(depo) }
+            // Sabah: until the day's session is closed, mornings open on it
+            if Calendar.current.component(.hour, from: Date()) < 14, depo.durum.morningDone[MorningStore.todayKey] == nil { bolum = .sabah }
         }
+        .onChange(of: depo.temaHam) { _, _ in MacTemsilci.temayiUygula(depo.tema) }
         .onChange(of: faz) { _, y in
             if y == .active { depo.kutuyuAl(); Task { await depo.esitleSimdi() } }
         }
+        .task {
+            // Voice Reader + Voice Dream → library every 10 minutes while the app runs (2026-10-20); quiet unless
+            // something new arrived
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(600))
+                guard !Task.isCancelled, !depo.guncelleniyor else { continue }
+                await depo.guncelle()
+                if let b = depo.bildirim, b == "Her şey güncel" || b.hasPrefix("Akış yenilendi") { depo.bildirim = nil }
+            }
+        }
+    }
+
+    /// Opens the notebook and puts the cursor in it; if it is already open with the cursor there, closes it.
+    private func defterAc() {
+        if defterAcik && NSApp.keyWindow?.firstResponder is NSTextView { defterAcik = false; return }
+        defterAcik = true
+        defterOdak += 1
     }
 
     private func rota(_ r: String) {
         switch r {
         case "kur", "hatirla": kurDakika = depo.kurDakika; bolum = .kur
         case "ses": sesHedef = .some(nil)
+        case "defter": defterAc()
         case "akis": bolum = .akis
         case "kitaplar": bolum = .kitaplar
         case "mufredat": bolum = .mufredat
@@ -223,7 +289,7 @@ struct KurBaslangic: View {
                             Text("dakika").font(.callout)
                         }
                         .frame(width: 140, height: 120)
-                        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(d == depo.kurDakika ? Tema.vurgu : Tema.yuzey))
+                        .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(d == depo.kurDakika ? Tema.vurgu : Tema.yuzey) }
                         .foregroundStyle(d == depo.kurDakika ? Color.white : Tema.metin)
                     }
                     .buttonStyle(.plain)
@@ -280,7 +346,7 @@ struct MenuCubugu: View {
                     NotificationCenter.default.post(name: .init("teoria.rota"), object: "ses")
                 }
                 Spacer()
-                Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.buttonStyle(.borderless)
+                Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.accessibilityLabel("Çık").buttonStyle(.borderless)
             }
         }
         .padding(16)

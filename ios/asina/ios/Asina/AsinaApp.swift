@@ -31,6 +31,7 @@ struct AsinaApp: App {
         }
         .onChange(of: evre) { _, yeni in
             if yeni == .active {
+                depo.bus.emitOpenedToday()
                 Task { depo.planla(); await depo.eslestir() }
             } else if yeni == .background {
                 depo.planla()
@@ -76,6 +77,13 @@ final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate, UNUserNotificat
             let oxford = (Paylasim.ayar.object(forKey: Paylasim.oxfordAnahtari) as? Bool) ?? true
             await MainActor.run { Ses.ortak.soyle(ad: ad, url: url, oxford: oxford) }
             await Ses.ortak.bekle()
+            return
+        }
+        if eylem == Bildirim.cumleDinleEylemi {
+            // Kelime, sonra Tezgâh cümlesi — cihazın İngiliz sesiyle, uygulama açılmadan.
+            let ad = bilgi["w"] as? String ?? "", cu = bilgi["cu"] as? String ?? ""
+            await MainActor.run { Ses.ortak.oku(cu.isEmpty ? ad : "\(ad). \(cu)", yavas: false) }
+            await Ses.ortak.bekle(en: 25)
             return
         }
         await MainActor.run {

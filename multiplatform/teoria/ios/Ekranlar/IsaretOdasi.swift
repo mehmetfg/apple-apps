@@ -114,8 +114,8 @@ struct IsaretOdasi: View {
             Image(systemName: s).font(.system(size: 14, weight: .medium)).foregroundStyle(r)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 38, height: 38)
-                .background(Circle().fill(Tema.yuzey))
-                .overlay(Circle().strokeBorder(Tema.cizgi, lineWidth: 0.6))
+                .background { Circle().fill(Tema.yuzey) }
+                .overlay { Circle().strokeBorder(Tema.cizgi, lineWidth: 0.6) }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(ad)
@@ -169,9 +169,9 @@ struct IsaretOdasi: View {
                         }
                         .padding(.leading, 18).padding(.trailing, 14).padding(.vertical, 12)
                         .tamGenislik()
-                        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey))
+                        .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey) }
                         .overlay(alignment: .leading) { Capsule().fill(kr.opacity(0.7)).frame(width: 2.5).padding(.vertical, 12).padding(.leading, 7) }
-                        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.6))
+                        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.6) }
                     }
                     .buttonStyle(.plain)
                 }

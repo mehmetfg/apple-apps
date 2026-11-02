@@ -83,7 +83,7 @@ struct KayitEkrani: View {
             if dokuluyor { HStack { ProgressView(); Text("Telefon yazıya döküyor…").font(.footnote) } }
             if let o = onDokum {
                 Text("Telefonun duyduğu").font(.caption.weight(.bold)).foregroundStyle(.secondary)
-                Text(o).font(.body).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
+                Text(o).font(.body).padding(12).frame(maxWidth: .infinity, alignment: .leading).background { RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)) }
             } else if !dokuluyor {
                 Text("Telefonda İngilizce döküm yok; Mac'te Whisper yazacak.").font(.footnote).foregroundStyle(.secondary)
             }

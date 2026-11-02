@@ -1,5 +1,6 @@
 // Saray'ın verisi: sözlük (pakette, veri/sozluk.py üretir) + oda oda etiketler (cihazda, ARKit dünya haritasıyla birlikte).
 import Foundation
+import PDMBus
 import simd
 
 struct Oda: Codable, Identifiable, Hashable { var id: String; var ad: String; var en: String; var simge: String }
@@ -76,6 +77,41 @@ enum Kasa {
     /// Bilinen kelimeler (uzun bas › "biliyorum") — Sözlük'te soluk görünür, kamerada yine çıkar.
     static var bilinen: Set<String> {
         get { Set(UserDefaults.standard.stringArray(forKey: "bilinen") ?? []) }
-        set { UserDefaults.standard.set(Array(newValue), forKey: "bilinen") }
+        set {
+            let eski = Set(UserDefaults.standard.stringArray(forKey: "bilinen") ?? [])
+            UserDefaults.standard.set(Array(newValue), forKey: "bilinen")
+            // PDM Ağı: karar değiştiyse olay (öteki uygulamalar da bu kelimeyi bilinen sayar)
+            for w in newValue.subtracting(eski) { Ag.bus.emit("word.known", subject: PDMSubject.word(w)) }
+            for w in eski.subtracting(newValue) { Ag.bus.emit("word.learning", subject: PDMSubject.word(w), data: ["via": "undo"]) }
+        }
     }
+}
+
+/// PDM Ağı: Saray'ın olayları `_bus/events/saray/<cihaz>.jsonl`'e gider (README §4).
+enum Ag {
+    static let bus = PDMBus(app: "saray")
+}
+
+/// The word state of the PDM network (App Group copy of `words.json`). Display only:
+/// Saray never writes it into `Kasa.bilinen`; the two lists merge only on screen.
+@MainActor
+final class NetworkWords: ObservableObject {
+    static let shared = NetworkWords()
+    /// Lowercased words with the status `known` or `dropped` in the network.
+    @Published private(set) var closed: Set<String> = []
+    /// The open focus words of the network, in the order of the hub.
+    @Published private(set) var focus: [PDMFocusWord] = []
+
+    private init() { refresh() }
+
+    func refresh() {
+        let summary = PDMBus.cachedWords()
+        closed = Set((summary?.closed ?? []).map { $0.lowercased() })
+        focus = summary?.openFocus() ?? []
+    }
+
+    func isClosed(_ word: String) -> Bool { closed.contains(word.lowercased()) }
+
+    /// Known here (Saray's own list) or known in the network.
+    func isKnown(_ word: String, local: Set<String>) -> Bool { local.contains(word) || isClosed(word) }
 }

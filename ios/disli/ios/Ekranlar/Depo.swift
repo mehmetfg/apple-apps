@@ -6,6 +6,7 @@
 //  • Seri yok, puan tablosu yok. Oyun puanı oyunun içinde kalır.
 //  • Tanıma → kurma merdiveni: bir konu tanımada 3 kez tutunca ona artık şık sorusu sorulmaz, yalnız kurdurulur.
 import SwiftUI
+import PDMBus
 import WidgetKit
 
 struct KonuDurum: Codable {
@@ -54,6 +55,8 @@ struct QuizOgesi: Identifiable, Hashable {
 @Observable
 final class Depo {
     let veri: Veri
+    /// PDM Ağı: konu görme, cevap ve oturum olayları `_bus/events/gramer/<cihaz>.jsonl`'e gider.
+    @ObservationIgnored let bus = PDMBus(app: "gramer")
     var durum: Durum { didSet { kaydet() } }
 
     @ObservationIgnored private let konuSozluk: [String: Konu]
@@ -62,7 +65,7 @@ final class Depo {
     init() {
         let url = Bundle.main.url(forResource: "konular", withExtension: "json")!
         veri = try! JSONDecoder().decode(Veri.self, from: Data(contentsOf: url))
-        konuSozluk = Dictionary(uniqueKeysWithValues: veri.konular.map { ($0.id, $0) })
+        konuSozluk = Dictionary(veri.konular.map { ($0.id, $0) }, uniquingKeysWith: { ilk, _ in ilk })   // a duplicate id in konular.json must not crash
         dosya = URL.documentsDirectory.appending(path: "durum.json")
         if let d = try? Data(contentsOf: dosya), let x = try? JSONDecoder().decode(Durum.self, from: d) {
             durum = x
@@ -97,7 +100,7 @@ final class Depo {
     /// Aynı yasayı kullanan konular, yakınlık sırasıyla: aynı bölge → ortak yasa sayısı → önerilen yol.
     func komsular(_ k: Konu, yasa y: Yasa) -> [Konu] {
         let benim = Set(k.yasalar.map(\.id))
-        let yol = Dictionary(uniqueKeysWithValues: veri.yol.enumerated().map { ($1, $0) })
+        let yol = Dictionary(veri.yol.enumerated().map { ($1, $0) }, uniquingKeysWith: { ilk, _ in ilk })
         return y.konular.filter { $0 != k.id }.compactMap { konu($0) }.sorted { a, b in
             let ab = a.bolge == k.bolge ? 0 : 1, bb = b.bolge == k.bolge ? 0 : 1
             if ab != bb { return ab < bb }
@@ -155,6 +158,7 @@ final class Depo {
         d.goruldu = true
         d.donus = [1, 3, 7, 16].map { durum.oturum + $0 }
         durum.konular[id] = d
+        bus.emit("grammar.seen", subject: PDMSubject.grammar(id))
     }
 
     func kaydet(konu id: String, kip: SoruKipi, dogru: Bool) {
@@ -173,11 +177,14 @@ final class Depo {
             d.donus = Array(Set(d.donus + [durum.oturum + 1, durum.oturum + 3])).sorted()
         }
         durum.konular[id] = d
+        bus.emit("grammar.answer", subject: PDMSubject.grammar(id),
+                 data: ["mode": .string(kip.rawValue), "correct": .bool(dogru), "level": .int(d.kademe)])
     }
 
     /// Bugünün mini quiz'i bitince oturum bir ilerler; dönüş listesinden geçmiş olanlar düşer (borç birikmez).
     func oturumuKapat(sunulanlar: [String]) {
         durum.oturum += 1
+        bus.emit("grammar.session", subject: "session:\(durum.oturum)", data: ["topics": .int(Set(sunulanlar).count)])
         for id in Set(sunulanlar) {
             var d = kd(id)
             d.donus.removeAll { $0 <= durum.oturum }

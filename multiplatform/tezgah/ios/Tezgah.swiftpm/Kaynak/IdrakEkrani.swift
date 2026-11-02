@@ -98,7 +98,7 @@ struct Kapak: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: kose, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: kose, style: .continuous).strokeBorder(.black.opacity(0.08)))
+        .overlay { RoundedRectangle(cornerRadius: kose, style: .continuous).strokeBorder(.black.opacity(0.08)) }
         .shadow(color: .black.opacity(0.18), radius: 8, y: 5)
     }
 
@@ -169,18 +169,16 @@ struct GununAlintisi: View {
             }
             .padding(22)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                ZStack(alignment: .topTrailing) {
+            .background { ZStack(alignment: .topTrailing) {
                     T.yuzey
                     Image(systemName: "quote.closing").font(.system(size: 90, weight: .black))
                         .foregroundStyle(T.idrak.opacity(0.08)).padding(8)
-                }
-            )
+                } }
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .overlay(alignment: .leading) {
                 UnevenRoundedRectangle(topLeadingRadius: 24, bottomLeadingRadius: 24).fill(T.idrak).frame(width: 5)
             }
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(T.cizgi))
+            .overlay { RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(T.cizgi) }
         }
         .buttonStyle(BasilmaStili())
     }
@@ -337,9 +335,9 @@ struct IsaretKarti: View {
         .overlay(alignment: .leading) {
             UnevenRoundedRectangle(topLeadingRadius: 18, bottomLeadingRadius: 18).fill(T.idrak).frame(width: 4)
         }
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(T.cizgi))
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(T.cizgi) }
         .contentShape(Rectangle())
-        .onTapGesture { withAnimation(T.yay) { acik.toggle() } }
+        .onTapGesture { withAnimation(T.yay) { acik.toggle() } }.accessibilityAddTraits(.isButton)
         .contextMenu {
             Button { panoya(isaret.alinti ?? "") } label: { Label("Alıntıyı kopyala", systemImage: "doc.on.doc") }
         }

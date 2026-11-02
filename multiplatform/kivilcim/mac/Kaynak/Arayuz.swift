@@ -24,7 +24,7 @@ struct MenuPaneli: View {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Fikirlerde ara…", text: $sorgu).textFieldStyle(.plain)
-                if !sorgu.isEmpty { Button { sorgu = "" } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain).foregroundStyle(.tertiary) }
+                if !sorgu.isEmpty { Button { sorgu = "" } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel("Aramayı temizle").buttonStyle(.plain).foregroundStyle(.tertiary) }
             }
             .padding(.horizontal, 14).padding(.vertical, 9)
             Divider()
@@ -122,8 +122,8 @@ struct KucukSatir: View {
             Button { oy.degistir(o) } label: {
                 Image(systemName: oy.calan == o.id && oy.caliyor ? "pause.fill" : "play.fill")
                     .font(.system(size: 10, weight: .bold)).foregroundStyle(al.color)
-                    .frame(width: 26, height: 26).background(Circle().fill(al.color.opacity(0.15)))
-            }.buttonStyle(.plain)
+                    .frame(width: 26, height: 26).background { Circle().fill(al.color.opacity(0.15)) }
+            }.accessibilityLabel(oy.calan == o.id && oy.caliyor ? "Duraklat" : "Çal").buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
                     if o.yildiz { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
@@ -141,10 +141,10 @@ struct KucukSatir: View {
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 8).fill(uzerinde ? Color.primary.opacity(0.06) : .clear))
+        .background { RoundedRectangle(cornerRadius: 8).fill(uzerinde ? Color.primary.opacity(0.06) : .clear) }
         .contentShape(Rectangle())
         .onHover { uzerinde = $0 }
-        .onTapGesture(perform: ac)
+        .onTapGesture(perform: ac).accessibilityAddTraits(.isButton)
     }
 }
 
@@ -365,7 +365,7 @@ struct Detay: View {
                         HStack(spacing: 6) {
                             ForEach(o.etiketler, id: \.self) { e in
                                 Text("#" + e).font(.caption).padding(.horizontal, 7).padding(.vertical, 3)
-                                    .background(Capsule().fill(Color.primary.opacity(0.06)))
+                                    .background { Capsule().fill(Color.primary.opacity(0.06)) }
                             }
                         }
                     }
@@ -374,7 +374,7 @@ struct Detay: View {
                 if !o.ozet.isEmpty {
                     Text(o.ozet).font(.title3).foregroundStyle(.primary.opacity(0.85))
                         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(al.color.opacity(0.08)))
+                        .background { RoundedRectangle(cornerRadius: 10).fill(al.color.opacity(0.08)) }
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -446,8 +446,8 @@ struct CalarSerit: View {
         HStack(spacing: 12) {
             Button { oy.degistir(o) } label: {
                 Image(systemName: bu && oy.caliyor ? "pause.fill" : "play.fill").font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white).frame(width: 38, height: 38).background(Circle().fill(renk))
-            }.buttonStyle(.plain).keyboardShortcut(.space, modifiers: [])
+                    .foregroundStyle(.white).frame(width: 38, height: 38).background { Circle().fill(renk) }
+            }.accessibilityLabel(bu && oy.caliyor ? "Duraklat" : "Çal").buttonStyle(.plain).keyboardShortcut(.space, modifiers: [])
             if bu {
                 Slider(value: Binding(get: { oy.konum }, set: { oy.atla($0) }), in: 0...max(0.1, oy.uzunluk))
                 Text("\(Zaman.sure(oy.konum)) / \(Zaman.sure(oy.uzunluk))").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
@@ -460,7 +460,7 @@ struct CalarSerit: View {
             }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)))
+        .background { RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)) }
     }
 }
 

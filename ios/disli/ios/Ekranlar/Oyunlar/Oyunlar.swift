@@ -121,7 +121,7 @@ struct OyunlarEkrani: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
-            .background(Lekeler(renkler: [Tema.renk("mor"), Tema.renk("turuncu")]))
+            .background { Lekeler(renkler: [Tema.renk("mor"), Tema.renk("turuncu")]) }
             .navigationTitle("Oyunlar")
         }
     }
@@ -135,7 +135,7 @@ struct OyunKutusu: View {
             Cizim(ad: "oyun-" + oyun.rawValue, renk: oyun.renk, boy: 64, zemin: false)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(oyun.renk.opacity(0.13)))
+                .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(oyun.renk.opacity(0.13)) }
             Text(oyun.ad).font(Tema.baslik(.headline)).foregroundStyle(.primary)
             Text(oyun.alt).font(.caption).foregroundStyle(.secondary).lineLimit(3)
                 .multilineTextAlignment(.leading)
@@ -147,11 +147,9 @@ struct OyunKutusu: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 236, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey)
-                .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Tema.cizgi))
-                .shadow(color: .black.opacity(0.04), radius: 8, y: 3)
-        )
+        .background { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey)
+                .overlay { RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Tema.cizgi) }
+                .shadow(color: .black.opacity(0.04), radius: 8, y: 3) }
     }
 }
 
@@ -181,12 +179,12 @@ struct OyunSonu: View {
                 Text(aciklama).font(.title3.weight(.semibold)).multilineTextAlignment(.center)
                 if let ders {
                     Text(ders).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                        .padding().background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(oyun.renk.opacity(0.1)))
+                        .padding().background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(oyun.renk.opacity(0.1)) }
                 }
                 Spacer()
                 Button(action: tekrar) {
                     Label("Bir tur daha", systemImage: "arrow.clockwise").font(.headline).foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 52).background(Capsule().fill(oyun.renk))
+                        .frame(maxWidth: .infinity, minHeight: 52).background { Capsule().fill(oyun.renk) }
                 }
                 .buttonStyle(.plain)
                 Button("Kapat", action: kapat).font(.headline).padding(.bottom)

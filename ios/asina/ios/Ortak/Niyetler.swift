@@ -49,3 +49,32 @@ struct SeslendirKelime: AudioPlaybackIntent {
         return .result()
     }
 }
+
+struct SonrakiCumle: AppIntent {
+    static var title: LocalizedStringResource = "Sonraki Cümle kelimesi"
+    static var description = IntentDescription("Cümle widget'ında günün sıradaki kelimesine geçer.")
+
+    func perform() async throws -> some IntentResult {
+        let a = Paylasim.ayar
+        a.set(a.integer(forKey: Paylasim.cumleSiraAnahtari) + 1, forKey: Paylasim.cumleSiraAnahtari)
+        WidgetCenter.shared.reloadTimelines(ofKind: Paylasim.cumleTuru)
+        return .result()
+    }
+}
+
+/// Cümle widget'ında kelime + Tezgâh cümlesini cihazın İngiliz sesiyle okur (uygulama açılmadan).
+struct SeslendirCumle: AudioPlaybackIntent {
+    static var title: LocalizedStringResource = "Cümleyi seslendir"
+    static var description = IntentDescription("Cümle Tezgâhı kelimesini ve geçtiği cümleyi okur.")
+
+    @Parameter(title: "Metin") var metin: String
+
+    init() {}
+    init(metin: String) { self.metin = metin }
+
+    func perform() async throws -> some IntentResult {
+        await MainActor.run { Ses.ortak.oku(metin) }
+        await Ses.ortak.bekle(en: 25)
+        return .result()
+    }
+}

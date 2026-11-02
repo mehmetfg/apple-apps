@@ -45,7 +45,7 @@ struct NoteScreen: View {
                     }
                     .disabled(saving)
                 } else {
-                    Button { startEditing() } label: { Image(systemName: "pencil") }.disabled(loaded == nil)
+                    Button { startEditing() } label: { Image(systemName: "pencil") }.accessibilityLabel("Düzenle").disabled(loaded == nil)
                 }
             }
             if editing {
@@ -169,7 +169,7 @@ struct NoteScreen: View {
                 return
             } catch {
                 if attempt == 19 { self.error = error.localizedDescription }
-                try? await Task.sleep(nanoseconds: 500_000_000)
+                try? await Task.sleep(for: .milliseconds(500))
             }
         }
     }

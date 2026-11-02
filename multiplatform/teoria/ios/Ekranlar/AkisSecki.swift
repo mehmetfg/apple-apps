@@ -199,8 +199,8 @@ struct SeckiKarti: View {
                         Label("Üzerine yaz", systemImage: "pencil.line")
                             .font(.system(size: 13.5, weight: .semibold))
                             .padding(.horizontal, 14).padding(.vertical, 9)
-                            .background(Capsule().fill(.white.opacity(0.16)))
-                            .overlay(Capsule().strokeBorder(.white.opacity(0.22), lineWidth: 0.6))
+                            .background { Capsule().fill(.white.opacity(0.16)) }
+                            .overlay { Capsule().strokeBorder(.white.opacity(0.22), lineWidth: 0.6) }
                             .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
@@ -214,7 +214,7 @@ struct SeckiKarti: View {
         .overlay(sekil.strokeBorder(.white.opacity(0.08), lineWidth: 0.7))
         .shadow(color: Tema.kitapDerin(isaret.kitap)[0].opacity(0.35), radius: boy == .sahne ? 40 : 22, y: boy == .sahne ? 18 : 10)
         .contentShape(sekil)
-        .onTapGesture { ac?() }
+        .onTapGesture { ac?() }.accessibilityAddTraits(.isButton)
         .environment(\.colorScheme, .dark)
         .onAppear { if kapak == nil { kapak = KapakDeposu.resim(isaret.kitap) } }
         .accessibilityElement(children: .combine)

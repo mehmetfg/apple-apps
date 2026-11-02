@@ -66,6 +66,9 @@ struct Durum {
     var sesNotlari: [Olay] = []
     var kendiCumleler: [Olay] = []
     var yorumSayisi: [String: Int] = [:]          // işaret → kaç yorum/alıntı yazdın
+    var morningCards: [String: Kart] = [:]        // Sabah's active-recall cards (kept apart from the kür's queue)
+    var morningSteps: [String: Set<String>] = [:] // session day → finished steps
+    var morningDone: [String: Olay] = [:]         // session day → its closing event (metin: covered listening days)
 
     /// Bir işarete kaç sesli not kaydettin ("2" ya da nil) — akıştaki mikrofonun yanında.
     func sesSayisi(_ hedef: String) -> String? {
@@ -133,6 +136,14 @@ struct Durum {
                 if let h = o.hedef { d.yorumSayisi[h, default: 0] += 1 }
             case .kademe:
                 if let h = o.hat, let k = o.kademe { d.hatlar[h] = HatDurumu(kademe: min(max(k, 1), 6)) }
+            case .morningCard:
+                if let k = o.hedef, let n = Not(rawValue: o.not ?? 0) {
+                    d.morningCards[k] = d.morningCards[k].map { FSRS.tekrar($0, n, an: o.t) } ?? FSRS.yeni(n, an: o.t)
+                }
+            case .morningStep:
+                if let h = o.hedef, let r = o.rol { d.morningSteps[h, default: []].insert(r) }
+            case .morningDone:
+                if let h = o.hedef { d.morningDone[h] = o }
             }
         }
         d.sesNotlari.removeAll { silinenSes.contains($0.id) }

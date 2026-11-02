@@ -22,7 +22,7 @@ struct IzleGorunumu: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if secilebilir {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(Algoritma.allCases) { a in
                             Button(a.kisa) { algoritma = a; yenile() }
@@ -30,6 +30,7 @@ struct IzleGorunumu: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
             }
             HStack {
                 Menu {
@@ -64,7 +65,7 @@ struct IzleGorunumu: View {
                     Image(systemName: oynuyor ? "pause.fill" : "play.fill")
                         .font(.title2).foregroundStyle(Tema.zemin)
                         .frame(width: 60, height: 60).background(Tema.murekkep, in: Circle())
-                }
+                }.accessibilityLabel(oynuyor ? "Pause" : "Play")
                 .buttonStyle(.plain)
                 kontrol("forward.frame.fill") { durdur(); indeks = min(kareler.count - 1, indeks + 1) }
                 kontrol("arrow.clockwise") { yenile() }
@@ -92,6 +93,7 @@ struct IzleGorunumu: View {
     private func oynat() {
         if indeks >= kareler.count - 1 { indeks = 0 }
         oynuyor = true
+        gorev?.cancel()   // a second loop would advance the same frame index twice
         gorev = Task { @MainActor in
             while !Task.isCancelled && indeks < kareler.count - 1 {
                 try? await Task.sleep(for: .milliseconds(Int(520 / hiz)))
@@ -216,6 +218,7 @@ struct CPUOyunu: View {
 
     /// Bir sonraki karar karesine kadar oynat.
     private func ilerle() {
+        gorev?.cancel()
         gorev = Task { @MainActor in
             while !Task.isCancelled && indeks < kareler.count - 1 {
                 try? await Task.sleep(for: .milliseconds(380))

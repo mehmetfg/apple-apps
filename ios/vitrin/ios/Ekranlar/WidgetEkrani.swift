@@ -40,7 +40,7 @@ struct WidgetlarEkrani: View {
                     Button { duzenlenen = yeni() } label: {
                         Label("Yeni widget tasarımı", systemImage: "plus")
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(RoundedRectangle(cornerRadius: 18).fill(Renkler.vurgu))
+                            .background { RoundedRectangle(cornerRadius: 18).fill(Renkler.vurgu) }
                             .foregroundStyle(.black).fontWeight(.semibold)
                     }
                     .buttonStyle(.plain)
@@ -89,7 +89,7 @@ struct WidgetlarEkrani: View {
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Renkler.kart))
+        .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Renkler.kart) }
     }
 
     private func yeni() -> WidgetTasarim {
@@ -189,10 +189,8 @@ struct WidgetEditoru: View {
             Text("Kilit ekranı — sistem tek renk çizer").font(.caption).foregroundStyle(Renkler.ikincil)
         }
         .padding(18)
-        .background(
-            ZeminGorunum(zemin: { var z = t.zemin; z.karartma = max(0.25, z.karartma); return z }(), fotoBoyu: 800)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-        )
+        .background { ZeminGorunum(zemin: { var z = t.zemin; z.karartma = max(0.25, z.karartma); return z }(), fotoBoyu: 800)
+                .clipShape(RoundedRectangle(cornerRadius: 24)) }
     }
 
     private var icerikPaneli: some View {
@@ -206,10 +204,10 @@ struct WidgetEditoru: View {
             case .metin:
                 TextField("Kendi cümlen", text: $t.metin, axis: .vertical)
                     .lineLimit(2...5)
-                    .padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2))
+                    .padding(12).background { RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2) }
             case .geriSayim:
                 TextField("Ne için", text: $t.hedefAd)
-                    .padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2))
+                    .padding(12).background { RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2) }
                 DatePicker("Tarih", selection: $t.hedefTarih, displayedComponents: .date)
             case .ilerleme:
                 Text("Yön Belgesi'nin sonraki ölçüm günü: \(m.veri.odak.sonraki_olcum.isEmpty ? "—" : m.veri.odak.sonraki_olcum)")

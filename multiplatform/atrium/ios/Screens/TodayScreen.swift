@@ -157,7 +157,7 @@ struct TodayScreen: View {
                 Card { Label("Vault'ta yeni bir şey yok.", systemImage: "checkmark.seal").foregroundStyle(.secondary) }
             } else {
                 let areas = Dictionary(grouping: list, by: \.area).map { ($0.key, $0.value.count) }.sorted { $0.1 > $1.1 }
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(areas, id: \.0) { a in
                             NavigationLink(value: FolderRoute(path: a.0)) {
@@ -166,6 +166,7 @@ struct TodayScreen: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
                 Card(padding: 6) {
                     VStack(spacing: 0) {
                         ForEach(list.prefix(7)) { n in

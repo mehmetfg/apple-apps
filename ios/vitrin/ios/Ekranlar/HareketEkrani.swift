@@ -69,7 +69,7 @@ struct HareketEkrani: View {
                 Label("Hareketli zemin", systemImage: "circle.hexagongrid.fill").font(.headline)
                 Text("Duvar tasarımın kendi içinde akar: mesh dalgalanır, desen kayar, yıldızlar parlar, fotoğraf yavaşça yaklaşır. Yazı yerinde kalır.")
                     .font(.footnote).foregroundStyle(Renkler.ikincil)
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 10) {
                         ForEach(m.kayit.duvarlar) { d in
                             Button { zeminDuvar = d.id } label: {
@@ -77,7 +77,7 @@ struct HareketEkrani: View {
                                     DuvarGorunum(duvar: d, g: m.gosterilen(d), fotoBoyu: 400)
                                         .frame(width: 58, height: 126)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(seciliDuvar?.id == d.id ? Renkler.vurgu : Renkler.cizgi, lineWidth: 2))
+                                        .overlay { RoundedRectangle(cornerRadius: 12).stroke(seciliDuvar?.id == d.id ? Renkler.vurgu : Renkler.cizgi, lineWidth: 2) }
                                     Text(d.ad).font(.caption2).lineLimit(1).frame(width: 66)
                                 }
                             }
@@ -85,6 +85,7 @@ struct HareketEkrani: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
                 if let d = seciliDuvar {
                     HStack {
                         Spacer()
@@ -117,7 +118,7 @@ struct HareketEkrani: View {
                 PhotosPicker(selection: $secim, matching: .videos) {
                     Label(film == nil ? "Video seç" : "Başka video", systemImage: "film.stack")
                         .frame(maxWidth: .infinity).padding(.vertical, 11)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2))
+                        .background { RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2) }
                 }
                 .buttonStyle(.plain)
                 if let oynatici, film != nil {

@@ -1,4 +1,5 @@
 import SwiftUI
+import PDMBus
 
 struct AyarlarEkrani: View {
     @EnvironmentObject var m: Merkez
@@ -21,6 +22,7 @@ struct AyarlarEkrani: View {
                 } header: { Text("Öğrenme içeriği") } footer: {
                     Text("iCloud Drive › Obsidian › **Personel Data Management**'ı seç. Mac'te `veri/vitrin.py` her pano koşusunda içeriği tazeler; uygulama her açılışta okur. Bağlı değilken kurulumla gelen kopya kullanılır.")
                 }
+                PDMSettingsSection(bus: m.bus, selectsVault: false)
                 Section("Durum") {
                     LabeledContent("Üretildi", value: m.veri.uretildi.replacingOccurrences(of: "T", with: " "))
                     LabeledContent("Kelime (Oxford 3000, bilmediklerin)", value: "\(m.veri.kelimeler.count)")
@@ -28,6 +30,7 @@ struct AyarlarEkrani: View {
                     LabeledContent("Alıntı", value: "\(m.veri.alintilar.count)")
                     LabeledContent("Kavram", value: "\(m.veri.kavramlar.count)")
                     LabeledContent("Ana odak", value: m.veri.odak.ana)
+                    LabeledContent("Ağın odak kelimeleri", value: "\(AgOdak.kelimeler(m.veri, bilinen: m.bilinen).count)")
                 }
                 Section {
                     if m.kayit.bilinen.isEmpty {

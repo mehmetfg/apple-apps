@@ -115,13 +115,14 @@ struct AlgoritmaSecici<Icerik: View>: View {
     @State private var a: Algoritma = .bubble
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(Algoritma.allCases) { x in
                         Button(x.kisa) { a = x }.buttonStyle(SecimCipi(secili: x == a))
                     }
                 }
             }
+            .scrollIndicators(.hidden)
             icerik(a)
         }
     }

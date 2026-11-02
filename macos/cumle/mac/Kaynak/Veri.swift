@@ -142,6 +142,40 @@ enum Gramer {
     }
 }
 
+// MARK: - Grammar practice (tezgah-practice.js — 3 questions per topic, hand-edited)
+
+struct PracticeQuestion: Hashable {
+    enum Kind: String { case gap, choose, build }
+    var kind: Kind
+    var prompt: String
+    var answers: [String]
+    var options: [String]
+    var correct: Int
+    var parts: [String]
+    var tr: String
+    var why: String
+}
+
+enum Practice {
+    static func load() -> [String: [PracticeQuestion]] {
+        let o = JS.oku(Yol.veri.appendingPathComponent("tezgah-practice.js"), ["TEZGAH_PRACTICE"])
+        guard let all = o["TEZGAH_PRACTICE"] as? [String: Any] else { return [:] }
+        return all.compactMapValues { v in
+            (v as? [[String: Any]])?.compactMap { q in
+                guard let k = PracticeQuestion.Kind(rawValue: q.s("type")) else { return nil }
+                return PracticeQuestion(kind: k, prompt: q.s("prompt"), answers: q.l("answers"), options: q.l("options"),
+                                        correct: q.i("correct") ?? 0, parts: q.l("parts"), tr: q.s("tr"), why: q.s("why"))
+            }
+        }
+    }
+    /// Lower-case, straight apostrophes, punctuation and separators dropped, single spaces.
+    static func normal(_ s: String) -> String {
+        let t = s.lowercased().replacingOccurrences(of: "’", with: "'")
+        let kept = t.unicodeScalars.map { CharacterSet.letters.contains($0) || CharacterSet.decimalDigits.contains($0) || $0 == "'" || $0 == "-" ? Character($0) : " " }
+        return String(kept).split(separator: " ").joined(separator: " ")
+    }
+}
+
 // MARK: - Arşiv (tezgah_arsiv.py'nin ürettiği geçmiş + sicil)
 
 struct ArsivCumle: Hashable {
@@ -232,11 +266,17 @@ struct Sozcuk: Hashable {
     var w: String; var tr: String; var cefr: String; var pos: String; var phon: String; var def: String; var ex: [String]; var ses: String
 }
 
+/// Loaded on a background task while the main thread already looks words up, so the state is one
+/// snapshot swapped in under a lock (the legitimate `@unchecked Sendable` case: internal locking).
 final class Sozluk: @unchecked Sendable {
     static let ox = "https://www.oxfordlearnersdictionaries.com/media/english/"
-    private(set) var kayit: [String: Sozcuk] = [:]
-    private(set) var yazim: Set<String> = []
-    private(set) var hazir = false
+    private struct Durum { var kayit: [String: Sozcuk] = [:]; var yazim: Set<String> = []; var hazir = false }
+    private let kilit = NSLock()
+    private var durum = Durum()
+    private var anlik: Durum { kilit.lock(); defer { kilit.unlock() }; return durum }
+    var kayit: [String: Sozcuk] { anlik.kayit }
+    var yazim: Set<String> { anlik.yazim }
+    var hazir: Bool { anlik.hazir }
 
     func yukle() {
         let o = JS.oku(Yol.veri.appendingPathComponent("tezgah-sozluk.js"), ["TEZGAH_SOZLUK", "TEZGAH_YAZIM"])
@@ -256,13 +296,14 @@ final class Sozluk: @unchecked Sendable {
             let w = String(onceki.prefix(n)) + String(satir.dropFirst())
             y.insert(w); onceki = w
         }
-        kayit = k; yazim = y; hazir = true
+        kilit.lock(); durum = Durum(kayit: k, yazim: y, hazir: true); kilit.unlock()
     }
 
     /// Kelimenin sözlük kaydı: kendisi yoksa gövdesi.
     func bul(_ kelime: String) -> Sozcuk? {
         var w = kelime.lowercased()
         if let r = w.firstIndex(where: { $0 == "'" || $0 == "’" }) { w = String(w[..<r]) }
+        let kayit = self.kayit
         if let s = kayit[w] { return s }
         for g in Metin.govdeler(w) { if let s = kayit[g] { return s } }
         return nil
@@ -271,7 +312,8 @@ final class Sozluk: @unchecked Sendable {
     private static let kisaltma: Set<String> = ["t", "s", "re", "ve", "ll", "d", "m"]
     func dogruMu(_ kelime: String) -> Bool {
         let w = kelime.lowercased()
-        if w.isEmpty || w.contains(where: \.isNumber) || !hazir { return true }
+        let d = anlik, yazim = d.yazim
+        if w.isEmpty || w.contains(where: \.isNumber) || !d.hazir { return true }
         if w.contains("'") || w.contains("’") {
             let p = w.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "'" || $0 == "’" }).map(String.init)
             let kok = p[0], son = p.dropFirst().joined()

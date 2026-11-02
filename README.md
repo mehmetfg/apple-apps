@@ -25,6 +25,13 @@ interface is in Turkish.
 | [ema](ios/ema) | iOS | An experimental on-device Turkish TTS (ONNX + eSpeak NG). |
 | [fon](ios/fon) | iOS | Background music under spoken audio. Retired and replaced by tini. |
 
+## Shared code
+
+- [shared/PDMBus](shared/PDMBus): a Swift package for the PDM bus. An app writes events
+  (`_bus/events/<app>/<device>.jsonl` in the vault) and reads the shared state (`_bus/state/`).
+  It uses the App Group `group.com.fatihgocgun.pdm`. `link_xcode.py` adds it to an Xcode project.
+  Linked now: asina, vitrin, saray, disli, engineering.
+
 ## How it is built
 
 - iOS apps: open `ios/<App>.xcodeproj` in Xcode 16 or later.

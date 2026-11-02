@@ -54,12 +54,13 @@ struct SureclerEkrani: View {
     }
 
     func suzgec(_ d: Durumlar) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 cip("hepsi", "Hepsi", "square.grid.2x2", .accentColor)
                 ForEach(d.veri.alanlar) { a in cip(a.id, a.kisa, Tema.alanSimge(a.id), Tema.alan(a.id)) }
             }
         }
+        .scrollIndicators(.hidden)
     }
 
     func cip(_ id: String, _ ad: String, _ simge: String, _ renk: Color) -> some View {
@@ -239,7 +240,7 @@ struct SurecDetay: View {
             if let i = s.ilerleme {
                 HStack(spacing: 16) {
                     Halka(oran: i.oran, renk: renk, kalinlik: 10).frame(width: 90, height: 90)
-                        .overlay(Text("%\(Int(i.oran * 100))").font(.yuvarlak(20, .bold)))
+                        .overlay { Text("%\(Int(i.oran * 100))").font(.yuvarlak(20, .bold)) }
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(i.a) / \(i.b)").font(.yuvarlak(24, .bold))
                         Text(i.birim).font(.system(size: 13)).foregroundStyle(.secondary)

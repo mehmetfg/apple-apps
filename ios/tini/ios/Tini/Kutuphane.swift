@@ -65,7 +65,7 @@ struct KutuphaneEkrani: View {
             .overlay(alignment: .bottom) {
                 if let mesaj {
                     Text(mesaj).font(.footnote).padding(10).background(.regularMaterial, in: Capsule()).padding()
-                        .onTapGesture { self.mesaj = nil }
+                        .onTapGesture { self.mesaj = nil }.accessibilityAddTraits(.isButton)
                 } else if calar.taraniyor || esitleniyor {
                     HStack(spacing: 8) { ProgressView(); Text(esitleniyor ? "Eşitleniyor…" : "Taranıyor…") }
                         .font(.footnote).padding(10).background(.regularMaterial, in: Capsule()).padding()
@@ -277,7 +277,7 @@ struct BicimRozeti: View {
         Text(bicim)
             .font(.system(size: kucuk ? 9 : 11, weight: .bold, design: .rounded))
             .padding(.horizontal, kucuk ? 4 : 6).padding(.vertical, kucuk ? 1 : 2)
-            .overlay(RoundedRectangle(cornerRadius: 3).stroke(lineWidth: 1))
+            .overlay { RoundedRectangle(cornerRadius: 3).stroke(lineWidth: 1) }
             .foregroundStyle(bicim.hasPrefix("FLAC") || bicim.hasPrefix("ALAC") || bicim.hasPrefix("WAV") || bicim == "Hi-Res" ? Color.orange : .secondary)
     }
 }

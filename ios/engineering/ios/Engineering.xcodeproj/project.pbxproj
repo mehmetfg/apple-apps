@@ -10,6 +10,10 @@
 		E1A000000000000000000F01 /* Engineering.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Engineering.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXBuildFile section */
+		PDB97A934D33F6485B580294 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PDD4BA046014CDB715FCFA40 /* PDMBus */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		E1A000000000000000001A01 /* Exceptions for "Engineering" folder in "Engineering" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -29,6 +33,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDB97A934D33F6485B580294 /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +76,7 @@
 			);
 			name = Engineering;
 			packageProductDependencies = (
+				PDD4BA046014CDB715FCFA40 /* PDMBus */,
 			);
 			productName = Engineering;
 			productReference = E1A000000000000000000F01 /* Engineering.app */;
@@ -101,6 +107,9 @@
 			);
 			mainGroup = E1A000000000000000001D01;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PD0E2EC7F4BB59D5160CB1B2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E1A000000000000000001D02 /* Products */;
 			projectDirPath = "";
@@ -183,6 +192,7 @@
 		E1A000000000000000002D03 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Engineering/Engineering.entitlements;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -217,6 +227,7 @@
 		E1A000000000000000002D04 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Engineering/Engineering.entitlements;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -270,6 +281,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PD0E2EC7F4BB59D5160CB1B2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PDD4BA046014CDB715FCFA40 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PD0E2EC7F4BB59D5160CB1B2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E1A000000000000000001F01 /* Project object */;
 }

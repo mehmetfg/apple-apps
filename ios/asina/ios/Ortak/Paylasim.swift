@@ -6,6 +6,7 @@ enum Paylasim {
     static let grup = "group.com.fatihgocgun.asina"
     static let widgetTuru = "AsinaKelime"
     static let ilerlemeTuru = "AsinaIlerleme"
+    static let cumleTuru = "AsinaCumle"
 
     static var kapsayici: URL {
         if let u = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: grup) {
@@ -32,6 +33,7 @@ enum Paylasim {
 
     // Widget düğmelerinin durumu
     static let siraAnahtari = "widget.sira"
+    static let cumleSiraAnahtari = "widget.cumlesira"
     static let acikAnahtari = "widget.acik"
     static let hatirlaAnahtari = "widget.oncehatirla"
     static let oxfordAnahtari = "ayar.oxfordsesi"
@@ -49,7 +51,14 @@ struct WKelime: Codable, Hashable, Identifiable {
     let p: String
     let asama: Int          // -1 = bugün yeni
     var au: String? = nil
+    /// Cümle Tezgâhı kelimesiyse: günü, geçtiği cümle ve Türkçesi
+    var cg: Int? = nil
+    var cu: String? = nil
+    var ct: String? = nil
     var pv: Bool { p == "deyimsel fiil" }
+    var cumleden: Bool { cg != nil }
+    /// Widget/bildirimde gösterilecek cümle: önce Tezgâh cümlesi, yoksa Oxford örneği
+    var ornek: String? { (cu?.isEmpty == false ? cu : nil) ?? x }
 
     var id: Int { i }
 }
@@ -66,6 +75,10 @@ struct Anlik: Codable {
     var depoKalan: Int
     /// Son 7 günün yapılan sayıları (eskiden yeniye)
     var hafta: [Int]
+    /// Cümle Tezgâhı'nın bugünkü 6 yeni kelimesi
+    var cumle: [WKelime]? = nil
+    var cumleGun: Int? = nil
+    var cumleBaslik: String? = nil
 
     func kelimeler(_ gun: Date = Date()) -> [WKelime] {
         if let k = gunler[gun.gunAnahtari], !k.isEmpty { return k }

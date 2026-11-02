@@ -223,6 +223,10 @@ enum OlayTuru: String, Codable {
     case kendiCumle     // bildirimden ya da akıştan yazılan kendi cümle (metin); rol: alinti · yorum · fikir
                         // deger: true = yazarken/konuşurken asıl metne bakıldı (hatırlama perdesi açıldı)
     case kademe         // elle kademe ayarı (hat, kademe)
+    // Sabah (2026-10-26): hedef = session day; rol = step; metin = listening days the session covered
+    case morningStep    // a step of the morning session finished (rol: contact · marks · recall · review), metin: what was written
+    case morningCard    // an active-recall card answered (hedef: card id, not: 1…4)
+    case morningDone    // the day's session closed (metin: "2026-10-24,2026-10-26")
 }
 
 struct Olay: Codable, Identifiable, Hashable {

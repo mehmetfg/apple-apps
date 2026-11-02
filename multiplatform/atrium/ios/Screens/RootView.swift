@@ -110,10 +110,10 @@ struct Toast: View {
                 .padding(.top, 8)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .task(id: m) {
-                    try? await Task.sleep(nanoseconds: 2_800_000_000)
+                    try? await Task.sleep(for: .milliseconds(2800))
                     withAnimation { store.message = nil }
                 }
-                .onTapGesture { store.message = nil }
+                .onTapGesture { store.message = nil }.accessibilityAddTraits(.isButton)
         }
     }
 }

@@ -546,19 +546,21 @@ enum Taslak {
 enum Canli {
     static func baslat(_ o: Oturum) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        for a in Activity<OkumaEtkinligi>.activities { Task { await a.end(nil, dismissalPolicy: .immediate) } }
+        let eskiler = Activity<OkumaEtkinligi>.activities
+        Task { for a in eskiler { await a.end(nil, dismissalPolicy: .immediate) } }
         let ic = ActivityContent(state: OkumaEtkinligi.ContentState(baslangic: o.baslangic, isaret: o.isaret), staleDate: nil)
         _ = try? Activity.request(attributes: OkumaEtkinligi(kitapAdi: o.kitapAdi, soru: o.soru), content: ic, pushType: nil)
     }
 
     static func guncelle(_ o: Oturum) {
-        for a in Activity<OkumaEtkinligi>.activities {
-            Task { await a.update(ActivityContent(state: .init(baslangic: o.baslangic, isaret: o.isaret), staleDate: nil)) }
-        }
+        let icerik = ActivityContent(state: OkumaEtkinligi.ContentState(baslangic: o.baslangic, isaret: o.isaret), staleDate: nil)
+        let etkinlikler = Activity<OkumaEtkinligi>.activities
+        Task { for a in etkinlikler { await a.update(icerik) } }
     }
 
     static func bitir() {
-        for a in Activity<OkumaEtkinligi>.activities { Task { await a.end(nil, dismissalPolicy: .immediate) } }
+        let eskiler = Activity<OkumaEtkinligi>.activities
+        Task { for a in eskiler { await a.end(nil, dismissalPolicy: .immediate) } }
     }
 }
 
@@ -581,11 +583,14 @@ enum Spotlight {
             a.contentDescription = String(x.metin.prefix(300))
             ogeler.append(CSSearchableItem(uniqueIdentifier: "isaret/\(x.id)", domainIdentifier: "isaret", attributeSet: a))
         }
-        CSSearchableIndex.default().deleteAllSearchableItems { _ in CSSearchableIndex.default().indexSearchableItems(ogeler) }
+        let liste = ogeler   // a constant snapshot for the completion handler
+        CSSearchableIndex.default().deleteAllSearchableItems { _ in CSSearchableIndex.default().indexSearchableItems(liste) }
     }
 }
 
 // MARK: dokunsal geri bildirim
+
+@MainActor   // UIKit feedback generators must be used on the main thread
 
 enum Haptik {
     static func hafif() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }

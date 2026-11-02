@@ -44,7 +44,7 @@ struct DepoEkrani: View {
                     .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                    ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollView(.horizontal) {
                         HStack(spacing: 8) {
                             ForEach(["Tümü", "A1", "A2", "B1", "B2", "C1"], id: \.self) { b in
                                 Button { withAnimation { bant = b } } label: {
@@ -58,6 +58,7 @@ struct DepoEkrani: View {
                             }
                         }
                     }
+                    .scrollIndicators(.hidden)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 6, trailing: 0))
                 }

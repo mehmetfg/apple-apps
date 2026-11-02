@@ -21,7 +21,7 @@ struct Kabuk: View {
                 .tint(R.vurgu)
             } else {
                 VStack(spacing: 14) {
-                    Text("aşina").font(.kelime(44)).foregroundStyle(R.vurgu)
+                    Text("VocuTeach").font(.kelime(40, .bold)).foregroundStyle(R.cumle)
                     ProgressView()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -46,7 +46,9 @@ struct BugunEkrani: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     baslik
+                    vaultUyarisi
                     gununKarti
+                    cumleKarti
                     gununKelimeleri
                     ayiklaKarti
                     haftaSeridi
@@ -65,6 +67,30 @@ struct BugunEkrani: View {
         .onAppear { goster = true }
     }
 
+    /// Vault bağlı değilse ilerleme Mac'e hiç gitmez (2026-10-15'e dek `telefon/ilerleme.json` bu yüzden boştu).
+    /// Sessiz kalmasın: Bugün'ün başında görünür, bağlanınca kaybolur.
+    @ViewBuilder private var vaultUyarisi: some View {
+        let kokDegil = depo.busRapor?.status == .notVaultRoot
+        if !depo.kasa.bagli || kokDegil {
+            Button { ayarlar = true } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "exclamationmark.icloud").font(.title3).foregroundStyle(R.yanlis)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(kokDegil ? "Seçilen klasör vault kökü değil" : "Vault bağlı değil")
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(R.murekkep)
+                        Text(kokDegil ? "Ayarlar › Vault › Personel Data Management klasörünün kendisini seç."
+                                      : "İlerlemen ve \"biliyorum\" kararların Mac'e gitmiyor. Ayarlar › Vault klasörünü seç.")
+                            .font(.footnote).foregroundStyle(R.ikincil).multilineTextAlignment(.leading)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(14)
+                .background(R.yanlis.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var baslik: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
@@ -77,7 +103,7 @@ struct BugunEkrani: View {
                 Image(systemName: "slider.horizontal.3")
                     .font(.body.weight(.semibold)).foregroundStyle(R.murekkep)
                     .frame(width: 40, height: 40).background(R.yuzey, in: Circle())
-            }
+            }.accessibilityLabel("Ayarlar")
         }
         .padding(.top, 12)
     }
@@ -146,6 +172,60 @@ struct BugunEkrani: View {
         oturum = o
     }
 
+    /// Cümle Tezgâhı'nın günü: 6 yeni kelime — Türkçe, İngilizce tanım, Tezgâh cümlesi. Destede ilk sıradalar,
+    /// widget ve bildirimlerde gün boyu döner. Vault bağlı değilken masa ilerlemezse gün elle değiştirilir.
+    @ViewBuilder private var cumleKarti: some View {
+        if let g = depo.cumleGunu {
+            let gunler = depo.cumleGunNumaralari
+            let i = gunler.firstIndex(of: g.gun) ?? 0
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("CÜMLE TEZGÂHI · GÜN \(g.gun)").font(.caption.weight(.heavy)).tracking(0.6)
+                            .foregroundStyle(R.cumle)
+                        Text(g.baslik).font(.kelime(20, .bold)).foregroundStyle(R.murekkep)
+                    }
+                    Spacer()
+                    Button { if i > 0 { depo.cumleGunuSec(gunler[i - 1]); depo.planla() } } label: {
+                        Image(systemName: "chevron.left").frame(width: 32, height: 32).background(R.yuzey2, in: Circle())
+                    }
+                    .disabled(i == 0)
+                    Button { if i + 1 < gunler.count { depo.cumleGunuSec(gunler[i + 1]); depo.planla() } } label: {
+                        Image(systemName: "chevron.right").frame(width: 32, height: 32).background(R.yuzey2, in: Circle())
+                    }
+                    .disabled(i + 1 >= gunler.count)
+                }
+                .font(.footnote.weight(.bold)).tint(R.cumle)
+                ForEach(depo.cumleKelimeleri, id: \.0.i) { k, c in
+                    Button { depo.acilacakKelime = k } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(k.w).font(.kelime(18, .bold)).foregroundStyle(R.murekkep)
+                                Text(k.tr).font(.subheadline.weight(.semibold)).foregroundStyle(R.murekkep)
+                                Spacer(minLength: 0)
+                                if let kart = depo.kart(k) { AsamaRozeti(asama: kart.asama) }
+                            }
+                            Text(k.d).font(.caption).foregroundStyle(R.ikincil).lineLimit(2)
+                            if !c.en.isEmpty {
+                                Text(Vurgu.metin(c.en, k.w, renk: R.cumle)).font(.kelime(13, .regular))
+                                    .foregroundStyle(R.murekkep).lineLimit(3)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
+                    }
+                    .buttonStyle(Bas())
+                    if k.i != depo.cumleKelimeleri.last?.0.i { Divider().overlay(R.cizgi) }
+                }
+                if g.gun != depo.cumlePaket?.masa {
+                    Text("Masadaki gün \(depo.cumlePaket?.masa ?? 0); vault bağlanınca kendiliğinden ilerler.")
+                        .font(.caption2).foregroundStyle(R.soluk)
+                }
+            }
+            .kart()
+        }
+    }
+
     private var gununKelimeleri: some View {
         let l = depo.yeniler()
         return VStack(alignment: .leading, spacing: 10) {
@@ -154,13 +234,14 @@ struct BugunEkrani: View {
                 Spacer()
                 Text("dokun → çevir").font(.caption).foregroundStyle(R.soluk)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 LazyHStack(spacing: 12) {
                     ForEach(l) { k in CevirKart(k: k) }
                 }
                 .scrollTargetLayout()
                 .padding(.vertical, 4)
             }
+            .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned)
             .scrollClipDisabled()
         }
@@ -236,16 +317,14 @@ struct CevirKart: View {
             arkaYuz.opacity(arka ? 1 : 0).rotation3DEffect(.degrees(180), axis: (0, 1, 0))
         }
         .frame(width: 210, height: 150)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous).fill(R.yuzey)
-                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(R.bantZemin(k.c, pv: k.isPV)))
-        )
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(R.ton(k.c, pv: k.isPV).opacity(0.25), lineWidth: 1))
+        .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(R.yuzey)
+                .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(R.bantZemin(k.c, pv: k.isPV)) } }
+        .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(R.ton(k.c, pv: k.isPV).opacity(0.25), lineWidth: 1) }
         .rotation3DEffect(.degrees(arka ? 180 : 0), axis: (0, 1, 0), perspective: 0.6)
         .onTapGesture {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) { arka.toggle() }
             if arka { Ses.ortak.soyle(k, oxford: depo.ayar.oxfordSesi) }
-        }
+        }.accessibilityAddTraits(.isButton)
         .onLongPressGesture { depo.acilacakKelime = k }
         .sensoryFeedback(.impact(weight: .light), trigger: arka)
     }

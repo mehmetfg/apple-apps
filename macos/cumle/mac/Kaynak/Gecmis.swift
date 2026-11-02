@@ -71,6 +71,14 @@ struct GenelBakis: View {
                 Kutu(k: "hatırlama ort.", v: ort(gunler.compactMap(\.recallYuzde)))
             }
             Kart {
+                HStack {
+                    Baslik(metin: "Telefonda dinleme", alt: "Memories · yarım dinlemeler dahil")
+                    Spacer()
+                    Button("Ayrıntı") { t.gorunum = .dinleme }.buttonStyle(.borderless)
+                }
+                ListeningView(compact: true)
+            }
+            Kart {
                 Baslik(metin: "Tutturma eğrisi", alt: "gün gün · %")
                 Chart {
                     ForEach(sirali) { g in
@@ -188,7 +196,7 @@ struct GunDetay: View {
                 if !g.ozet.isEmpty { Kart { Baslik(metin: "Mesele ne?"); Text(g.ozet) } }
                 ForEach(g.cumleler, id: \.no) { c in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(c.en).font(.serif(18)).onTapGesture { t.ses.soyle(c.en) }
+                        Text(c.en).font(.serif(18)).onTapGesture { t.ses.soyle(c.en) }.accessibilityAddTraits(.isButton)
                         if tr { Text(c.tr).foregroundStyle(.secondary) }
                     }
                 }
@@ -199,7 +207,7 @@ struct GunDetay: View {
                             Text("\(c.no)").font(.headline).foregroundStyle(.tertiary)
                             Text(c.tr).foregroundStyle(.secondary)
                             Spacer()
-                            Button { t.ses.soyle(c.en) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.borderless)
+                            Button { t.ses.soyle(c.en) } label: { Image(systemName: "speaker.wave.2") }.accessibilityLabel("Dinle").buttonStyle(.borderless)
                         }
                         if c.yazim.isEmpty { Text("yazılmadı").foregroundStyle(.tertiary) } else { FarkGorunum(fark: Metin.fark(c.en, c.yazim), boyut: 16) }
                         HStack {
@@ -223,7 +231,7 @@ struct GunDetay: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text(h == "tam" ? "✓" : h == "kismi" ? "~" : "✗").foregroundStyle(h == "tam" ? Renk.yesil : h == "kismi" ? Renk.sari : Renk.kirmizi)
                         VStack(alignment: .leading) {
-                            (Text(p.first ?? "") + Text(s.cevap).bold() + Text(p.dropFirst().joined(separator: "____"))).font(.serif(16))
+                            Text("\(Text(p.first ?? ""))\(Text(s.cevap).bold())\(Text(p.dropFirst().joined(separator: "____")))").font(.serif(16))
                             Text(s.tip + (s.verilen.filter { !$0.isEmpty }.isEmpty ? "" : " · yazdığın: " + s.verilen.filter { !$0.isEmpty }.joined(separator: " → ")))
                                 .font(.caption).foregroundStyle(.secondary)
                         }

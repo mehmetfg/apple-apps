@@ -151,3 +151,6 @@ o = f"""// !$*UTF8*$!
 d = YER / "Saray.xcodeproj"; d.mkdir(exist_ok=True)
 (d / "project.pbxproj").write_text(o, encoding="utf-8")
 print("yazıldı:", d / "project.pbxproj")
+# PDM Ağı: ortak PDMBus paketi + group.com.fatihgocgun.pdm (üretilen projeye her seferinde yeniden bağlanır)
+import subprocess, sys
+subprocess.run([sys.executable, str(YER.parent.parent.parent / "shared/PDMBus/link_xcode.py"), str(d), "Saray"], check=True)

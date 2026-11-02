@@ -60,8 +60,8 @@ struct WalkmanDeri: View {
             .foregroundStyle(Color(white: 0.3))
         }
         .padding(18)
-        .background(FircaliMetal().clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous)))
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(LinearGradient(colors: [.white.opacity(0.9), .black.opacity(0.4)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5))
+        .background { FircaliMetal().clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous)) }
+        .overlay { RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(LinearGradient(colors: [.white.opacity(0.9), .black.opacity(0.4)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5) }
         .shadow(color: .black.opacity(0.7), radius: 20, y: 12)
     }
 
@@ -99,7 +99,7 @@ struct WalkmanDeri: View {
                                             : [Color(red: 0.64, green: 0.69, blue: 0.56), Color(red: 0.55, green: 0.60, blue: 0.48)],
                                startPoint: .top, endPoint: .bottom),
                 in: RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.black.opacity(0.6), lineWidth: 3))
+            .overlay { RoundedRectangle(cornerRadius: 6).stroke(Color.black.opacity(0.6), lineWidth: 3) }
             .shadow(color: isik ? .orange.opacity(0.6) : .clear, radius: 10)
         }
         .buttonStyle(.plain)
@@ -184,7 +184,7 @@ private struct KasetPenceresi: View {
                 }
             }
         }
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 4))
+        .overlay { RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.8), lineWidth: 4) }
     }
 
     private func aciHesapla(_ simdi: Date) -> Double {
@@ -230,7 +230,7 @@ private struct MegaBassAnahtari: View {
                 let yeni = (konum + 1) % 3
                 if ses.ayar.basSeviye < 3 { ses.ayar.basSeviye = 6 }
                 ses.ayar.bas = [.kapali, .megaBass, .groove][yeni]
-            }
+            }.accessibilityAddTraits(.isButton)
             HStack(spacing: 0) {
                 Text("OFF").frame(width: 28); Text("MEGA").frame(width: 28); Text("GROOVE").frame(width: 30)
             }
@@ -250,7 +250,7 @@ private struct AVLSAnahtari: View {
                 RoundedRectangle(cornerRadius: 3).fill(Color(white: 0.75)).frame(width: 20, height: 14).padding(.horizontal, 1)
             }
             .animation(.spring(response: 0.25), value: calar.avls)
-            .onTapGesture { calar.avls.toggle() }
+            .onTapGesture { calar.avls.toggle() }.accessibilityAddTraits(.isButton)
             HStack(spacing: 6) { Text("NORM"); Text("LIMIT") }.font(.system(size: 6.5, weight: .bold)).foregroundStyle(Color(white: 0.3))
         }
         .sensoryFeedback(.selection, trigger: calar.avls)
@@ -319,12 +319,11 @@ private struct MetalBasis: ButtonStyle {
     var kose: CGFloat = 12
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: kose)
+            .background { RoundedRectangle(cornerRadius: kose)
                     .fill(LinearGradient(colors: configuration.isPressed ? [Color(white: 0.6), Color(white: 0.78)] : [Color(white: 0.92), Color(white: 0.62)],
                                          startPoint: .top, endPoint: .bottom))
-                    .shadow(color: .black.opacity(configuration.isPressed ? 0.2 : 0.6), radius: configuration.isPressed ? 1 : 4, y: configuration.isPressed ? 1 : 3))
-            .overlay(RoundedRectangle(cornerRadius: kose).stroke(Color.white.opacity(0.7), lineWidth: 0.8))
+                    .shadow(color: .black.opacity(configuration.isPressed ? 0.2 : 0.6), radius: configuration.isPressed ? 1 : 4, y: configuration.isPressed ? 1 : 3) }
+            .overlay { RoundedRectangle(cornerRadius: kose).stroke(Color.white.opacity(0.7), lineWidth: 0.8) }
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }

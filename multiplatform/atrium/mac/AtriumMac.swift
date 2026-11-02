@@ -6,6 +6,8 @@ struct AtriumMac: App {
     @StateObject private var store = VaultStore()
     @StateObject private var router = Router()
 
+    init() { AppUpdater.start() }
+
     var body: some Scene {
         WindowGroup("Atrium") {
             RootView()

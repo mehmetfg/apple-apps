@@ -43,7 +43,7 @@ struct HataAviOyunu: View {
                 Spacer(minLength: 0)
                 altKisim
             }
-            .background(Lekeler(renkler: [Oyun.hata.renk, Tema.renk("turuncu"), Tema.vurgu]))
+            .background { Lekeler(renkler: [Oyun.hata.renk, Tema.renk("turuncu"), Tema.vurgu]) }
             .onAppear { if deste.isEmpty { kur() } }
         }
     }
@@ -74,7 +74,7 @@ struct HataAviOyunu: View {
                 NoktaEtiket(metin: k.konu.tr, renk: depo.renk(k.konu))
                     .font(.caption.weight(.bold)).foregroundStyle(renk)
                 Spacer()
-                Button { Ses.konus(k.cumle) } label: { Image(systemName: "speaker.wave.2.fill").foregroundStyle(renk) }
+                Button { Ses.konus(k.cumle) } label: { Image(systemName: "speaker.wave.2.fill").foregroundStyle(renk) }.accessibilityLabel("Dinle")
             }
             if asama == 0 {
                 Text(k.cumle).font(Tema.ingilizce(.title2, .medium)).fixedSize(horizontal: false, vertical: true)
@@ -83,8 +83,8 @@ struct HataAviOyunu: View {
                     ForEach(Array(kelimeler.enumerated()), id: \.offset) { n, w in
                         Text(w).font(Tema.ingilizce(.title3, .medium))
                             .padding(.horizontal, 8).padding(.vertical, 5)
-                            .background(RoundedRectangle(cornerRadius: 9).fill(kelimeZemini(k, n)))
-                            .onTapGesture { kelimeyeDokun(k, n) }
+                            .background { RoundedRectangle(cornerRadius: 9).fill(kelimeZemini(k, n)) }
+                            .onTapGesture { kelimeyeDokun(k, n) }.accessibilityAddTraits(.isButton)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -104,7 +104,7 @@ struct HataAviOyunu: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity, minHeight: 260, alignment: .topLeading)
-        .background(RoundedRectangle(cornerRadius: 28, style: .continuous).fill(Tema.yuzey))
+        .background { RoundedRectangle(cornerRadius: 28, style: .continuous).fill(Tema.yuzey) }
         .overlay(alignment: .topLeading) { etiket("DOĞRU", Tema.dogru).opacity(Double(max(0, surukle.width / 120))) }
         .overlay(alignment: .topTrailing) { etiket("YANLIŞ", Tema.yanlis).opacity(Double(max(0, -surukle.width / 120))) }
         .shadow(color: .black.opacity(0.1), radius: 16, y: 8)
@@ -123,7 +123,7 @@ struct HataAviOyunu: View {
     private func etiket(_ m: String, _ r: Color) -> some View {
         Text(m).font(.system(.title3, design: .rounded).weight(.black)).foregroundStyle(r)
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(r, lineWidth: 3))
+            .overlay { RoundedRectangle(cornerRadius: 10).stroke(r, lineWidth: 3) }
             .rotationEffect(.degrees(m == "DOĞRU" ? -12 : 12))
             .padding(28)
     }
@@ -149,7 +149,7 @@ struct HataAviOyunu: View {
             } else {
                 Button { sonraki() } label: {
                     Text("Sonraki").font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Capsule().fill(Oyun.hata.renk))
+                        .background { Capsule().fill(Oyun.hata.renk) }
                 }
                 .buttonStyle(.plain).padding(.horizontal, 20).padding(.bottom, 20)
             }
@@ -158,7 +158,7 @@ struct HataAviOyunu: View {
 
     private func yuvarlak(_ s: String, _ r: Color) -> some View {
         Image(systemName: s).font(.title.weight(.bold)).foregroundStyle(.white)
-            .frame(width: 72, height: 72).background(Circle().fill(r)).shadow(color: r.opacity(0.4), radius: 10, y: 5)
+            .frame(width: 72, height: 72).background { Circle().fill(r) }.shadow(color: r.opacity(0.4), radius: 10, y: 5)
     }
 
     // MARK: Akış

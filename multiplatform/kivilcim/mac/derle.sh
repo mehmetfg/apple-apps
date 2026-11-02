@@ -3,10 +3,11 @@
 # Ortak çekirdek ios/Ortak/ altındadır (telefonla aynı veri modeli, arama, kural sınıflayıcı).
 #   zsh "_araçlar/kivilcim/mac/derle.sh"
 set -e
+UPDATER="${0:A:h:h:h:h}/shared/AppUpdater"   # resolved before cd: $0 may be relative
 cd "${0:A:h}"
 SDK=$(xcrun --show-sdk-path --sdk macosx 2>/dev/null || echo /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
 GECICI=$(mktemp -d)
-KAYNAK=(Kaynak/*.swift ../ios/Ortak/Veri.swift ../ios/Ortak/Renk.swift)
+KAYNAK=(Kaynak/*.swift ../ios/Ortak/Veri.swift ../ios/Ortak/Renk.swift "$UPDATER/AppUpdater.swift")
 for MIMARI in arm64 x86_64; do
   swiftc -O -swift-version 5 -parse-as-library -target $MIMARI-apple-macos14.0 -sdk "$SDK" $KAYNAK -o "$GECICI/Kivilcim-$MIMARI"
 done
@@ -20,6 +21,7 @@ cp Kivilcim.icns "$APP/Contents/Resources/"
 # Geliştirici kimliğiyle imzala: mikrofon izni her derlemede yeniden sorulmasın. Kimlik yoksa geçici imza.
 KIMLIK=$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/Apple Development/{print $2; exit}')
 codesign --force --deep --sign "${KIMLIK:--}" "$APP"
+zsh "$UPDATER/publish.sh" "$APP" Kivilcim   # iCloud update for the other Mac
 rm -rf "$GECICI"
 echo "Kıvılcım.app hazır: $APP (imza: ${KIMLIK:-geçici})"
 [ "$ACIKTI" = 1 ] && open "$APP" || true

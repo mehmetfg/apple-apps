@@ -42,7 +42,7 @@ struct KutuEkrani: View {
                                 .contextMenu { IsaretMenusu(x: x) }
                                 .draggable(x.id) {
                                     Text(x.metin.prefix(80) + "…").font(.serif(14)).padding(10).frame(width: 240)
-                                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.kart))
+                                        .background { RoundedRectangle(cornerRadius: 12).fill(Color.kart) }
                                 }
                                 .transition(.asymmetric(insertion: .opacity, removal: .scale(scale: 0.8).combined(with: .opacity)))
                         }
@@ -79,7 +79,7 @@ struct KutuEkrani: View {
                     Text("\(merkez.d.kanitlar(b.id).count)").font(.system(size: 10, weight: .bold).monospacedDigit()).foregroundStyle(Color.bolum(b.no))
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 12).fill(isik ? Color.bolum(b.no).opacity(0.18) : .clear))
+                .background { RoundedRectangle(cornerRadius: 12).fill(isik ? Color.bolum(b.no).opacity(0.18) : .clear) }
                 .scaleEffect(isik ? 1.08 : 1)
                 .animation(.spring(duration: 0.25), value: isik)
                 .dropDestination(for: String.self) { idler, _ in

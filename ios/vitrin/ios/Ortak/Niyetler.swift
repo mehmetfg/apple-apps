@@ -2,6 +2,30 @@
 import AppIntents
 import AVFoundation
 import WidgetKit
+import PDMBus
+
+/// "Biliyorum" düğmesi: kelime Vitrin'de bir daha çıkmaz ve PDM Ağı'na `word.known` gider
+/// (olay App Group kutusunda bekler, Vitrin açılınca vault'a yazılır). Öteki uygulamalar da artık göstermez.
+struct BiliyorumNiyeti: AppIntent {
+    static var title: LocalizedStringResource = "Biliyorum"
+    static var description = IntentDescription("Kelimeyi bilinenlere ekler; Vitrin ve öteki uygulamalar bir daha göstermez.")
+    static var isDiscoverable = false
+
+    @Parameter(title: "Kelime") var kelime: String
+    init() {}
+    init(kelime: String) { self.kelime = kelime }
+
+    func perform() async throws -> some IntentResult {
+        if var k = Depo.tasarimOku(), !k.bilinen.contains(kelime) {
+            k.bilinen.append(kelime)
+            Depo.tasarimYaz(k)
+        }
+        PDMBus(app: "vitrin").emit("word.known", subject: PDMSubject.word(kelime), data: ["via": "widget"])
+        AgOdak.sifirla()
+        WidgetCenter.shared.reloadTimelines(ofKind: Depo.widgetTuru)
+        return .result()
+    }
+}
 
 struct CevirNiyeti: AppIntent {
     static var title: LocalizedStringResource = "Kartı çevir"
@@ -64,7 +88,8 @@ final class Ses: NSObject, AVSpeechSynthesizerDelegate {
     static let ortak = Ses()
     private let sentez = AVSpeechSynthesizer()
     private var oynatici: AVPlayer?
-    private var bitti: CheckedContinuation<Void, Never>?
+    /// One waiter per utterance: two quick taps queue two utterances, and each must end its own wait.
+    private var bekleyenler: [ObjectIdentifier: CheckedContinuation<Void, Never>] = [:]
 
     override init() {
         super.init()
@@ -76,11 +101,12 @@ final class Ses: NSObject, AVSpeechSynthesizerDelegate {
         try? AVAudioSession.sharedInstance().setActive(true)
         defer { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
         if let u = URL(string: url), !url.isEmpty, await oxford(u) { return }
+        guard !metin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let s = AVSpeechUtterance(string: metin)
         s.voice = AVSpeechSynthesisVoice(language: "en-GB")
         s.rate = 0.42
         await withCheckedContinuation { c in
-            bitti = c
+            bekleyenler[ObjectIdentifier(s)] = c
             sentez.speak(s)
         }
     }
@@ -97,11 +123,17 @@ final class Ses: NSObject, AVSpeechSynthesizerDelegate {
         oynatici = o
         o.play()
         let sure = (try? await AVURLAsset(url: dosya).load(.duration).seconds) ?? 1.5
-        try? await Task.sleep(nanoseconds: UInt64((min(sure, 4) + 0.2) * 1_000_000_000))
+        try? await Task.sleep(for: .seconds((min(sure, 4) + 0.2)))
         return true
     }
 
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish u: AVSpeechUtterance) {
-        Task { @MainActor in bitti?.resume(); bitti = nil }
+        let id = ObjectIdentifier(u)
+        Task { @MainActor in bekleyenler.removeValue(forKey: id)?.resume() }
+    }
+
+    nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didCancel u: AVSpeechUtterance) {
+        let id = ObjectIdentifier(u)
+        Task { @MainActor in bekleyenler.removeValue(forKey: id)?.resume() }
     }
 }

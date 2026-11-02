@@ -19,3 +19,10 @@ ios/asina/ios/Asina/Kaynaklar/kelimeler.json
 # large models (kept in the private archive)
 ios/ema/ios/Ortak/Model/*.onnx
 ios/saray/ios/Saray/SarayModel.mlpackage/
+
+# Voice Reader neural models (Ema, Supertonic-3) — large, kept out of the public repo
+ios/voice-reader/ios/VoiceReader/Speech/Neural/Models/
+
+# local backups and voice samples (personal books, covers, recordings)
+**/_yedek-*/
+ios/voice-reader/studio/ornek-ses-*/

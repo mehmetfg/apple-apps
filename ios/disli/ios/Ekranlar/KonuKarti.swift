@@ -29,7 +29,7 @@ struct KonuKarti: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 alt(k, renk)
             }
-            .background(Lekeler(renkler: [renk, Tema.vurgu]))
+            .background { Lekeler(renkler: [renk, Tema.vurgu]) }
             .onChange(of: sayfa) { _, s in
                 Dokunus.secim()
                 if s >= 2 {
@@ -51,7 +51,7 @@ struct KonuKarti: View {
             HStack {
                 Button { kapat() } label: {
                     Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 36, height: 36)
-                        .background(Circle().fill(Color(.tertiarySystemFill)))
+                        .background { Circle().fill(Color(.tertiarySystemFill)) }
                 }
                 .buttonStyle(.plain).accessibilityLabel("Kapat")
                 Spacer()
@@ -84,7 +84,7 @@ struct KonuKarti: View {
             if sayfa > 0 {
                 Button { withAnimation { sayfa -= 1 } } label: {
                     Image(systemName: "chevron.left").font(.headline).frame(width: 52, height: 52)
-                        .background(Circle().fill(Tema.yuzey))
+                        .background { Circle().fill(Tema.yuzey) }
                 }
                 .buttonStyle(.plain)
             }
@@ -95,7 +95,7 @@ struct KonuKarti: View {
                 Text(sayfa < 4 ? "Devam" : "Bu konudan 4 soru")
                     .font(.headline).foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(Capsule().fill(renk))
+                    .background { Capsule().fill(renk) }
             }
             .buttonStyle(.plain)
         }
@@ -113,11 +113,11 @@ struct KonuKarti: View {
         sayfaKabi {
             HStack(spacing: 8) {
                 Text("Faz \(k.faz)").font(.caption.weight(.bold)).padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Capsule().fill(renk.opacity(0.15))).foregroundStyle(renk)
+                    .background { Capsule().fill(renk.opacity(0.15)) }.foregroundStyle(renk)
                 if k.yildiz {
                     Label("kalıcı boşluk", systemImage: "star.fill").font(.caption.weight(.bold))
                         .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Capsule().fill(Tema.renk("kehribar").opacity(0.15))).foregroundStyle(Tema.renk("kehribar"))
+                        .background { Capsule().fill(Tema.renk("kehribar").opacity(0.15)) }.foregroundStyle(Tema.renk("kehribar"))
                 }
             }
             Text(k.tr).font(.system(size: 38, weight: .heavy, design: .rounded)).fixedSize(horizontal: false, vertical: true)
@@ -129,8 +129,8 @@ struct KonuKarti: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(renk.opacity(0.12)))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(renk.opacity(0.3), lineWidth: 1))
+            .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(renk.opacity(0.12)) }
+            .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(renk.opacity(0.3), lineWidth: 1) }
         }
     }
 
@@ -157,7 +157,7 @@ struct KonuKarti: View {
                         Text("Motor'da kendin çalıştır").font(.headline)
                     }
                     .frame(maxWidth: .infinity, minHeight: 50)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.zaman.opacity(0.13)))
+                    .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.zaman.opacity(0.13)) }
                     .foregroundStyle(Tema.zaman)
                 }
                 .buttonStyle(.plain)
@@ -208,7 +208,7 @@ struct KonuKarti: View {
                 } label: {
                     Label(duzeltildi ? "Yanlışa geri dön" : "Önce kendin düzelt, sonra dokun", systemImage: duzeltildi ? "arrow.uturn.backward" : "wand.and.stars")
                         .font(.headline).frame(maxWidth: .infinity, minHeight: 48)
-                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(renk.opacity(0.14)))
+                        .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(renk.opacity(0.14)) }
                         .foregroundStyle(renk)
                 }
                 .buttonStyle(.plain)
@@ -330,7 +330,7 @@ struct OrnekKutusu: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(renk.opacity(0.08)))
+        .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(renk.opacity(0.08)) }
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { Ses.konus(en) }
     }
@@ -418,7 +418,7 @@ struct KalipSatirGorunum: View {
                 Akis(aralik: 6, satirAraligi: 6, ortala: false) {
                     ForEach(satir.isaret, id: \.self) { w in
                         Text(w).font(.caption.weight(.medium)).padding(.horizontal, 9).padding(.vertical, 4)
-                            .background(Capsule().stroke(Tema.cizgi.opacity(3), lineWidth: 1))
+                            .background { Capsule().stroke(Tema.cizgi.opacity(3), lineWidth: 1) }
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -440,7 +440,7 @@ struct YuvaSatiri: View {
                 .font(.system(.body, design: .rounded).weight(.semibold))
                 .foregroundStyle(parca.t == "diger" ? Color.primary : r)
                 .padding(.horizontal, 12).padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(r.opacity(parca.t == "diger" ? 0.08 : 0.14)))
+                .background { RoundedRectangle(cornerRadius: 10, style: .continuous).fill(r.opacity(parca.t == "diger" ? 0.08 : 0.14)) }
                 .fixedSize(horizontal: false, vertical: true)
             if !parca.a.isEmpty {
                 Text(parca.a).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)

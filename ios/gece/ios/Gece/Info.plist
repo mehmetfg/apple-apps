@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array><dict><key>CFBundleURLName</key><string>com.fatihgocgun.gece</string><key>CFBundleURLSchemes</key><array><string>gece</string></array></dict></array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict><key>UIApplicationShortcutItemType</key><string>start</string><key>UIApplicationShortcutItemTitle</key><string>Gece rutinine başla</string><key>UIApplicationShortcutItemIconSymbolName</key><string>moon.stars</string></dict>
+	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>tr</string>
+</dict>
+</plist>

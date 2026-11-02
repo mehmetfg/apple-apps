@@ -63,6 +63,7 @@ final class Kayitci: NSObject, ObservableObject {
         return await withCheckedContinuation { c in
             var bitti = false
             t.recognitionTask(with: r) { s, h in
+                _ = t   // the recognizer must stay alive until the task ends, or the callback never fires
                 guard !bitti else { return }
                 if let s, s.isFinal { bitti = true; c.resume(returning: s.bestTranscription.formattedString) }
                 else if h != nil { bitti = true; c.resume(returning: nil) }
@@ -78,26 +79,37 @@ final class Konusmaci: NSObject, AVSpeechSynthesizerDelegate {
     static let shared = Konusmaci()
     private let s = AVSpeechSynthesizer()
     private var bekleyen: CheckedContinuation<Void, Never>?
+    /// The utterance the waiter belongs to. A late didCancel from a stopped utterance must not resume the next waiter.
+    private var bekleyenSoz: ObjectIdentifier?
     var aksan: String { UserDefaults.standard.string(forKey: "aksan") ?? "en-GB" }
 
     override init() { super.init(); s.delegate = self }
 
     func soyle(_ metin: String, hiz: Float = 0.46, dil: String? = nil) async {
         s.stopSpeaking(at: .immediate)
+        // An empty utterance may never report didFinish, which would stall the walk.
+        guard !metin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let u = AVSpeechUtterance(string: metin)
         let d = dil ?? aksan
         u.voice = AVSpeechSynthesisVoice.speechVoices().filter { $0.language == d }.max { $0.quality.rawValue < $1.quality.rawValue } ?? AVSpeechSynthesisVoice(language: d)
         u.rate = hiz
-        await withCheckedContinuation { c in bekleyen?.resume(); bekleyen = c; s.speak(u) }
+        await withCheckedContinuation { c in bekleyen?.resume(); bekleyen = c; bekleyenSoz = ObjectIdentifier(u); s.speak(u) }
     }
 
-    func dur() { s.stopSpeaking(at: .immediate); bekleyen?.resume(); bekleyen = nil }
+    func dur() { s.stopSpeaking(at: .immediate); bekleyen?.resume(); bekleyen = nil; bekleyenSoz = nil }
+
+    private func bitti(_ soz: ObjectIdentifier) {
+        guard soz == bekleyenSoz else { return }
+        bekleyen?.resume(); bekleyen = nil; bekleyenSoz = nil
+    }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        Task { @MainActor in self.bekleyen?.resume(); self.bekleyen = nil }
+        let soz = ObjectIdentifier(utterance)
+        Task { @MainActor in self.bitti(soz) }
     }
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        Task { @MainActor in self.bekleyen?.resume(); self.bekleyen = nil }
+        let soz = ObjectIdentifier(utterance)
+        Task { @MainActor in self.bitti(soz) }
     }
 }
 
@@ -231,6 +243,11 @@ final class Yuruyus: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in self.calmaBitti?.resume(); self.calmaBitti = nil }
+    }
+
+    /// A file that cannot be decoded never reports didFinish; without this the walk would wait forever.
+    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
         Task { @MainActor in self.calmaBitti?.resume(); self.calmaBitti = nil }
     }
 

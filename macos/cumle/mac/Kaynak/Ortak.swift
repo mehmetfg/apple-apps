@@ -5,16 +5,38 @@ import AppKit
 
 enum Renk {
     static let vurgu = Color.accentColor
-    // koyu tema: derin lacivert-siyah zemin, bir kademe açık kart
-    static let zemin = Color(red: 0.047, green: 0.055, blue: 0.075)
-    static let kart = Color(red: 0.082, green: 0.094, blue: 0.122)
-    static let kart2 = Color(red: 0.110, green: 0.125, blue: 0.158)
-    static let cizgi = Color.white.opacity(0.07)
+    /// Light/dark pair resolved per appearance (theme: System · Light · Dark).
+    static func pair(_ dark: NSColor, _ light: NSColor) -> NSColor {
+        NSColor(name: nil) { a in a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light }
+    }
+    static func rgb(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) -> NSColor { NSColor(red: r, green: g, blue: b, alpha: a) }
+    // koyu: derin lacivert-siyah zemin, bir kademe açık kart · açık: sıcak kâğıt zemin, beyaz kart
+    static let zeminNS = pair(rgb(0.047, 0.055, 0.075), rgb(0.965, 0.961, 0.949))
+    static let zemin = Color(nsColor: zeminNS)
+    static let kart = Color(nsColor: pair(rgb(0.082, 0.094, 0.122), rgb(1, 1, 1)))
+    static let kart2 = Color(nsColor: pair(rgb(0.110, 0.125, 0.158), rgb(0.937, 0.933, 0.922)))
+    static let kenar = Color(nsColor: pair(rgb(0.035, 0.041, 0.058), rgb(0.925, 0.920, 0.910)))
+    static let cizgi = Color(nsColor: pair(rgb(1, 1, 1, 0.07), rgb(0, 0, 0, 0.08)))
     static let yesil = Color(nsColor: .systemGreen)
     static let kirmizi = Color(nsColor: .systemRed)
     static let sari = Color(nsColor: .systemOrange)
     static let mor = Color(nsColor: .systemPurple)
     static let ht: [String: Color] = ["artikel": .blue, "edat": .teal, "zaman": .purple, "biçim": .red, "yazım": .orange, "kelime": .gray]
+    /// Pattern-strip token colors (grammar page), cycled by position.
+    static let tokens: [Color] = [.blue, .purple, .teal, Color(nsColor: .systemOrange), .pink, .indigo]
+}
+
+/// Window theme — stored per Mac (UserDefaults `theme`).
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var label: String { switch self { case .system: "Sistem"; case .light: "Açık"; case .dark: "Koyu" } }
+    var icon: String { switch self { case .system: "circle.lefthalf.filled"; case .light: "sun.max"; case .dark: "moon" } }
+    var scheme: ColorScheme? { switch self { case .system: nil; case .light: .light; case .dark: .dark } }
+    var appearance: NSAppearance? {
+        switch self { case .system: nil; case .light: NSAppearance(named: .aqua); case .dark: NSAppearance(named: .darkAqua) }
+    }
+    static var stored: AppTheme { AppTheme(rawValue: UserDefaults.standard.string(forKey: "theme") ?? "") ?? .dark }
 }
 
 extension Font {
@@ -28,8 +50,8 @@ struct Kart<I: View>: View {
         VStack(alignment: .leading, spacing: 10) { icerik }
             .padding(dolgu)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Renk.kart))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Renk.cizgi))
+            .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Renk.kart) }
+            .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Renk.cizgi) }
     }
 }
 
@@ -55,7 +77,7 @@ struct Cip: View {
         }
         .font(.caption)
         .padding(.horizontal, 8).padding(.vertical, 3)
-        .background(Capsule().fill(renk.opacity(0.13)))
+        .background { Capsule().fill(renk.opacity(0.13)) }
         .foregroundStyle(renk == .secondary ? Color.secondary : renk)
     }
 }
@@ -72,7 +94,7 @@ struct Kutu: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Renk.kart2))
+        .background { RoundedRectangle(cornerRadius: 10).fill(Renk.kart2) }
     }
 }
 
@@ -197,7 +219,7 @@ struct FarkGorunum: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Renk.yesil.opacity(0.1)))
+            .background { RoundedRectangle(cornerRadius: 12).fill(Renk.yesil.opacity(0.1)) }
         } else {
             VStack(alignment: .leading, spacing: 10) {
                 Akis(aralik: 5, satir: 4) {
@@ -221,7 +243,7 @@ struct FarkGorunum: View {
             case .yanlis, .fazla: Text(c.alt).font(.serif(boyut)).strikethrough(color: Renk.kirmizi).foregroundStyle(Renk.kirmizi)
             case .eksik: Text(c.alt).font(.serif(boyut, .bold)).foregroundStyle(Renk.yesil)
             case .eksikBlok: Text(c.alt).font(.serif(boyut)).foregroundStyle(Renk.yesil)
-                .padding(.horizontal, 4).background(RoundedRectangle(cornerRadius: 4).fill(Renk.yesil.opacity(0.12)))
+                .padding(.horizontal, 4).background { RoundedRectangle(cornerRadius: 4).fill(Renk.yesil.opacity(0.12)) }
                 .help("yazılmamış kısım")
             }
         }
@@ -354,7 +376,7 @@ struct KelimeDugmesi: View {
             HStack(spacing: 4) { Image(systemName: "speaker.wave.2").font(.caption2); Text(kelime) }
                 .font(.callout)
                 .padding(.horizontal, 9).padding(.vertical, 4)
-                .background(Capsule().fill(renk.opacity(0.13)))
+                .background { Capsule().fill(renk.opacity(0.13)) }
         }
         .buttonStyle(.plain)
         .popover(isPresented: $acik, arrowEdge: .bottom) { KelimeKarti(kelime: kelime).environmentObject(t) }
@@ -369,7 +391,7 @@ struct KelimeKarti: View {
             if let s = t.sozluk.bul(kelime) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(s.w).font(.serif(22, .semibold))
-                    Button { t.ses.kelime(s.w, sozluk: t.sozluk) } label: { Image(systemName: "speaker.wave.2.fill") }.buttonStyle(.borderless)
+                    Button { t.ses.kelime(s.w, sozluk: t.sozluk) } label: { Image(systemName: "speaker.wave.2.fill") }.accessibilityLabel("Kelimeyi dinle").buttonStyle(.borderless)
                     if !s.phon.isEmpty { Text(s.phon).foregroundStyle(.secondary) }
                     if !s.cefr.isEmpty { Cip(metin: s.cefr, renk: Renk.vurgu) }
                 }
@@ -396,5 +418,24 @@ struct IkiliSira<A: View, B: View>: View {
             HStack(alignment: .top, spacing: 14) { a.frame(minWidth: 320); b.frame(minWidth: 320) }
             VStack(spacing: 14) { a; b }
         }
+    }
+}
+
+/// Cümle başına YZ istemi — iPhone'daki Memories'in (Ortak/Rebuild.swift › SentencePrompt) metniyle aynı.
+enum YZIstemi {
+    static func metin(en: String, tr: String?) -> String {
+        """
+        Bir İngilizce öğrencisiyim (B1–B2). Aşağıdaki cümleyi yapısal olarak incele ve bana bu kalıbı içselleştirmem için yardım et.
+
+        Cümle: "\(en)"\(tr.map { "\nTürkçesi: \"\($0)\"" } ?? "")
+
+        1. Parçalarına ayır: özne, yüklem, nesne, tümleçler, yan cümleler (clause) ve söz öbekleri (phrase). Her parçanın cümledeki işlevini bir satırda yaz.
+        2. Kullanılan dilbilgisi yapılarını adlandır (zaman, edat, kalıp, bağlaç) ve yazarın neden bunları seçtiğini kısaca açıkla.
+        3. Aynı yapıyla 5 yeni örnek cümle kur: gündelik hayattan, B1–B2 kelimelerle, her birinin Türkçesiyle.
+        4. Türkçe konuşanların bu yapıda yaptığı en sık 2 hatayı göster (✗ yanlış → ✓ doğru).
+        5. Bana kalıbı kullanarak çevirmem için 3 Türkçe cümle ver. Cevaplarını en sona, "Cevaplar" başlığıyla ayrı koy; ben önce deneyeceğim.
+
+        Kısa ve net yaz, uzun teori anlatma.
+        """
     }
 }

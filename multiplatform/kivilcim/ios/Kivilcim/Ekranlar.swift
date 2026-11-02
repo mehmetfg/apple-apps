@@ -73,8 +73,11 @@ struct KayitEkrani: View {
                 Text(merkez.kayitta ? "Dokun: bitir" : "Dokun: başlat · basılı tut: bas-konuş")
                     .font(.footnote).foregroundStyle(.secondary).padding(.top, 14)
                 if merkez.kayitta {
-                    Button("Vazgeç", role: .destructive) { Task { await merkez.vazgec() } }
-                        .font(.footnote.weight(.medium)).padding(.top, 6)
+                    HStack(spacing: 22) {
+                        Button("Vazgeç", role: .destructive) { Task { await merkez.vazgec() } }
+                        Button(merkez.duraklatildi ? "Devam" : "Duraklat") { Task { await merkez.duraklatDegistir() } }
+                    }
+                    .font(.footnote.weight(.medium)).padding(.top, 6)
                 }
                 Spacer(minLength: 16)
                 sonKayit
@@ -88,6 +91,7 @@ struct KayitEkrani: View {
                     if depo.esitleniyor { ProgressView() }
                     else if !kasa.bagli { Image(systemName: "icloud.slash").foregroundStyle(.orange) }
                     else if depo.gonderilmemis > 0 { Label("\(depo.gonderilmemis)", systemImage: "arrow.up.circle").foregroundStyle(.orange) }
+                    else if depo.bulutBekleyen > 0 { Label("\(depo.bulutBekleyen)", systemImage: "icloud.and.arrow.up").foregroundStyle(.orange) }
                 }
             }
             .sheet(item: $secili) { o in NavigationStack { DetayEkrani(id: o.id) } }
@@ -146,7 +150,7 @@ struct KayitEkrani: View {
             .onEnded { _ in
                 let tutuldu = Date().timeIntervalSince(basma ?? Date()) >= 0.6
                 basma = nil
-                if basildigindaKayittaydi || (tutuldu && merkez.kayitta) { Task { await merkez.bitir() } }
+                if basildigindaKayittaydi || (tutuldu && merkez.kayitta) { Tani.yaz("uygulama düğmesi: bitir"); Task { await merkez.bitir() } }
             })
         .onChange(of: merkez.kayitta) { _, k in nabiz = k }
         .accessibilityLabel(merkez.kayitta ? "Kaydı bitir" : "Kaydı başlat")
@@ -163,10 +167,64 @@ struct KayitEkrani: View {
                     Button("Tümü") { sekme = 1 }.font(.subheadline)
                 }
                 ForEach(son) { o in
-                    Button { secili = o } label: { OgeKarti(o: o) }.buttonStyle(.plain)
+                    KaydirmaliKart(yildizli: o.yildiz, sil: { depo.duzelt(o, "sil", true) },
+                                   yildiz: { depo.duzelt(o, "yildiz", !o.yildiz) }) {
+                        // Button sürüklemeyi yutuyordu; dokunma hareketi kaydırmayla birlikte çalışır
+                        OgeKarti(o: o).contentShape(Rectangle()).onTapGesture { secili = o }
+                            .accessibilityAddTraits(.isButton)
+                    }
+                    .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .trailing).combined(with: .opacity)))
                 }
             }
         }
+    }
+}
+
+/// Liste dışındaki kart için kaydırma (Kaydet ekranı): sağa çek → çöpe, sola çek → yıldız.
+/// Eşiği geçince dokunsal tık; bırakınca uygulanır, geçmezse yerine yaylanır.
+struct KaydirmaliKart<Icerik: View>: View {
+    let yildizli: Bool
+    let sil: () -> Void
+    let yildiz: () -> Void
+    @ViewBuilder let icerik: Icerik
+    @State private var x: CGFloat = 0
+    @State private var yatay: Bool?
+    private let esik: CGFloat = 96
+
+    var body: some View {
+        icerik.offset(x: x).background {
+            HStack {
+                Label("Çöpe", systemImage: "trash.fill").opacity(x > 8 ? 1 : 0).scaleEffect(x > esik ? 1.15 : 1)
+                Spacer()
+                Label(yildizli ? "Yıldızı kaldır" : "Yıldız", systemImage: yildizli ? "star.slash.fill" : "star.fill")
+                    .opacity(x < -8 ? 1 : 0).scaleEffect(x < -esik ? 1.15 : 1)
+            }
+            .labelStyle(.iconOnly).font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(x >= 0 ? Color.red : Color.yellow) }
+            .opacity(x == 0 ? 0 : 1)
+            .animation(.snappy(duration: 0.18), value: x > esik || x < -esik)
+        }
+        .gesture(DragGesture(minimumDistance: 14)
+            .onChanged { g in
+                if yatay == nil { yatay = abs(g.translation.width) > abs(g.translation.height) }
+                guard yatay == true else { return }
+                let w = g.translation.width
+                x = abs(w) > esik * 1.6 ? w.sign == .minus ? -esik * 1.6 - (abs(w) - esik * 1.6) * 0.3 : esik * 1.6 + (w - esik * 1.6) * 0.3 : w
+            }
+            .onEnded { _ in
+                defer { yatay = nil }
+                if x > esik {
+                    withAnimation(.easeIn(duration: 0.2)) { x = 600 }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { withAnimation(.snappy) { sil() } }
+                } else {
+                    if x < -esik { yildiz() }
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { x = 0 }
+                }
+            })
+        .sensoryFeedback(.impact(weight: .medium), trigger: x > esik)
+        .sensoryFeedback(.impact(weight: .light), trigger: x < -esik)
     }
 }
 
@@ -178,7 +236,7 @@ struct OgeKarti: View {
         let al = depo.siniflar.alan(o.alan)
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: al.simge).font(.system(size: 15, weight: .semibold)).foregroundStyle(al.color)
-                .frame(width: 36, height: 36).background(RoundedRectangle(cornerRadius: 10).fill(al.color.opacity(0.14)))
+                .frame(width: 36, height: 36).background { RoundedRectangle(cornerRadius: 10).fill(al.color.opacity(0.14)) }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 4) {
                     if o.yildiz { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
@@ -198,7 +256,7 @@ struct OgeKarti: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemGroupedBackground)))
+        .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemGroupedBackground)) }
     }
 }
 
@@ -252,7 +310,7 @@ struct ArsivEkrani: View {
     }
 
     private var suzgecler: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 Cip(ad: "Yıldızlı", simge: "star.fill", renk: .yellow, secili: yildizli) { yildizli.toggle() }
                 ForEach(depo.siniflar.alanlar) { a in
@@ -268,6 +326,7 @@ struct ArsivEkrani: View {
             }
             .padding(.horizontal, 16).padding(.vertical, 6)
         }
+        .scrollIndicators(.hidden)
     }
 }
 
@@ -278,7 +337,7 @@ struct Cip: View {
             Label(ad, systemImage: simge).font(.footnote.weight(.medium))
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .foregroundStyle(secili ? .white : renk)
-                .background(Capsule().fill(secili ? AnyShapeStyle(renk) : AnyShapeStyle(renk.opacity(0.12))))
+                .background { Capsule().fill(secili ? AnyShapeStyle(renk) : AnyShapeStyle(renk.opacity(0.12))) }
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: secili)
@@ -363,7 +422,7 @@ struct DetayEkrani: View {
                             Spacer()
                             Button { depo.duzelt(o, "yildiz", !o.yildiz) } label: {
                                 Image(systemName: o.yildiz ? "star.fill" : "star").foregroundStyle(o.yildiz ? .yellow : .secondary)
-                            }.buttonStyle(.bordered).sensoryFeedback(.impact, trigger: o.yildiz)
+                            }.accessibilityLabel(o.yildiz ? "Yıldızı kaldır" : "Yıldızla").buttonStyle(.bordered).sensoryFeedback(.impact, trigger: o.yildiz)
                         }
                         if !o.etiketler.isEmpty {
                             Text(o.etiketler.map { "#" + $0 }.joined(separator: "  ")).font(.caption).foregroundStyle(.secondary)
@@ -372,7 +431,7 @@ struct DetayEkrani: View {
                     calar(o, al.color)
                     if !o.ozet.isEmpty {
                         Text(o.ozet).font(.body).padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(al.color.opacity(0.1)))
+                            .background { RoundedRectangle(cornerRadius: 12).fill(al.color.opacity(0.1)) }
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -433,9 +492,9 @@ struct DetayEkrani: View {
                         Slider(value: Binding(get: { oy.konum }, set: { oy.atla($0) }), in: 0...max(0.1, oy.uzunluk)).tint(renk)
                         HStack {
                             Text(Zaman.sure(oy.konum)); Spacer()
-                            Button { oy.ileri(-10) } label: { Image(systemName: "gobackward.10") }
+                            Button { oy.ileri(-10) } label: { Image(systemName: "gobackward.10") }.accessibilityLabel("10 saniye geri")
                             Button { oy.hiz = oy.hiz == 1 ? 1.5 : oy.hiz == 1.5 ? 2 : 1 } label: { Text(oy.hiz == 1 ? "1×" : oy.hiz == 1.5 ? "1,5×" : "2×").monospacedDigit() }
-                            Button { oy.ileri(10) } label: { Image(systemName: "goforward.10") }
+                            Button { oy.ileri(10) } label: { Image(systemName: "goforward.10") }.accessibilityLabel("10 saniye ileri")
                             Spacer(); Text(Zaman.sure(oy.uzunluk))
                         }.font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     }
@@ -446,7 +505,7 @@ struct DetayEkrani: View {
             }
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemBackground)))
+        .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemBackground)) }
     }
 }
 
@@ -501,8 +560,13 @@ struct AyarlarEkrani: View {
                         }
                     }
                     if let h = kasa.hata { Text(h).font(.caption).foregroundStyle(.red) }
+                    if depo.bulutBekleyen > 0 {
+                        Label("\(depo.bulutBekleyen) kayıt iCloud'da yüklenmeyi bekliyor; Mac'e henüz gitmedi", systemImage: "icloud.and.arrow.up")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
+                    if let h = depo.bulutHata { Text("iCloud: \(h)").font(.caption).foregroundStyle(.red) }
                 } header: { Text("Vault") } footer: {
-                    Text("iCloud Drive › Obsidian › Personel Data Management'ı seç. Kayıtlar 05 - Notlar/Fikirler/Kıvılcım altına gider."
+                    Text("iCloud Drive › Obsidian › Personel Data Management'ı seç. Kayıtlar 05 - Notlar/Fikirler/Kıvılcım altına gider. iCloud takılırsa telefon Mac'e bağlıyken Mac'teki Kıvılcım onları doğrudan alır."
                          + (depo.sonEsitleme.map { " Son eşitleme: \(Zaman.goreli($0))." } ?? ""))
                 }
                 Section {
@@ -533,7 +597,7 @@ struct Adim: View {
     let n: Int; let metin: String
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Text("\(n)").font(.caption.weight(.bold)).foregroundStyle(.white).frame(width: 20, height: 20).background(Circle().fill(Color.kivilcim))
+            Text("\(n)").font(.caption.weight(.bold)).foregroundStyle(.white).frame(width: 20, height: 20).background { Circle().fill(Color.kivilcim) }
             Text(metin).font(.subheadline)
         }
     }

@@ -10,6 +10,10 @@
 		C60000000000000000000004 /* Saray.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Saray.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXBuildFile section */
+		PD10C711EA370DC63453E7DE /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PDCD37422458A7A95490EA41 /* PDMBus */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		C60000000000000000000006 = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -29,6 +33,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PD10C711EA370DC63453E7DE /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +76,7 @@
 			);
 			name = Saray;
 			packageProductDependencies = (
+				PDCD37422458A7A95490EA41 /* PDMBus */,
 			);
 			productName = Saray;
 			productReference = C60000000000000000000004;
@@ -96,6 +102,9 @@
 			);
 			mainGroup = C60000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PDE0F49E6BFD15CF002C635E /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C60000000000000000000003;
 			projectDirPath = "";
@@ -169,6 +178,7 @@
 		C6000000000000000000000E = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Saray/Saray.entitlements;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -201,6 +211,7 @@
 		C6000000000000000000000F = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Saray/Saray.entitlements;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -252,6 +263,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PDE0F49E6BFD15CF002C635E /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PDCD37422458A7A95490EA41 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDE0F49E6BFD15CF002C635E /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C60000000000000000000001 /* Project object */;
 }

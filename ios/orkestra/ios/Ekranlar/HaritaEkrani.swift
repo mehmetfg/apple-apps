@@ -95,7 +95,7 @@ struct HaritaEkrani: View {
     }
 
     func kenarlar(_ c: GraphicsContext, _ d: Durumlar, _ n: [Dugum], faz: Double) {
-        let konum = Dictionary(uniqueKeysWithValues: n.map { ($0.id, $0) })
+        let konum = Dictionary(n.map { ($0.id, $0) }, uniquingKeysWith: { ilk, _ in ilk })   // duplicate ids in orkestra.json must not crash
         for k in d.veri.kenarlar {
             guard let a = konum[k.a], let b = konum[k.b] else { continue }
             var p = Path()

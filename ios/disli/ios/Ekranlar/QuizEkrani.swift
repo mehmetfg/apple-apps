@@ -31,7 +31,7 @@ struct QuizEkrani: View {
                 ozet
             }
         }
-        .background(Lekeler(renkler: [depo.renk(ogeler.first?.konu ?? depo.veri.konular[0]), Tema.vurgu, Tema.renk("turkuaz")]))
+        .background { Lekeler(renkler: [depo.renk(ogeler.first?.konu ?? depo.veri.konular[0]), Tema.vurgu, Tema.renk("turkuaz")]) }
         .overlay { if bitti && sonuclar.filter({ $0 }).count >= max(1, ogeler.count - 1) { Konfeti() } }
     }
 
@@ -72,7 +72,7 @@ struct QuizEkrani: View {
                     .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal)
                 Button { kapat() } label: {
                     Text("Bitti").font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Capsule().fill(Tema.egim))
+                        .background { Capsule().fill(Tema.egim) }
                 }
                 .buttonStyle(.plain)
             }
@@ -170,8 +170,8 @@ struct SoruGorunum: View {
                         }
                     }
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(secenekZemini(x)))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(renk.opacity(0.25), lineWidth: 1))
+                    .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(secenekZemini(x)) }
+                    .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(renk.opacity(0.25), lineWidth: 1) }
                 }
                 .buttonStyle(.plain)
             }
@@ -198,7 +198,7 @@ struct SoruGorunum: View {
                     } label: {
                         Text(w).font(Tema.ingilizce(.title3, .medium))
                             .padding(.horizontal, 10).padding(.vertical, 7)
-                            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(kelimeZemini(n, hedef)))
+                            .background { RoundedRectangle(cornerRadius: 10, style: .continuous).fill(kelimeZemini(n, hedef)) }
                     }
                     .buttonStyle(.plain)
                 }
@@ -255,8 +255,8 @@ struct SoruGorunum: View {
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                 .focused($odak)
                 .padding(16)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(renk.opacity(0.4), lineWidth: 1.2))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey) }
+                .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(renk.opacity(0.4), lineWidth: 1.2) }
                 .disabled(sonuc != nil)
                 .onSubmit(kontrolYaz)
             if ipucu, let c = s.cevaplar?.first {
@@ -283,7 +283,7 @@ struct SoruGorunum: View {
                 Image(systemName: dogru ? "checkmark.seal.fill" : "lightbulb.fill").font(.title2)
                 Text(dogru ? ["Oturdu!", "Tam isabet", "Yerine oturdu"].randomElement()! : "Doğrusu şöyle").font(.title3.weight(.bold))
                 Spacer()
-                Button { Ses.konus(dogruCumle) } label: { Image(systemName: "speaker.wave.2.fill").font(.title3) }
+                Button { Ses.konus(dogruCumle) } label: { Image(systemName: "speaker.wave.2.fill").font(.title3) }.accessibilityLabel("Dinle")
                     .buttonStyle(.plain)
             }
             .foregroundStyle(dogru ? Tema.dogru : Tema.renk("turuncu"))
@@ -291,11 +291,11 @@ struct SoruGorunum: View {
             if !dogru {
                 FormulMetni(formul: oge.konu.formul, font: .system(.footnote, design: .monospaced))
                     .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(.tertiarySystemFill)))
+                    .background { RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(.tertiarySystemFill)) }
             }
             Button(action: devam) {
                 Text("Devam").font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 50)
-                    .background(Capsule().fill(dogru ? Tema.dogru : renk))
+                    .background { Capsule().fill(dogru ? Tema.dogru : renk) }
             }
             .buttonStyle(.plain)
         }

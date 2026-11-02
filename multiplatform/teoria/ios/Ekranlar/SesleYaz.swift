@@ -56,7 +56,7 @@ struct SesleYaz: View {
                     }
                     .font(.system(size: 15, weight: .semibold))
                     .padding(.horizontal, 18).padding(.vertical, 11)
-                    .background(Capsule().fill(ses.hal == .kayit ? Tema.uyari : renk.opacity(0.14)))
+                    .background { Capsule().fill(ses.hal == .kayit ? Tema.uyari : renk.opacity(0.14)) }
                     .foregroundStyle(ses.hal == .kayit ? Color.white : renk)
                 }
                 .buttonStyle(.plain)

@@ -178,12 +178,13 @@ struct MarkdownView: View {
             .padding(10)
             .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
         case .code(let t):
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 Text(t).font(.system(.footnote, design: .monospaced)).padding(12)
             }
+            .scrollIndicators(.hidden)
             .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
         case .table(let rows):
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
                         GridRow {
@@ -196,6 +197,7 @@ struct MarkdownView: View {
                 }
                 .padding(12)
             }
+            .scrollIndicators(.hidden)
             .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
         case .embed(let target):
             Link(destination: URL(string: "atrium-note:" + (target.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? target))!) {

@@ -1,10 +1,58 @@
-// Aşina widget'ları — gün boyu göz ucuyla karşılaşma.
-//  Kelime (küçük · orta · büyük · kilit ekranı): bugünün kelimeleri 20 dakikada bir döner;
+// VocuTeach (eski Aşina) widget'ları — gün boyu göz ucuyla karşılaşma.
+//  Cümle (kilit ekranı · küçük · orta · büyük): Cümle Tezgâhı'nın günün 6 kelimesi 3 dakikada bir döner —
+//    telefona her bakışta başka kelime; İngilizce tanım + Türkçe + Tezgâh cümlesi.
+//  Kelime (küçük · orta · büyük · kilit ekranı): bugünün kelimeleri 3 dakikada bir döner (Cümle kelimeleri araya karışır);
 //    orta boyda "göz" (önce hatırla) ve "sonraki" düğmeleri var.
 //  İlerleme (küçük · kilit ekranı yuvarlak): günün halkası + seri.
 import WidgetKit
 import SwiftUI
 import AppIntents
+
+/// Kelime değişme aralığı: telefona her bakışta büyük ihtimalle başka kelime.
+let adim: TimeInterval = 3 * 60
+
+struct CumleSaglayici: TimelineProvider {
+    func placeholder(in c: Context) -> CumleGiris { ornek }
+    func getSnapshot(in c: Context, completion: @escaping (CumleGiris) -> Void) {
+        let e = girisler(Date(), adet: 1)
+        completion(c.isPreview || e.first?.kelime == nil ? ornek : e[0])
+    }
+
+    func getTimeline(in c: Context, completion: @escaping (Timeline<CumleGiris>) -> Void) {
+        let e = girisler(Date(), adet: 160)
+        let yarin = Calendar.current.startOfDay(for: Date()).addingTimeInterval(86_400 + 60)
+        let son = e.last?.date.addingTimeInterval(adim) ?? yarin
+        completion(Timeline(entries: e, policy: .after(min(son, yarin))))
+    }
+
+    private var ornek: CumleGiris {
+        let l = Anlik.ornek.kelimeler()
+        return CumleGiris(date: Date(), kelime: l.first, liste: l, gun: 23, baslik: "The Interview")
+    }
+
+    private func girisler(_ bas: Date, adet: Int) -> [CumleGiris] {
+        let a = Paylasim.oku()
+        let l = a?.cumle ?? []
+        guard !l.isEmpty else { return [CumleGiris(date: bas, kelime: nil, liste: [], gun: nil, baslik: nil)] }
+        let sira = Paylasim.ayar.integer(forKey: Paylasim.cumleSiraAnahtari)
+        return (0..<adet).map { i in
+            let n = ((sira + i) % l.count + l.count) % l.count
+            return CumleGiris(date: bas.addingTimeInterval(Double(i) * adim), kelime: l[n], liste: l,
+                              gun: a?.cumleGun, baslik: a?.cumleBaslik)
+        }
+    }
+}
+
+struct CumleWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: Paylasim.cumleTuru, provider: CumleSaglayici()) { g in
+            CumleGorunumu(g: g).containerBackground(for: .widget) { CumleZemini() }
+        }
+        .configurationDisplayName("Cümle Tezgâhı kelimeleri")
+        .description("Günün 6 yeni kelimesi: İngilizce tanım, Türkçe karşılık ve Tezgâh cümlesi. Her bakışta başka kelime.")
+        .supportedFamilies([.accessoryRectangular, .accessoryInline, .systemSmall, .systemMedium, .systemLarge])
+    }
+}
 
 struct KelimeSaglayici: TimelineProvider {
     func placeholder(in c: Context) -> Giris { ornek }
@@ -13,10 +61,10 @@ struct KelimeSaglayici: TimelineProvider {
     }
 
     func getTimeline(in c: Context, completion: @escaping (Timeline<Giris>) -> Void) {
-        let e = girisler(Date(), adet: 36)
+        let e = girisler(Date(), adet: 160)
         // Gece yarısı yeni günün listesine geçmek için de yenile.
         let yarin = Calendar.current.startOfDay(for: Date()).addingTimeInterval(86_400 + 60)
-        let son = e.last?.date.addingTimeInterval(20 * 60) ?? yarin
+        let son = e.last?.date.addingTimeInterval(adim) ?? yarin
         completion(Timeline(entries: e, policy: .after(min(son, yarin))))
     }
 
@@ -36,7 +84,7 @@ struct KelimeSaglayici: TimelineProvider {
             return [Giris(date: bas, kelime: nil, sonrakiler: [], anlik: nil, acik: true, onceHatirla: false)]
         }
         return (0..<adet).map { i in
-            let an = bas.addingTimeInterval(Double(i) * 20 * 60)
+            let an = bas.addingTimeInterval(Double(i) * adim)
             let l = a.kelimeler(an)
             guard !l.isEmpty else {
                 return Giris(date: an, kelime: nil, sonrakiler: [], anlik: a, acik: true, onceHatirla: hatirla)
@@ -62,7 +110,7 @@ struct KelimeWidget: Widget {
                 }
         }
         .configurationDisplayName("Günün kelimeleri")
-        .description("Bugünün kelimeleri gün boyu döner. Önce hatırla kipi Aşina ayarlarında.")
+        .description("Bugünün kelimeleri gün boyu döner. Önce hatırla kipi VocuTeach ayarlarında.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge,
                             .accessoryRectangular, .accessoryInline, .accessoryCircular])
     }
@@ -85,6 +133,7 @@ struct IlerlemeWidget: Widget {
 @main
 struct AsinaWidgetPaketi: WidgetBundle {
     var body: some Widget {
+        CumleWidget()
         KelimeWidget()
         IlerlemeWidget()
     }

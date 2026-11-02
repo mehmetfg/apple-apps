@@ -88,6 +88,11 @@ final class Kasa: ObservableObject {
         var veri: Data?
         var h: NSError?
         NSFileCoordinator().coordinate(readingItemAt: u, options: [], error: &h) { x in veri = try? Data(contentsOf: x) }
+        #if os(macOS)
+        // The Mac reads the vault at a fixed path; when file coordination itself fails (2026-10-20: "Too many open
+        // files" from the coordination service left the whole sync, and so the library, empty) read the file directly.
+        if veri == nil, h != nil { veri = try? Data(contentsOf: u) }
+        #endif
         return veri
     }
 
@@ -98,6 +103,9 @@ final class Kasa: ObservableObject {
         NSFileCoordinator().coordinate(writingItemAt: u, options: .forReplacing, error: &h) { x in
             do { try v.write(to: x, options: .atomic) } catch { ic = error }
         }
+        #if os(macOS)
+        if h != nil, ic == nil { try v.write(to: u, options: .atomic); return }   // coordination failed: write directly
+        #endif
         if let e = h ?? ic { throw e }
     }
 }

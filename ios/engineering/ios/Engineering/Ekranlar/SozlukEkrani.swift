@@ -65,7 +65,7 @@ struct SozlukEkrani: View {
                             }
                             Spacer()
                             if ilerleme.biliyor(t) { Image(systemName: "checkmark.seal.fill").foregroundStyle(Tema.dogru) }
-                            Button { Ses.shared.soyle(t.terim) } label: { Image(systemName: "speaker.wave.2") }
+                            Button { Ses.shared.soyle(t.terim) } label: { Image(systemName: "speaker.wave.2") }.accessibilityLabel("Listen")
                                 .foregroundStyle(Tema.soluk).buttonStyle(.plain)
                         }
                         .padding(.vertical, 11).padding(.horizontal, 14)

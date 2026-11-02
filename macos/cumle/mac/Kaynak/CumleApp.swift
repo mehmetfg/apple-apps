@@ -15,7 +15,7 @@ struct CumleApp: App {
                 .environmentObject(t)
                 .frame(minWidth: 980, minHeight: 640)
                 .background(Renk.zemin)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(t.theme.scheme)
         }
         .defaultSize(width: 1320, height: 860)
         .windowToolbarStyle(.unified)
@@ -28,8 +28,9 @@ final class Temsilci: NSObject, NSApplicationDelegate {
     var olay: Any?
     @MainActor func applicationDidFinishLaunching(_ n: Notification) {
         NSApp.setActivationPolicy(.regular)
-        NSApp.appearance = NSAppearance(named: .darkAqua)
-        for p in NSApp.windows { p.backgroundColor = NSColor(red: 0.047, green: 0.055, blue: 0.075, alpha: 1) }
+        NSApp.appearance = AppTheme.stored.appearance
+        AppUpdater.start()
+        for p in NSApp.windows { p.backgroundColor = Renk.zeminNS }
         NSApp.activate(ignoringOtherApps: true)
         let t = TezgahKok.t
         // alt nesnelerin değişimi ana görünümü de tazelesin
@@ -49,9 +50,14 @@ final class Temsilci: NSObject, NSApplicationDelegate {
 struct Komutlar: Commands {
     @ObservedObject var t: Tezgah
     var body: some Commands {
+        CommandGroup(after: .toolbar) {
+            Picker("Tema", selection: $t.theme) { ForEach(AppTheme.allCases) { Text($0.label).tag($0) } }
+        }
         CommandMenu("Çalışma") {
             Button("Bugün") { t.gorunum = .bugun }.keyboardShortcut("1", modifiers: .command)
             Button("Geçmiş") { t.gorunum = .gecmis }.keyboardShortcut("2", modifiers: .command)
+            Button("Dinleme") { t.gorunum = .dinleme }.keyboardShortcut("3", modifiers: .command)
+            Button("Yeni kelimeler") { t.wordsOpen = true }.keyboardShortcut("l", modifiers: [.command, .shift])
             Divider()
             Button("Gün JSON'u içe aktar…") { t.iceAktarPaneli() }.keyboardShortcut("i", modifiers: [.command, .shift])
             Button("Önceki gün") { t.oncekiGun() }.keyboardShortcut("[", modifiers: [.command, .shift])

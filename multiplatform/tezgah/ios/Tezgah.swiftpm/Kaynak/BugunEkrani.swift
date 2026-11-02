@@ -24,7 +24,7 @@ struct BugunEkrani: View {
                     }
                 }
                 VaultBugunKarti().belirerek()
-                    .onTapGesture { git(.vault) }
+                    .onTapGesture { git(.vault) }.accessibilityAddTraits(.isButton)
                 DortHafta(aktivite: b.aktivite ?? []).belirerek()
             }
         }
@@ -63,10 +63,11 @@ struct HalkaKarti: View {
                                 Circle().fill(T.renk(a.kod)).frame(width: 8, height: 8)
                                 Text(a.ad ?? a.kod).font(.subheadline.weight(.medium)).foregroundStyle(T.murekkep)
                                 Spacer(minLength: 4)
-                                Text("\(a.toplam ?? 0)")
+                                let sayi = Text("\(a.toplam ?? 0)")
                                     .font(.system(.subheadline, design: .rounded).weight(.bold).monospacedDigit())
                                     .foregroundStyle(T.renk(a.kod))
-                                + Text(" gün").font(.caption).foregroundStyle(T.soluk)
+                                let birim = Text(" gün").font(.caption).foregroundStyle(T.soluk)
+                                Text("\(sayi)\(birim)")
                             }
                         }
                         .buttonStyle(.plain)
@@ -99,7 +100,7 @@ struct KartSeridi: View {
                 TezgahKarti(kart: k)
                     .modifier(SeritGenisligi())
                     .modifier(SeritGecisi())
-                    .onTapGesture { ac(k) }
+                    .onTapGesture { ac(k) }.accessibilityAddTraits(.isButton)
             }
             HStack(spacing: 7) {
                 ForEach(kartlar) { k in
@@ -150,14 +151,12 @@ struct TezgahKarti: View {
         }
         .padding(20)
         .frame(height: 300)
-        .background(
-            ZStack(alignment: .topTrailing) {
+        .background { ZStack(alignment: .topTrailing) {
                 T.yuzey
                 Circle().fill(renk.opacity(0.14)).frame(width: 220).blur(radius: 50).offset(x: 80, y: -90)
-            }
-        )
+            } }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(T.cizgi))
+        .overlay { RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(T.cizgi) }
         .shadow(color: renk.opacity(0.12), radius: 16, y: 8)
         .contentShape(RoundedRectangle(cornerRadius: 26))
     }

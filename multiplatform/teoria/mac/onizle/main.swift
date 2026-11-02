@@ -8,7 +8,7 @@ import AppKit
 func ciz<V: View>(_ v: V, _ boyut: CGSize, _ sema: ColorScheme, _ ad: String, zemin: Color, kose: CGFloat = 24, ic: CGFloat = 16) {
     let gorunum = v.padding(ic)
         .frame(width: boyut.width, height: boyut.height)
-        .background(WZemin(renk: zemin))
+        .background { WZemin(renk: zemin) }
         .clipShape(RoundedRectangle(cornerRadius: kose, style: .continuous))
         .padding(12)
         .background(sema == .dark ? Color(white: 0.11) : Color(white: 0.86))

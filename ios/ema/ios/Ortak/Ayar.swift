@@ -55,18 +55,19 @@ enum Ayar {
         Logger(subsystem: "com.fatihgocgun.ema", category: "tani").notice("EMA-TANI \(satir, privacy: .public)")
     }
 
-    /// Müzik arası: her N dakikalık dinlemeden sonra bir parça (varsayılan açık, 15 dk).
+    /// Müzik arası: kapalı (2026-10-16, kullanıcı kararı). Voice Dream'in okumasına ses dosyası girmez;
+    /// eski kayıtlı "açık" değeri de okunmaz.
     static var muzikArasi: Bool {
-        get { depo.object(forKey: "muzikArasi") as? Bool ?? true }
+        get { false }
         set { depo.set(newValue, forKey: "muzikArasi") }
     }
     static var muzikDakika: Int {
         get { depo.object(forKey: "muzikDakika") as? Int ?? 15 }
         set { depo.set(newValue, forKey: "muzikDakika") }
     }
-    /// Arka plan müziği: okumanın altında kısık müzik (varsayılan kapalı — deneme).
+    /// Arka plan müziği: kapalı (2026-10-16, kullanıcı kararı).
     static var arkaPlan: Bool {
-        get { depo.bool(forKey: "arkaPlan") }
+        get { false }
         set { depo.set(newValue, forKey: "arkaPlan") }
     }
     static var arkaPlanSeviye: Double {

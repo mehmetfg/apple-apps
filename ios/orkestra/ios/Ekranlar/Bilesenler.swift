@@ -29,7 +29,7 @@ struct Kart<Icerik: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Tema.kart, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Tema.cizgi, lineWidth: 1))
+        .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Tema.cizgi, lineWidth: 1) }
     }
 }
 
@@ -63,7 +63,7 @@ struct SurecSatiri: View {
                     .foregroundStyle(Tema.alan(h.surec.alan))
             }
             .frame(width: 32, height: 32)
-            .overlay(alignment: .bottomTrailing) { DurumNoktasi(durum: h.durum, boy: 10).overlay(Circle().stroke(Tema.kart, lineWidth: 2)) }
+            .overlay(alignment: .bottomTrailing) { DurumNoktasi(durum: h.durum, boy: 10).overlay { Circle().stroke(Tema.kart, lineWidth: 2) } }
             VStack(alignment: .leading, spacing: 2) {
                 Text(h.surec.ad).font(.system(size: 15, weight: .semibold))
                 Text(h.neden).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(2)

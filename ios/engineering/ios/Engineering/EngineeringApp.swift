@@ -1,14 +1,21 @@
 import SwiftUI
+import PDMBus
 
 @main
 struct EngineeringApp: App {
     @State private var ilerleme = Ilerleme()
+    @Environment(\.scenePhase) private var faz
 
     var body: some Scene {
         WindowGroup {
             KokEkran()
                 .environment(ilerleme)
                 .tint(Tema.vurgu)
+                .onChange(of: faz) { _, yeni in
+                    guard yeni == .active else { return }
+                    ilerleme.bus.emitOpenedToday()
+                    Task { await ilerleme.bus.sync() }
+                }
         }
     }
 }

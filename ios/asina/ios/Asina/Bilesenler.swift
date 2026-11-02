@@ -8,7 +8,7 @@ struct KartStili: ViewModifier {
             .padding(dolgu)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(R.yuzey, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(R.cizgi.opacity(0.7), lineWidth: 0.5))
+            .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(R.cizgi.opacity(0.7), lineWidth: 0.5) }
             .shadow(color: .black.opacity(0.04), radius: 10, y: 4)
     }
 }
@@ -123,7 +123,7 @@ struct SesDugmesi: View {
                 .foregroundStyle(R.vurgu)
                 .frame(width: boyut, height: boyut)
                 .background(R.vurgu.opacity(0.12), in: Circle())
-        }
+        }.accessibilityLabel("Dinle")
         .buttonStyle(Bas())
         .sensoryFeedback(.selection, trigger: ses.caliyor)
     }

@@ -175,7 +175,7 @@ struct BolumTuvali: View {
                                     Haptik.hafif()
                                 }
                         )
-                        .onTapGesture { dokun(x.id) }
+                        .onTapGesture { dokun(x.id) }.accessibilityAddTraits(.isButton)
                         .contextMenu { IsaretMenusu(x: x) }
                 }
             }
@@ -219,9 +219,9 @@ struct BolumTuvali: View {
             Text(b.iddia).font(.serif(14, .medium)).foregroundStyle(.white).multilineTextAlignment(.center).lineLimit(4)
         }
         .padding(12).frame(width: 300)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.bolum(b.no)))
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.white, lineWidth: ilk == "iddia:" + b.id ? 3 : 0))
-        .onTapGesture { if baglama { dokun("iddia:" + b.id) } }
+        .background { RoundedRectangle(cornerRadius: 16).fill(Color.bolum(b.no)) }
+        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(.white, lineWidth: ilk == "iddia:" + b.id ? 3 : 0) }
+        .onTapGesture { if baglama { dokun("iddia:" + b.id) } }.accessibilityAddTraits(.isButton)
     }
 
     private func kartGorunumu(_ x: Isaret) -> some View {
@@ -236,8 +236,8 @@ struct BolumTuvali: View {
             Text(x.kitapAdi).font(.system(size: 9, weight: .semibold)).foregroundStyle(Color.soluk).lineLimit(1)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.kart).shadow(color: .black.opacity(surukle[x.id] != nil ? 0.25 : 0.06), radius: surukle[x.id] != nil ? 12 : 3, y: 2))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ilk == x.id ? Color.kalem : Color.cizgi, lineWidth: ilk == x.id ? 2.5 : 0.6))
+        .background { RoundedRectangle(cornerRadius: 12).fill(Color.kart).shadow(color: .black.opacity(surukle[x.id] != nil ? 0.25 : 0.06), radius: surukle[x.id] != nil ? 12 : 3, y: 2) }
+        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(ilk == x.id ? Color.kalem : Color.cizgi, lineWidth: ilk == x.id ? 2.5 : 0.6) }
         .scaleEffect(surukle[x.id] != nil ? 1.05 : 1)
     }
 
@@ -302,7 +302,7 @@ struct CumleGorunumu: View {
                     .pickerStyle(.segmented)
                     TextField("Kenar notu: bu cümle iddiaya ne katıyor?", text: $not, axis: .vertical)
                         .font(.serif(16).italic()).lineLimit(2...6)
-                        .padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Color.kart))
+                        .padding(12).background { RoundedRectangle(cornerRadius: 12).fill(Color.kart) }
                         .onSubmit { merkez.notYaz(x.id, not) }
                     let bagli = merkez.d.baglar.compactMap { b -> String? in b.kaynak == x.id ? b.hedef : (b.hedef == x.id ? b.kaynak : nil) }
                     if !bagli.isEmpty {

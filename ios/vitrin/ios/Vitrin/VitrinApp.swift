@@ -41,7 +41,7 @@ struct Kok: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 16).padding(.vertical, 10)
                     .background(.ultraThinMaterial, in: Capsule())
-                    .overlay(Capsule().stroke(.white.opacity(0.12)))
+                    .overlay { Capsule().stroke(.white.opacity(0.12)) }
                     .padding(.top, 6)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }

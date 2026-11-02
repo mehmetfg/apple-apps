@@ -1,6 +1,7 @@
 // Uygulamanın tek durumu: içerik + tasarımlar + vault bağlantısı. Her değişiklik App Group'a yazılır, widget'lar yenilenir.
 import SwiftUI
 import WidgetKit
+import PDMBus
 
 @MainActor
 final class Merkez: ObservableObject {
@@ -13,6 +14,12 @@ final class Merkez: ObservableObject {
 
     private let anahtar = "vaultYerImi"
     private var kok: URL?
+    /// PDM Ağı: "biliyorum" kararları `_bus/events/vitrin/`'e gider; odak `_bus/state/words.json`'dan gelir.
+    let bus = PDMBus(app: "vitrin", vaultRoot: { Merkez.kokCoz() })
+
+    nonisolated static func kokCoz() -> URL? {
+        PDMVault.resolveBookmark(Depo.ayar.data(forKey: "vaultYerImi"))
+    }
 
     var bilinen: Set<String> { Set(kayit.bilinen) }
 
@@ -25,7 +32,9 @@ final class Merkez: ObservableObject {
             kayit = Varsayilan.tasarimlar()
             Depo.tasarimYaz(kayit)
         }
-        if let v = Depo.ayar.data(forKey: anahtar) {
+        if let u = PDMVault.simulatorOverride {   // yalnız simülatör sınaması
+            kok = u; bagli = true; klasorAdi = u.lastPathComponent
+        } else if let v = Depo.ayar.data(forKey: anahtar) {
             var eski = false
             if let u = try? URL(resolvingBookmarkData: v, options: [], relativeTo: nil, bookmarkDataIsStale: &eski) {
                 kok = u; bagli = true; klasorAdi = u.lastPathComponent
@@ -52,7 +61,7 @@ final class Merkez: ObservableObject {
     func duyur(_ s: String) {
         withAnimation(.spring) { duyuru = s }
         Task {
-            try? await Task.sleep(nanoseconds: 2_400_000_000)
+            try? await Task.sleep(for: .milliseconds(2400))
             withAnimation(.easeOut) { if duyuru == s { duyuru = nil } }
         }
     }
@@ -71,12 +80,14 @@ final class Merkez: ObservableObject {
     func biliyorum(_ w: String) {
         guard !kayit.bilinen.contains(w) else { return }
         kayit.bilinen.append(w)
+        bus.emit("word.known", subject: PDMSubject.word(w), data: ["via": "app"])
         kaydet()
         duyur("“\(w)” bir daha çıkmayacak")
     }
 
     func bilinenSil(_ w: String) {
         kayit.bilinen.removeAll { $0 == w }
+        bus.emit("word.learning", subject: PDMSubject.word(w), data: ["via": "undo"])
         kaydet()
     }
 
@@ -157,7 +168,23 @@ final class Merkez: ObservableObject {
         }
     }
 
+    /// Widget'ın "Biliyorum" düğmesi App Group'taki listeye yazar; uygulama açılınca bellekteki kaydı onunla tazeler.
+    func disaridanYukle() {
+        guard let k = Depo.tasarimOku() else { return }
+        let yeni = k.bilinen.filter { !kayit.bilinen.contains($0) }
+        if !yeni.isEmpty { kayit.bilinen += yeni }
+    }
+
+    /// PDM Ağı: bekleyen olaylar vault'a, ağın odağı App Group'a; widget'lar yenilenir.
+    func agEsitle() async {
+        bus.emitOpenedToday()
+        let r = await bus.sync()
+        if r.stateRefreshed { AgOdak.sifirla(); objectWillChange.send() }
+    }
+
     func tazele(sessiz: Bool = false) async {
+        disaridanYukle()
+        await agEsitle()
         guard let kok else { return }
         yukleniyor = true
         defer { yukleniyor = false }

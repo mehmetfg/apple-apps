@@ -41,6 +41,7 @@ enum TemaSecimi: String, CaseIterable, Identifiable {
     case sistem, acik, koyu
     var id: String { rawValue }
     var ad: String { switch self { case .sistem: "Sistem"; case .acik: "Açık"; case .koyu: "Koyu" } }
+    var sembol: String { switch self { case .sistem: "circle.lefthalf.filled"; case .acik: "sun.max"; case .koyu: "moon" } }
     var sema: ColorScheme? { switch self { case .sistem: nil; case .acik: .light; case .koyu: .dark } }
 }
 
@@ -196,7 +197,7 @@ final class Depo: ObservableObject {
     func widgetYaz(hemen: Bool = false) {
         widgetGorevi?.cancel()
         widgetGorevi = Task { [weak self] in
-            if !hemen { try? await Task.sleep(nanoseconds: 800_000_000) }
+            if !hemen { try? await Task.sleep(for: .milliseconds(800)) }
             guard let self, !Task.isCancelled else { return }
             Paylasim.yaz(self.anlik())
             WidgetCenter.shared.reloadAllTimelines()
@@ -277,7 +278,7 @@ final class Depo: ObservableObject {
     func esitle(gecikme: Double = 0) {
         esitlemeGorevi?.cancel()
         esitlemeGorevi = Task { [weak self] in
-            if gecikme > 0 { try? await Task.sleep(nanoseconds: UInt64(gecikme * 1_000_000_000)) }
+            if gecikme > 0 { try? await Task.sleep(for: .seconds(gecikme)) }
             guard let self, !Task.isCancelled else { return }
             await self.esitleSimdi()
         }
@@ -295,7 +296,9 @@ final class Depo: ObservableObject {
         let hata: String? = await Task.detached(priority: .userInitiated) { () -> String? in
             let adimlar: [(URL, [String], URL)] = [
                 (pdm.appendingPathComponent("Artifacts/_tezgah/kutuphane.py"), ["--gun", "3"], pdm),
-                (teoria.appendingPathComponent("veri/akis.py"), [], teoria),
+                (teoria.appendingPathComponent("veri/library.py"), [], teoria),   // Voice Dream + Voice Reader → kütüphane
+                (teoria.appendingPathComponent("veri/akis.py"), [], teoria),      // akış kütüphaneyi okur, sonra kütüphaneyi bir kez daha kurar
+                (teoria.appendingPathComponent("veri/sabah.py"), [], teoria),     // Sabah: dinlenen günler → bölümler → kartlar
             ]
             for (betik, arg, cwd) in adimlar {
                 let p = Process()
@@ -316,7 +319,7 @@ final class Depo: ObservableObject {
         if let hata { bildirim = hata; return }
         #endif
         let once = akis
-        while esitleniyor { try? await Task.sleep(nanoseconds: 200_000_000) }   // süren eşitleme bitsin, sonra çek
+        while esitleniyor { try? await Task.sleep(for: .milliseconds(200)) }   // süren eşitleme bitsin, sonra çek
         await esitleSimdi()
         bildirim = Self.guncellemeOzeti(once, akis)
     }
@@ -460,5 +463,6 @@ final class Depo: ObservableObject {
         if eskiSurum.0 != paket.surum && eskiSurum.0 != "0" { bildirim = "Yeni kart paketi geldi." }
         widgetYaz()
         await LibraryStore.shared.sync(kasa)
+        await NotesStore.shared.sync(kasa)
     }
 }

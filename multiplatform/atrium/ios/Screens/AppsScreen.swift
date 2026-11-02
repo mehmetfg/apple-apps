@@ -20,7 +20,7 @@ struct AppsScreen: View {
         .background(Palette.page)
         .toolbar {
             ToolbarItem {
-                Button { adding = true } label: { Image(systemName: "plus") }.disabled(store.catalog == nil)
+                Button { adding = true } label: { Image(systemName: "plus") }.accessibilityLabel("Ekle").disabled(store.catalog == nil)
             }
         }
         .sheet(isPresented: $adding) {
@@ -102,7 +102,7 @@ struct AppsScreen: View {
     }
 
     private func filters(_ c: AppCatalog) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 filterChip("Hepsi", on: platform == nil && status == nil) { platform = nil; status = nil }
                 ForEach(["iphone", "mac", "web"], id: \.self) { p in
@@ -114,6 +114,7 @@ struct AppsScreen: View {
                 }
             }
         }
+        .scrollIndicators(.hidden)
     }
 
     private func filterChip(_ title: String, symbol: String? = nil, on: Bool, action: @escaping () -> Void) -> some View {

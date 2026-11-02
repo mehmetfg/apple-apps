@@ -1,12 +1,24 @@
-// Book home — the cover, two doors into the text (whole · only highlights) and the work around it:
-// Özet (the book's judgments, chapter by chapter), Harita (concept map), İşaretler, Pekiştir (what you missed → recall).
+// Book home — İdrak's room inside Teoria (v10, 2026-10-17): the cover and Çekirdek (theme · claim · idea · place in the
+// reading network), the chapter strip, two doors into the text (whole · only highlights), and the work around it:
+// Can alıcı (key sentences chosen whether or not you marked them, plus what you missed → recall), Özet, Zincir
+// (claim chain + fine distinctions), Harita, İşaretler, Kaynaklar (sources and the books this one talks to).
 import SwiftUI
 
 enum BookTab: String, CaseIterable, Identifiable {
-    case summary, map, marks, practice
+    case keys, summary, chain, map, marks, sources
     var id: String { rawValue }
-    var name: String { switch self { case .summary: "Özet"; case .map: "Harita"; case .marks: "İşaretler"; case .practice: "Pekiştir" } }
-    var symbol: String { switch self { case .summary: "text.alignleft"; case .map: "point.3.connected.trianglepath.dotted"; case .marks: "highlighter"; case .practice: "brain.head.profile" } }
+    var name: String {
+        switch self {
+        case .keys: "Can alıcı"; case .summary: "Özet"; case .chain: "Zincir"
+        case .map: "Harita"; case .marks: "İşaretler"; case .sources: "Kaynaklar"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .keys: "key.horizontal"; case .summary: "text.alignleft"; case .chain: "link"
+        case .map: "point.3.connected.trianglepath.dotted"; case .marks: "highlighter"; case .sources: "books.vertical"
+        }
+    }
 }
 
 struct ReaderRequest: Identifiable, Hashable {
@@ -22,7 +34,7 @@ struct BookScreen: View {
     let entry: LibraryEntry
 
     @State private var book: Book?
-    @State private var tab: BookTab = .summary
+    @State private var chosenTab: BookTab?
     @State private var reader: ReaderRequest?
     @State private var onlyChapters = false
     @State private var recall: Isaret?
@@ -30,26 +42,47 @@ struct BookScreen: View {
 
     private var insight: BookInsight? { library.insights[entry.id] }
     private var tint: Color { Tema.kitap(entry.id) }
+    private var keys: [BookInsight.Key] { (insight?.keys ?? []).sorted { $0.weight > $1.weight } }
+    /// Opens on the key sentences when Claude has chosen them, otherwise on the summary.
+    private var tab: BookTab { chosenTab ?? (keys.isEmpty ? .summary : .keys) }
+    private var tabs: [BookTab] { BookTab.allCases }
+
+    #if os(macOS)
+    private let wide = true
+    #else
+    private let wide = false
+    #endif
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 hero
+                if wide, let c = insight?.concepts, !c.nodes.isEmpty {
+                    HStack(alignment: .top, spacing: 16) {
+                        coreCard.frame(maxWidth: .infinity)
+                        miniMap(c).frame(width: 380)
+                    }
+                } else {
+                    coreCard
+                }
+                partsStrip
                 doors
-                SimgeSecici(secenekler: BookTab.allCases.map { .init(deger: $0, ad: $0.name, sembol: $0.symbol) },
-                            secili: $tab, sikisik: false)
+                SimgeSecici(secenekler: tabs.map { .init(deger: $0, ad: $0.name, sembol: $0.symbol) },
+                            secili: Binding(get: { tab }, set: { chosenTab = $0 }), sikisik: !wide)
                 Group {
                     switch tab {
+                    case .keys: keysTab
                     case .summary: summary
+                    case .chain: chainTab
                     case .map: map
                     case .marks: marks
-                    case .practice: practice
+                    case .sources: sourcesTab
                     }
                 }
                 .transition(.opacity)
             }
             .padding(20)
-            .frame(maxWidth: 820).frame(maxWidth: .infinity)
+            .frame(maxWidth: wide ? 1080 : 820).frame(maxWidth: .infinity)
         }
         .background(Tema.arka.ignoresSafeArea())
         .navigationTitle(entry.titleParts.title)
@@ -72,6 +105,16 @@ struct BookScreen: View {
         }
     }
 
+    private func card<C: View>(_ fill: Color = Tema.yuzey, @ViewBuilder _ c: () -> C) -> some View {
+        c().padding(16).tamGenislik()
+            .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(fill) }
+    }
+
+    private func chapterTitle(_ ch: Int?) -> String {
+        guard let ch else { return "" }
+        return book?.chapters[safe: ch]?.title ?? "Bölüm \(ch + 1)"
+    }
+
     // MARK: hero
 
     private var hero: some View {
@@ -82,7 +125,9 @@ struct BookScreen: View {
                 if let a = entry.titleParts.author { Text(a).font(.subheadline).foregroundStyle(Tema.ikincil) }
                 Text(entry.titleParts.title).font(Tema.serif(.title2, .semibold)).foregroundStyle(Tema.metin)
                     .fixedSize(horizontal: false, vertical: true)
-                if let t = insight?.thesis { Text(t).font(Tema.serif(.footnote)).italic().foregroundStyle(Tema.ikincil).lineLimit(4) }
+                if let t = insight?.thesis, insight?.core?.claim != t {
+                    Text(t).font(Tema.serif(.footnote)).italic().foregroundStyle(Tema.ikincil).lineLimit(4)
+                }
                 HStack(spacing: 12) {
                     ZStack {
                         Halka(oran: Double(entry.percent) / 100, renk: tint, kalinlik: 4)
@@ -90,7 +135,8 @@ struct BookScreen: View {
                     }
                     .frame(width: 38, height: 38)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(entry.chapters) bölüm · \(entry.highlights) işaret").font(.footnote.weight(.medium))
+                        Text("\(entry.chapters) bölüm · \(entry.highlights) işaret\(keys.isEmpty ? "" : " · \(keys.count) can alıcı")")
+                            .font(.footnote.weight(.medium))
                         Text("~\(max(1, entry.words / 250)) sayfa · \(entry.inVD ? (entry.claude ? "okuma baskısı" : "özgün metin") : "arşivde (Voice Dream'den silindi)")")
                             .font(.caption).foregroundStyle(Tema.soluk)
                     }
@@ -98,6 +144,142 @@ struct BookScreen: View {
                 }
             }
         }
+    }
+
+    // MARK: Çekirdek — İdrak's core tile
+
+    @ViewBuilder
+    private var coreCard: some View {
+        let c = insight?.core
+        let cluster = library.network.books[entry.id].flatMap { library.network.clusters[$0.cluster] }
+        let links = insight?.links ?? []
+        let shared = sharedAuthors
+        VStack(alignment: .leading, spacing: 14) {
+            Bolumbasi(metin: "Çekirdek", sembol: "circle.hexagongrid", renk: tint)
+            if let theme = c?.theme {
+                Text(theme).font(Tema.serif(.title3, .semibold)).foregroundStyle(Tema.metin).fixedSize(horizontal: false, vertical: true)
+            } else if c == nil {
+                Text(entry.finished ? "Çekirdek henüz yazılmadı" : "Kitap sürüyor; çekirdek kitap bitince yazılır")
+                    .font(Tema.serif(.headline)).foregroundStyle(Tema.ikincil)
+            }
+            if let claim = c?.claim ?? insight?.thesis { coreRow("İddia", claim, Tema.metin) }
+            if let idea = c?.idea { coreRow("Ana fikir", idea, Tema.ikincil) }
+            if cluster != nil || !links.isEmpty || !shared.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("AĞDAKİ YERİ").font(.system(size: 10.5, weight: .bold)).tracking(0.6).foregroundStyle(Tema.soluk)
+                    AkanYerlesim(aralik: 6) {
+                        if let cluster { Hap(metin: cluster.name, renk: tint) }
+                        ForEach(Array(links.enumerated()), id: \.offset) { _, l in
+                            if let e = library.entry(l.to) {
+                                NavigationLink(value: e.id) {
+                                    Hap(metin: "↔ \(l.kind ?? "bağlı") · \(e.titleParts.title)", renk: Tema.basari)
+                                }
+                                .buttonStyle(.plain).help(l.note ?? "")
+                            }
+                        }
+                        ForEach(shared, id: \.self) { a in Hap(metin: "ortak kaynak · \(a)", renk: Tema.ikincil) }
+                    }
+                }
+            }
+        }
+        .padding(18).tamGenislik()
+        .background { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey) }
+        .overlay(alignment: .topTrailing) {
+            Circle().fill(tint.opacity(0.10)).frame(width: 120).blur(radius: 30).offset(x: 20, y: -20).allowsHitTesting(false)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func coreRow(_ k: String, _ v: String, _ color: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(k.uppercased(with: Dil.tr)).font(.system(size: 10.5, weight: .bold)).tracking(0.6).foregroundStyle(Tema.soluk)
+                .frame(width: 72, alignment: .leading)
+            Text(v).font(Tema.serif(.body)).foregroundStyle(color).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Authors this book cites that another book on the shelf also cites (İdrak's "ortak kaynak").
+    private var sharedAuthors: [String] {
+        guard let mine = insight?.sources, !mine.isEmpty else { return [] }
+        let names = Set(mine.compactMap { $0.author.map(Dil.normal) })
+        var hit: [String: String] = [:]
+        for (id, ins) in library.insights where id != entry.id {
+            for s in ins.sources ?? [] { if let a = s.author, names.contains(Dil.normal(a)) { hit[Dil.normal(a)] = a } }
+        }
+        return hit.values.sorted()
+    }
+
+    /// The heaviest concepts only (and the edges between them), so the small map stays legible.
+    static func core(of c: BookInsight.ConceptMap, limit: Int = 9) -> BookInsight.ConceptMap {
+        guard c.nodes.count > limit else { return c }
+        let degree = Dictionary(c.edges.flatMap { [($0.a, 1), ($0.b, 1)] }, uniquingKeysWith: +)
+        let keep = c.nodes.sorted { (($0.weight ?? 1), degree[$0.id] ?? 0) > (($1.weight ?? 1), degree[$1.id] ?? 0) }.prefix(limit)
+        let ids = Set(keep.map(\.id))
+        return .init(nodes: Array(keep), edges: c.edges.filter { ids.contains($0.a) && ids.contains($0.b) })
+    }
+
+    private func miniMap(_ c: BookInsight.ConceptMap) -> some View {
+        Button { withAnimation(.snappy) { chosenTab = .map } } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Bolumbasi(metin: "Kavram haritası · \(c.nodes.count)", sembol: "point.3.connected.trianglepath.dotted")
+                    Spacer()
+                    Text("Büyüt ↗").font(.caption.weight(.semibold)).foregroundStyle(tint)
+                }
+                ConceptMapView(map: Self.core(of: c), tint: tint, selected: .constant(nil)).allowsHitTesting(false)
+                    .frame(height: 250)
+            }
+            .padding(16)
+            .background { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey) }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Bölüm haritası — every chapter as a segment; marked ones lit, key sentences dotted
+
+    @ViewBuilder
+    private var partsStrip: some View {
+        if let book, book.chapters.count > 1 {
+            let marked = Dictionary(grouping: library.withMarks(book).highlights.compactMap { $0.at.first?.ch }, by: { $0 }).mapValues(\.count)
+            let keyed = Set(keys.compactMap(\.ch))
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Bolumbasi(metin: "Bölüm haritası", sembol: "rectangle.split.3x1")
+                    Spacer()
+                    Text("\(book.chapters.count) bölüm · \(marked.count) işaretli\(keyed.isEmpty ? "" : " · \(keyed.count) can alıcı")")
+                        .font(.caption).foregroundStyle(Tema.soluk)
+                }
+                HStack(spacing: 3) {
+                    ForEach(Array(book.chapters.enumerated()), id: \.offset) { ci, ch in
+                        Button { reader = ReaderRequest(mode: .full, ch: ci, b: 0) } label: {
+                            VStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(marked[ci] != nil ? Marker.swatch(1) : tint.opacity(Double(ci) / Double(book.chapters.count) * 100 < Double(entry.percent) ? 0.30 : 0.10))
+                                    .frame(height: 22)
+                                Circle().fill(keyed.contains(ci) ? tint : .clear).frame(width: 5, height: 5)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("\(ci + 1) · \(ch.title)\(marked[ci].map { " · \($0) işaret" } ?? "")")
+                        .accessibilityLabel("\(ci + 1). bölüm, \(ch.title)")
+                    }
+                }
+                HStack(spacing: 14) {
+                    legend(Marker.swatch(1), "işaretli")
+                    legend(tint.opacity(0.30), "dinlendi")
+                    legend(tint.opacity(0.10), "sırada")
+                    if !keyed.isEmpty { HStack(spacing: 5) { Circle().fill(tint).frame(width: 6, height: 6); Text("can alıcı") } }
+                }
+                .font(.caption2).foregroundStyle(Tema.soluk)
+            }
+            .padding(16)
+            .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey) }
+        }
+    }
+
+    private func legend(_ c: Color, _ t: String) -> some View {
+        HStack(spacing: 5) { RoundedRectangle(cornerRadius: 2).fill(c).frame(width: 12, height: 8); Text(t) }
     }
 
     private var doors: some View {
@@ -126,13 +308,87 @@ struct BookScreen: View {
         }
     }
 
+    // MARK: Can alıcı — chosen from the text, marked or not
+
+    private func isMarked(_ k: BookInsight.Key) -> Bool {
+        guard let book, let ch = k.ch, let b = k.b else { return false }
+        return library.withMarks(book).highlights.contains { $0.at.contains { $0.ch == ch && $0.b == b } }
+    }
+
+    @ViewBuilder
+    private var keysTab: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if keys.isEmpty {
+                pendingNote("Can alıcı cümleler henüz seçilmedi",
+                            "Claude kitabı okurken, işaretlemiş olsan da olmasan da kitabı taşıyan cümleleri önem sırasıyla seçer. "
+                            + (entry.claude ? "Sabah görevi sırayla yazıyor; beklemek istemezsen Claude'a \"Teoria kitap işle: \(entry.titleParts.title)\" de."
+                                            : "Dış kitapta istekle: Claude'a \"Teoria kitap işle: \(entry.titleParts.title)\" de."))
+            } else {
+                Text("Kitabı taşıyan cümleler, önem sırasıyla. İşaretlediklerin ayrıca belirtilir. Önce kapalıyken hatırla, sonra kendi cümlenle yeniden kur.")
+                    .font(.footnote).foregroundStyle(Tema.ikincil)
+                ForEach(keys) { k in keyCard(k) }
+            }
+            if let missed = insight?.missed, !missed.isEmpty {
+                Bolumbasi(metin: "Kaçırdıkların · işaretlemediğin taşıyıcı yerler", sembol: "eye.trianglebadge.exclamationmark").padding(.top, 10)
+                ForEach(missed) { m in missedCard(m) }
+            }
+        }
+    }
+
+    private func keyCard(_ k: BookInsight.Key) -> some View {
+        card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    HStack(spacing: 3) {
+                        ForEach(0..<5, id: \.self) { i in Circle().fill(i < k.weight ? tint : Tema.cizgi).frame(width: 6, height: 6) }
+                    }
+                    .accessibilityLabel("Önem \(k.weight) / 5")
+                    Text(chapterTitle(k.ch)).font(.caption.weight(.semibold)).foregroundStyle(Tema.soluk).lineLimit(1)
+                    Spacer()
+                    if isMarked(k) { Label("işaretledin", systemImage: "highlighter").font(.caption2.weight(.semibold)).foregroundStyle(Marker.swatch(1)) }
+                }
+                HStack(alignment: .top, spacing: 10) {
+                    RoundedRectangle(cornerRadius: 2).fill(tint.opacity(0.6)).frame(width: 3)
+                    Text(k.quote).font(Tema.serif(.body)).foregroundStyle(Tema.metin).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+                }
+                if !k.why.isEmpty { Text(k.why).font(.callout).foregroundStyle(Tema.ikincil).fixedSize(horizontal: false, vertical: true) }
+                actions(id: "key:\(entry.id):\(k.id)", quote: k.quote, why: k.why, ch: k.ch, b: k.b)
+            }
+        }
+    }
+
+    private func missedCard(_ m: BookInsight.Missed) -> some View {
+        card(Tema.yuzey) {
+            VStack(alignment: .leading, spacing: 10) {
+                if m.ch != nil { Text(chapterTitle(m.ch)).font(.caption.weight(.semibold)).foregroundStyle(tint) }
+                Text(m.why).font(Tema.serif(.body)).foregroundStyle(Tema.metin).fixedSize(horizontal: false, vertical: true)
+                actions(id: "oz:\(entry.id):\(m.ch ?? -1).\(m.b ?? -1)", quote: m.quote, why: m.why, ch: m.ch, b: m.b)
+            }
+        }
+    }
+
+    private func actions(id: String, quote: String, why: String, ch: Int?, b: Int?) -> some View {
+        HStack {
+            Button {
+                recall = Isaret(id: id, kitap: entry.id, baslik: entry.title, metin: quote,
+                                renk: 1, tarih: insight?.built ?? Tarih.gun(Date()), kaynak: "kitap-oz", baglam: why)
+            } label: { Label("Kapat · hatırla", systemImage: "eye.slash") }
+                .buttonStyle(.borderedProminent).tint(tint)
+            if let ch {
+                Button { reader = ReaderRequest(mode: .full, ch: ch, b: b ?? 0) } label: { Label("Metinde gör", systemImage: "book") }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .controlSize(.small)
+    }
+
     // MARK: Özet
 
     @ViewBuilder
     private var summary: some View {
-        if let ins = insight, let book {
+        if let ins = insight, let book, !ins.verdicts.isEmpty || !ins.chapters.isEmpty {
             VStack(alignment: .leading, spacing: 18) {
-                if !onlyChapters {
+                if !onlyChapters, !ins.verdicts.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Bolumbasi(metin: "Kitabın yargıları", sembol: "quote.opening")
                         ForEach(Array(ins.verdicts.enumerated()), id: \.offset) { i, v in
@@ -144,22 +400,26 @@ struct BookScreen: View {
                         }
                     }
                     .padding(18).tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey))
+                    .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey) }
                 }
-                HStack {
-                    Bolumbasi(metin: "Bölüm bölüm", sembol: "list.number")
-                    Spacer()
-                    Toggle("Yalnız bölüm özetleri", isOn: $onlyChapters.animation(.snappy)).toggleStyle(.switch).font(.caption).fixedSize()
-                }
-                VStack(spacing: 0) {
-                    ForEach(ins.chapters, id: \.ch) { s in
-                        Button { reader = ReaderRequest(mode: .full, ch: s.ch, b: 0) } label: { chapterRow(s, book) }
-                            .buttonStyle(.plain)
-                        Rectangle().fill(Tema.cizgi).frame(height: 0.5)
+                if !ins.chapters.isEmpty {
+                    HStack {
+                        Bolumbasi(metin: "Bölüm bölüm", sembol: "list.number")
+                        Spacer()
+                        Toggle("Yalnız bölüm özetleri", isOn: $onlyChapters.animation(.snappy)).toggleStyle(.switch).font(.caption).fixedSize()
                     }
+                    VStack(spacing: 0) {
+                        ForEach(ins.chapters, id: \.ch) { s in
+                            Button { reader = ReaderRequest(mode: .full, ch: s.ch, b: 0) } label: { chapterRow(s, book) }
+                                .buttonStyle(.plain)
+                            Rectangle().fill(Tema.cizgi).frame(height: 0.5)
+                        }
+                    }
+                    .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey) }
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                } else {
+                    chapterList(book)
                 }
-                .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey))
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
         } else {
             pendingNote("Özet henüz yazılmadı",
@@ -200,7 +460,7 @@ struct BookScreen: View {
                 Rectangle().fill(Tema.cizgi).frame(height: 0.5).padding(.leading, 16)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
+        .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
     }
 
     private func pendingNote(_ t: String, _ d: String) -> some View {
@@ -209,18 +469,116 @@ struct BookScreen: View {
             Text(d).font(.callout).foregroundStyle(Tema.ikincil)
         }
         .padding(16).tamGenislik()
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey2))
+        .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey2) }
+    }
+
+    // MARK: Zincir — the claim chain and the fine distinctions
+
+    @ViewBuilder
+    private var chainTab: some View {
+        let chain = insight?.chain ?? []
+        let nuances = insight?.nuances ?? []
+        if chain.isEmpty && nuances.isEmpty {
+            pendingNote("İddia zinciri henüz yok", "Claude kitabı işlerken iddiaların sırasını ve kaçırılması kolay ince ayrımları yazar.")
+        } else {
+            VStack(alignment: .leading, spacing: 16) {
+                if !chain.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Bolumbasi(metin: "İddia zinciri", sembol: "link").padding(.bottom, 12)
+                        ForEach(Array(chain.enumerated()), id: \.offset) { i, z in
+                            HStack(alignment: .top, spacing: 14) {
+                                VStack(spacing: 0) {
+                                    Text("\(i + 1)").font(.system(size: 12, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                                        .frame(width: 24, height: 24).background { Circle().fill(tint) }
+                                    if i < chain.count - 1 { Rectangle().fill(tint.opacity(0.25)).frame(width: 2).frame(maxHeight: .infinity) }
+                                }
+                                Text(z).font(Tema.serif(.body)).foregroundStyle(Tema.metin).lineSpacing(3)
+                                    .fixedSize(horizontal: false, vertical: true).padding(.bottom, 16).padding(.top, 2)
+                            }
+                        }
+                    }
+                    .padding(18).tamGenislik()
+                    .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey) }
+                }
+                if !nuances.isEmpty {
+                    Bolumbasi(metin: "Ayrımlar · ince noktalar", sembol: "scissors")
+                    ForEach(Array(nuances.enumerated()), id: \.offset) { _, n in
+                        card {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(n.title).font(Tema.serif(.headline)).foregroundStyle(Tema.metin).fixedSize(horizontal: false, vertical: true)
+                                if let t = n.text { Text(t).font(.callout).foregroundStyle(Tema.ikincil).lineSpacing(2).fixedSize(horizontal: false, vertical: true) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Kaynaklar — the books behind this one, and the shelf books it talks to
+
+    @ViewBuilder
+    private var sourcesTab: some View {
+        let src = insight?.sources ?? []
+        let links = insight?.links ?? []
+        if src.isEmpty && links.isEmpty {
+            pendingNote("Kaynakça henüz yok", "Claude kitabı işlerken metnin dayandığı eserleri (başvuru) ve sonra okunacakları (öneri) yazar; raftaki başka kitaplarla bağları da kurar.")
+        } else {
+            VStack(alignment: .leading, spacing: 16) {
+                if !links.isEmpty {
+                    Bolumbasi(metin: "Konuştuğu metinler", sembol: "arrow.left.arrow.right")
+                    ForEach(Array(links.enumerated()), id: \.offset) { _, l in
+                        if let e = library.entry(l.to) {
+                            NavigationLink(value: e.id) {
+                                HStack(spacing: 12) {
+                                    KitapKapagi(id: e.id, baslik: e.titleParts.title, genislik: 40)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text((l.kind ?? "bağlı").uppercased(with: Dil.tr)).font(.system(size: 10, weight: .bold)).foregroundStyle(Tema.basari)
+                                        Text(e.titleParts.title).font(Tema.serif(.headline)).foregroundStyle(Tema.metin)
+                                        if let n = l.note { Text(n).font(.caption).foregroundStyle(Tema.ikincil).fixedSize(horizontal: false, vertical: true) }
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(Tema.soluk)
+                                }
+                                .padding(12).tamGenislik()
+                                .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                ForEach([("Başvuru · metnin dayandığı", true), ("Öneri · sonra okunacak", false)], id: \.1) { title, ref in
+                    let l = src.filter { $0.isReference == ref }
+                    if !l.isEmpty {
+                        Bolumbasi(metin: title, sembol: ref ? "text.book.closed" : "sparkles")
+                        VStack(spacing: 0) {
+                            ForEach(Array(l.enumerated()), id: \.offset) { _, s in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(s.work).font(Tema.serif(.headline)).foregroundStyle(Tema.metin)
+                                    Text([s.author, s.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")).font(.caption).foregroundStyle(Tema.soluk)
+                                    if let w = s.why { Text(w).font(.callout).foregroundStyle(Tema.ikincil).fixedSize(horizontal: false, vertical: true) }
+                                }
+                                .padding(14).tamGenislik()
+                                Rectangle().fill(Tema.cizgi).frame(height: 0.5)
+                            }
+                        }
+                        .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    }
+                }
+            }
+        }
     }
 
     // MARK: Harita
 
     @ViewBuilder
     private var map: some View {
-        if let c = insight?.concepts, !c.nodes.isEmpty, let book {
+        if let c = insight?.concepts, !c.nodes.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 ConceptMapView(map: c, tint: tint, selected: $node)
                     .frame(height: max(460, CGFloat(c.nodes.count) * 44))
-                    .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey))
+                    .background { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey) }
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 if let n = node {
                     VStack(alignment: .leading, spacing: 8) {
@@ -231,20 +589,20 @@ struct BookScreen: View {
                             let other = c.nodes.first { $0.id == (e.a == n.id ? e.b : e.a) }?.label ?? ""
                             Text("\(e.a == n.id ? "→" : "←") \(e.label ?? "bağlı") · \(other)").font(.footnote).foregroundStyle(Tema.ikincil)
                         }
-                        if let chs = n.ch, !chs.isEmpty {
+                        if let chs = n.ch, !chs.isEmpty, let book {
                             AkanYerlesim(aralik: 6) {
                                 ForEach(chs, id: \.self) { ci in
                                     Button { reader = ReaderRequest(mode: .full, ch: ci, b: 0) } label: {
                                         Text(book.chapters[safe: ci]?.title ?? "Bölüm \(ci + 1)").font(.caption.weight(.semibold)).lineLimit(1)
                                             .padding(.horizontal, 10).padding(.vertical, 6)
-                                            .background(Capsule().fill(tint.opacity(0.14))).foregroundStyle(tint)
+                                            .background { Capsule().fill(tint.opacity(0.14)) }.foregroundStyle(tint)
                                     }.buttonStyle(.plain)
                                 }
                             }
                         }
                     }
                     .padding(16).tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
+                    .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
                 } else {
                     Text("Bir kavrama dokun: tanımı, bağları ve geçtiği bölümler açılır.").font(.caption).foregroundStyle(Tema.soluk)
                 }
@@ -260,7 +618,7 @@ struct BookScreen: View {
     private var marks: some View {
         if let book = book.map(library.withMarks) {
             if book.highlights.isEmpty {
-                pendingNote("İşaret yok", "Voice Dream'de işaretlediğin cümleler burada, kitaptaki yerleriyle durur.")
+                pendingNote("İşaret yok", "Voice Dream'de işaretlediğin cümleler burada, kitaptaki yerleriyle durur. İşaretlemediğin taşıyıcı cümleler Can alıcı'da.")
             } else {
                 VStack(spacing: 10) {
                     ForEach(book.highlights.sorted { ($0.at.first?.ch ?? 0, $0.at.first?.b ?? 0) < ($1.at.first?.ch ?? 0, $1.at.first?.b ?? 0) }) { h in
@@ -276,44 +634,12 @@ struct BookScreen: View {
                                 Spacer(minLength: 0)
                             }
                             .padding(14).contentShape(Rectangle())
-                            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+                            .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
-        }
-    }
-
-    // MARK: Pekiştir — the essence you did not mark
-
-    @ViewBuilder
-    private var practice: some View {
-        if let missed = insight?.missed, !missed.isEmpty, let book {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("İşaretlemediğin ama kitabı taşıyan yerler. Önce kapalıyken hatırla, sonra kendi cümlenle yeniden kur.")
-                    .font(.footnote).foregroundStyle(Tema.ikincil)
-                ForEach(missed) { m in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(book.chapters[safe: m.ch]?.title ?? "").font(.caption.weight(.semibold)).foregroundStyle(tint)
-                        Text(m.why).font(Tema.serif(.body)).foregroundStyle(Tema.metin).fixedSize(horizontal: false, vertical: true)
-                        HStack {
-                            Button {
-                                recall = Isaret(id: "oz:\(entry.id):\(m.ch).\(m.b)", kitap: entry.id, baslik: entry.title, metin: m.quote,
-                                                renk: 1, tarih: insight?.built ?? Tarih.gun(Date()), kaynak: "kitap-oz", baglam: m.why)
-                            } label: { Label("Kapat · hatırla", systemImage: "eye.slash") }
-                                .buttonStyle(.borderedProminent).tint(tint)
-                            Button { reader = ReaderRequest(mode: .full, ch: m.ch, b: m.b) } label: { Label("Metinde gör", systemImage: "book") }
-                                .buttonStyle(.bordered)
-                        }
-                        .controlSize(.small)
-                    }
-                    .padding(16).tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
-                }
-            }
-        } else {
-            pendingNote("Pekiştirme henüz yok", "Claude özeti yazarken işaretlemediğin taşıyıcı cümleleri de seçer; burada kapat-hatırla kartı olurlar.")
         }
     }
 }
@@ -341,7 +667,7 @@ struct ConceptMapView: View {
                         path.addQuadCurve(to: b, control: mid)
                         ctx.stroke(path, with: .color(on ? tint : Tema.ikincil.opacity(0.28)), lineWidth: on ? 2 : 1)
                         if on, let l = e.label {
-                            ctx.draw(Text(l).font(.system(size: 10, weight: .medium)).foregroundColor(tint), at: mid)
+                            ctx.draw(Text(l).font(.system(size: 10, weight: .medium)).foregroundStyle(tint), at: mid)
                         }
                     }
                 }
@@ -354,12 +680,12 @@ struct ConceptMapView: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(Capsule().fill(on ? tint : (w >= 3 ? tint.opacity(0.18) : Tema.yuzey2)))
-                            .overlay(Capsule().strokeBorder(tint.opacity(w >= 2 ? 0.45 : 0.18)))
+                            .background { Capsule().fill(on ? tint : (w >= 3 ? tint.opacity(0.18) : Tema.yuzey2)) }
+                            .overlay { Capsule().strokeBorder(tint.opacity(w >= 2 ? 0.45 : 0.18)) }
                             .foregroundStyle(on ? Color.white : Tema.metin)
                             .frame(maxWidth: 150)
                             .position(p)
-                            .onTapGesture { Dokunus.secim(); withAnimation(.snappy) { selected = on ? nil : n } }
+                            .onTapGesture { Dokunus.secim(); withAnimation(.snappy) { selected = on ? nil : n } }.accessibilityAddTraits(.isButton)
                     }
                 }
             }

@@ -15,6 +15,7 @@ struct LibraryEntry: Codable, Identifiable, Hashable {
     let chapters: Int
     let highlights: Int
     let inVD: Bool
+    var inVR: Bool?                 // in Voice Reader (iPhone) now — library.py, 2026-10-20
     let insight: Bool
 
     var lastDate: Date { Tarih.coz(last ?? "") ?? Tarih.coz(added ?? "") ?? .distantPast }
@@ -96,10 +97,26 @@ struct TeoriaMark: Codable, Hashable, Identifiable {
 /// Claude's reading of a book: library/insights/<id>.json ("Teoria kitap işle").
 struct BookInsight: Codable, Hashable {
     struct ChapterSummary: Codable, Hashable { let ch: Int; let summary: String; var key: String? }
+    /// A carrying point the reader did not mark. Folded from İdrak (rooms.py) it may have no address.
     struct Missed: Codable, Hashable, Identifiable {
-        let ch: Int; let b: Int; let quote: String; let why: String
-        var id: String { "\(ch).\(b).\(quote.prefix(24))" }
+        var ch: Int?; var b: Int?; let quote: String; let why: String
+        var id: String { "\(ch ?? -1).\(b ?? -1).\(quote.prefix(24))" }
     }
+    /// İdrak's core: what the book is about, its claim, the idea to carry away.
+    struct Core: Codable, Hashable { var theme: String?; var claim: String?; var idea: String? }
+    struct Nuance: Codable, Hashable { let title: String; var text: String? }
+    /// Can alıcı cümle: chosen by Claude from the text whether or not it was marked; weight 5 = carries the book.
+    struct Key: Codable, Hashable, Identifiable {
+        var ch: Int?; var b: Int?
+        let quote: String
+        var why: String
+        var weight: Int
+        var words: [String]?
+        var id: String { "\(ch ?? -1).\(b ?? -1).\(quote.prefix(32))" }
+    }
+    struct Source: Codable, Hashable { let work: String; var author: String?; var year: Int?; var kind: String?; var why: String?
+        var isReference: Bool { kind != "read" } }
+    struct Link: Codable, Hashable { let to: String; var kind: String?; var note: String? }
     struct Node: Codable, Hashable, Identifiable { let id: String; let label: String; var note: String?; var ch: [Int]?; var weight: Int? }
     struct Edge: Codable, Hashable { let a: String; let b: String; var label: String? }
     struct ConceptMap: Codable, Hashable { var nodes: [Node]; var edges: [Edge] }
@@ -112,9 +129,28 @@ struct BookInsight: Codable, Hashable {
     var missed: [Missed]?
     var concepts: ConceptMap?
     var drop: [Drop]?
+    var by: String?
+    var core: Core?
+    var chain: [String]?
+    var nuances: [Nuance]?
+    var keys: [Key]?
+    var sources: [Source]?
+    var links: [Link]?
 
     func summary(_ ch: Int) -> ChapterSummary? { chapters.first { $0.ch == ch } }
     var dropped: Set<String> { Set((drop ?? []).map { "\($0.ch).\($0.b)" }) }
+}
+
+/// library/network.json (rooms.py): İdrak's clusters (each a question) and, for every book with a room,
+/// its cluster and listening log — the data behind the Mac library's Ağ and İstatistik views.
+struct LibraryNetwork: Codable, Hashable {
+    struct Cluster: Codable, Hashable { let name: String; let question: String }
+    struct Read: Codable, Hashable { let date: String; var percent: Int? }
+    struct Member: Codable, Hashable { let cluster: String; var reads: [Read] }
+    var clusters: [String: Cluster]
+    var books: [String: Member]
+    static let order = ["bilgi", "varolus", "sistem", "etik", "sermaye", "diger"]
+    var clusterIds: [String] { Self.order.filter { clusters[$0] != nil } + clusters.keys.filter { !Self.order.contains($0) }.sorted() }
 }
 
 @MainActor
@@ -125,6 +161,7 @@ final class LibraryStore: ObservableObject {
     @Published private(set) var loading: Set<String> = []
     @Published var failed: String?
     @Published private(set) var marks: [String: [TeoriaMark]] = [:]     // book → live marks (deleted removed)
+    @Published private(set) var network = LibraryNetwork(clusters: [:], books: [:])
     private var books: [String: Book] = [:]
     private var opening: [String: Task<Book?, Never>] = [:]   // one load per book, however many screens ask at once
     private var syncing = false
@@ -183,7 +220,7 @@ final class LibraryStore: ObservableObject {
     func scheduleSync(_ kasa: Kasa) {
         syncTask?.cancel()
         syncTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            try? await Task.sleep(for: .seconds(4))
             guard let self, !Task.isCancelled else { return }
             await self.sync(kasa)
         }
@@ -199,6 +236,8 @@ final class LibraryStore: ObservableObject {
         let dec = JSONDecoder()
         if let v = try? Data(contentsOf: local.appendingPathComponent("index.json")),
            let i = try? dec.decode(LibraryIndex.self, from: v) { index = i }
+        if let v = try? Data(contentsOf: local.appendingPathComponent("network.json")),
+           let n = try? dec.decode(LibraryNetwork.self, from: v) { network = n }
         let dir = local.appendingPathComponent("insights")
         var all: [String: BookInsight] = [:]
         for f in (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? [] where f.hasSuffix(".json") {
@@ -232,6 +271,12 @@ final class LibraryStore: ObservableObject {
             let ix = lib.appendingPathComponent("index.json")
             Kasa.indir(ix)
             if let v = Kasa.koordineliOku(ix) { try v.write(to: target.appendingPathComponent("index.json"), options: .atomic) }
+            let sb = lib.appendingPathComponent("sabah.json")          // Sabah's plan (veri/sabah.py)
+            Kasa.indir(sb)
+            if let v = Kasa.koordineliOku(sb) { try v.write(to: target.appendingPathComponent("sabah.json"), options: .atomic) }
+            let nw = lib.appendingPathComponent("network.json")
+            Kasa.indir(nw)
+            if let v = Kasa.koordineliOku(nw) { try v.write(to: target.appendingPathComponent("network.json"), options: .atomic) }
             // marks: mine up, the other devices' down
             let mk = lib.appendingPathComponent("marks", isDirectory: true)
             try? fm.createDirectory(at: mk, withIntermediateDirectories: true)
@@ -255,6 +300,7 @@ final class LibraryStore: ObservableObject {
             return true
         }
         if ok == true {
+            MorningStore.shared.load()
             // a book whose edition changed in the vault is fetched again next time it opens
             let old = Dictionary(index.books.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             loadLocal()

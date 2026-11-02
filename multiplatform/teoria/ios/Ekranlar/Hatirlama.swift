@@ -62,8 +62,8 @@ struct HatirlamaPerdesi<Icerik: View>: View {
                 .font(.system(size: 13, weight: .semibold))
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(Capsule().fill(.regularMaterial))
-        .overlay(Capsule().strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5))
+        .background { Capsule().fill(.regularMaterial) }
+        .overlay { Capsule().strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5) }
         .foregroundStyle(Tema.ikincil)
     }
 
@@ -79,7 +79,7 @@ struct PerdeDugmesi: ButtonStyle {
         configuration.label
             .font(.system(size: 13, weight: .semibold))
             .padding(.horizontal, 12).padding(.vertical, 7)
-            .background(Capsule().fill(vurgulu ? Tema.vurgu.opacity(0.13) : Tema.yuzey2))
+            .background { Capsule().fill(vurgulu ? Tema.vurgu.opacity(0.13) : Tema.yuzey2) }
             .foregroundStyle(vurgulu ? Tema.vurgu : Tema.ikincil)
             .opacity(configuration.isPressed ? 0.7 : 1)
             .contentShape(Capsule())
@@ -127,15 +127,15 @@ struct BildirimSeridi: ViewModifier {
                     .font(.system(size: 13.5, weight: .semibold))
                     .lineLimit(2)
                     .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Capsule().fill(.regularMaterial))
-                    .overlay(Capsule().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5))
+                    .background { Capsule().fill(.regularMaterial) }
+                    .overlay { Capsule().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5) }
                     .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
                     .foregroundStyle(Tema.metin)
                     .padding(.top, 8).padding(.horizontal, 20)
                     .transition(.move(edge: .top).combined(with: .opacity))
-                    .onTapGesture { withAnimation(.snappy) { depo.bildirim = nil } }
+                    .onTapGesture { withAnimation(.snappy) { depo.bildirim = nil } }.accessibilityAddTraits(.isButton)
                     .task(id: b) {
-                        try? await Task.sleep(nanoseconds: 6_000_000_000)
+                        try? await Task.sleep(for: .seconds(6))
                         withAnimation(.snappy) { if depo.bildirim == b { depo.bildirim = nil } }
                     }
             }
@@ -200,8 +200,8 @@ struct GenelDegerlendirmeKarti: View {
                 .font(.system(size: 13, weight: .semibold)).buttonStyle(.plain).foregroundStyle(Tema.vurgu)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Tema.vurgu.opacity(0.25), lineWidth: 0.8))
+        .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Tema.yuzey) }
+        .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Tema.vurgu.opacity(0.25), lineWidth: 0.8) }
     }
 
     private func olcek(_ ad: String, _ n: Int) -> some View {

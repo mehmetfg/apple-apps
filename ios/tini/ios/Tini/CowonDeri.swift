@@ -48,11 +48,9 @@ struct CowonDeri: View {
             .padding(.horizontal, 4)
         }
         .padding(.horizontal, 18).padding(.top, 18).padding(.bottom, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+        .background { RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(LinearGradient(colors: [Color(white: 0.22), Color(white: 0.07)], startPoint: .top, endPoint: .bottom))
-                .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(LinearGradient(colors: [Color(white: 0.75), Color(white: 0.3), Color(white: 0.6)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2.5))
-        )
+                .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(LinearGradient(colors: [Color(white: 0.75), Color(white: 0.3), Color(white: 0.6)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2.5) } }
         .shadow(color: .black.opacity(0.8), radius: 18, y: 10)
         .frame(width: w)
     }
@@ -126,7 +124,7 @@ struct CowonDeri: View {
             HStack(alignment: .top, spacing: 10) {
                 KapakGorunumu(parca: calar.simdiki, kose: 2)
                     .frame(width: 104, height: 104)
-                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.white.opacity(0.3), lineWidth: 1))
+                    .overlay { RoundedRectangle(cornerRadius: 2).stroke(Color.white.opacity(0.3), lineWidth: 1) }
                 VStack(alignment: .leading, spacing: 5) {
                     D2Satir(simge: "music.note", yazi: calar.simdiki?.baslik ?? "Parça yok", kalin: true)
                     D2Satir(simge: "person.fill", yazi: calar.simdiki?.sanatci ?? "-")
@@ -193,8 +191,8 @@ private struct UstDugme: View {
         Button(action: eylem) {
             Text(yazi).font(.system(size: 10, weight: .bold)).foregroundStyle(Color(white: 0.8))
                 .frame(maxWidth: .infinity).frame(height: 24)
-                .background(Capsule().fill(LinearGradient(colors: [Color(white: 0.35), Color(white: 0.12)], startPoint: .top, endPoint: .bottom)))
-                .overlay(Capsule().stroke(Color(white: 0.5), lineWidth: 0.6))
+                .background { Capsule().fill(LinearGradient(colors: [Color(white: 0.35), Color(white: 0.12)], startPoint: .top, endPoint: .bottom)) }
+                .overlay { Capsule().stroke(Color(white: 0.5), lineWidth: 0.6) }
         }
         .buttonStyle(.plain)
         .frame(maxWidth: genis ? 70 : 50)
@@ -212,7 +210,7 @@ private struct JetListesi: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button { ekran = .muzik } label: { Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold)) }.buttonStyle(.plain)
+                Button { ekran = .muzik } label: { Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold)) }.accessibilityLabel("Geri").buttonStyle(.plain)
                 Text("JetEffect 3.0").font(.system(size: 12, weight: .bold))
                 Spacer()
                 Button { ekran = .kullanici } label: { Text("User EQ ›").font(.system(size: 11, weight: .semibold)) }.buttonStyle(.plain)
@@ -274,7 +272,7 @@ private struct KullaniciEQ: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Button { ekran = .jet } label: { Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold)).frame(width: 22) }.buttonStyle(.plain)
+                Button { ekran = .jet } label: { Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold)).frame(width: 22) }.accessibilityLabel("Geri").buttonStyle(.plain)
                 ForEach(Sekme.allCases, id: \.self) { s in
                     Button { sekme = s } label: {
                         Text(s.rawValue).font(.system(size: 10, weight: .bold)).frame(maxWidth: .infinity).frame(height: 22)
@@ -389,7 +387,7 @@ private struct KullaniciEQ: View {
                 ForEach(0..<11) { i in
                     Rectangle().fill(i <= Int(d.wrappedValue.rounded()) && d.wrappedValue > 0 ? Color(red: 0.35, green: 0.65, blue: 1) : Color(white: 0.18))
                         .frame(height: 14 + CGFloat(i) * 2)
-                        .onTapGesture { ac?(); d.wrappedValue = Float(i) }
+                        .onTapGesture { ac?(); d.wrappedValue = Float(i) }.accessibilityAddTraits(.isButton)
                 }
             }
             .frame(height: 36, alignment: .bottom)

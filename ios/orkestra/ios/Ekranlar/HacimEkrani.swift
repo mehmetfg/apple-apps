@@ -162,7 +162,7 @@ struct HacimEkrani: View {
                 ForEach(k, id: \.0) { d, dinlenen, uretilen in
                     BarMark(x: .value("Gün", d, unit: adim.bilesen), y: .value("Sayfa", x.sayfa(Double(dinlenen))))
                         .foregroundStyle(by: .value("Tür", "dinlenen"))
-                        .cornerRadius(3)
+                        .clipShape(.rect(cornerRadius: 3))
                     if kapsam != .diger {
                         LineMark(x: .value("Gün", d, unit: adim.bilesen), y: .value("Sayfa", x.sayfa(Double(uretilen))))
                             .foregroundStyle(by: .value("Tür", "Claude üretti"))

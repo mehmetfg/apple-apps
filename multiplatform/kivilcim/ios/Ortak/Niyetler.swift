@@ -12,10 +12,16 @@ let uygulamaGrubu = "group.com.fatihgocgun.kivilcim"
 
 struct KayitEtkinligi: ActivityAttributes {
     struct ContentState: Codable, Hashable {
+        /// Sayacın başlangıcı: duraklatılan süre kadar ileri kayar, böylece sistem sayacı doğru akar.
         var baslangic: Date
         var bitti: Bool = false
         var sure: Double = 0
         var baslik: String = ""
+        /// Duraklatıldıysa o an; sayaç orada durur.
+        var duraklama: Date? = nil
+        /// Son ses düzeyleri (0…1), Canlı Etkinlikteki dalga için; saniyede bir tazelenir.
+        var seviyeler: [Double] = []
+        var duraklatildi: Bool { duraklama != nil }
     }
     var kalite: String
 }
@@ -33,7 +39,7 @@ struct KaydiDegistirNiyeti: AudioRecordingIntent, LiveActivityIntent {
     #if !WIDGET
     func perform() async throws -> some IntentResult {
         Tani.yaz("niyet: degistir (uygulama süreci)")
-        await KayitMerkezi.shared.degistir(kaynak: "kilit")
+        if !(await KayitMerkezi.shared.degistir(kaynak: "kilit")) { try await oneGecipBaslat() }
         return .result()
     }
     #else
@@ -53,7 +59,7 @@ struct KaydiBaslatNiyeti: AudioRecordingIntent, LiveActivityIntent {
     #if !WIDGET
     func perform() async throws -> some IntentResult {
         Tani.yaz("niyet: baslat (uygulama süreci)")
-        await KayitMerkezi.shared.baslat(kaynak: "kestirme")
+        if !(await KayitMerkezi.shared.baslat(kaynak: "kestirme")) { try await oneGecipBaslat() }
         return .result()
     }
     #else
@@ -79,6 +85,49 @@ struct KaydiBitirNiyeti: LiveActivityIntent {
         return .result()
     }
 }
+
+/// Canlı Etkinlik / Dynamic Island: duraklat ↔ devam.
+struct KaydiDuraklatNiyeti: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Fikir kaydını duraklat"
+    static let openAppWhenRun = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET
+        Tani.yaz("niyet: duraklat/devam (uygulama süreci)")
+        await KayitMerkezi.shared.duraklatDegistir()
+        #endif
+        return .result()
+    }
+}
+
+/// Canlı Etkinlik / Dynamic Island: kaydı silip kapatır.
+struct KaydiIptalNiyeti: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Fikir kaydından vazgeç"
+    static let openAppWhenRun = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+
+    func perform() async throws -> some IntentResult {
+        #if !WIDGET
+        Tani.yaz("niyet: vazgeç (uygulama süreci)")
+        await KayitMerkezi.shared.vazgec()
+        #endif
+        return .result()
+    }
+}
+
+#if !WIDGET
+extension AppIntent {
+    /// iOS uygulama arka plandayken mikrofonu açtırmazsa ("Session activation failed", 2026-10-11'den beri her kilit
+    /// ekranı denemesi): kilidi açtırıp (Face ID) uygulamayı öne getirir ve kaydı orada başlatır. Soru sorulmaz.
+    func oneGecipBaslat() async throws {
+        guard #available(iOS 26.0, *) else { return }
+        Tani.yaz("arka planda mikrofon açılmadı → öne geçiliyor")
+        try await continueInForeground(nil, alwaysConfirm: false)
+        await KayitMerkezi.shared.baslat(kaynak: "kilit→önde")
+    }
+}
+#endif
 
 /// Yedek yol: uygulamayı açıp kaydı başlatır (Face ID ister). Sessiz yol bir gün çalışmazsa bu kesin çalışır.
 struct AcVeKaydetNiyeti: AppIntent {

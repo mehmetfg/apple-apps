@@ -76,11 +76,9 @@ extension View {
     func kart(_ ic: CGFloat = 16, yaricap: CGFloat = 22) -> some View {
         self.padding(ic)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: yaricap, style: .continuous).fill(Tema.yuzey)
-                    .overlay(RoundedRectangle(cornerRadius: yaricap, style: .continuous).stroke(Tema.cizgi, lineWidth: 1))
-                    .shadow(color: .black.opacity(0.035), radius: 6, y: 2)
-            )
+            .background { RoundedRectangle(cornerRadius: yaricap, style: .continuous).fill(Tema.yuzey)
+                    .overlay { RoundedRectangle(cornerRadius: yaricap, style: .continuous).stroke(Tema.cizgi, lineWidth: 1) }
+                    .shadow(color: .black.opacity(0.035), radius: 6, y: 2) }
     }
 }
 

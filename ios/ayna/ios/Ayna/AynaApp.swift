@@ -62,10 +62,10 @@ struct AynaApp: App {
     var body: some Scene {
         WindowGroup {
             TabView(selection: $rota.sekme) {
-                BugunEkrani().tabItem { Label("Bugün", systemImage: "sun.horizon") }.tag(0)
-                DinleEkrani().tabItem { Label("Dinle", systemImage: "headphones") }.badge(merkez.d.kayitlar.filter { $0.duzeltme != nil && !$0.dinlendi }.count).tag(1)
-                KenarIsleriEkrani().tabItem { Label("Kenar", systemImage: "text.book.closed") }.badge(merkez.bekleyenKenar.count).tag(2)
-                AyarlarEkrani().tabItem { Label("Ayarlar", systemImage: "gearshape") }.tag(3)
+                Tab("Bugün", systemImage: "sun.horizon", value: 0) { BugunEkrani() }
+                Tab("Dinle", systemImage: "headphones", value: 1) { DinleEkrani() }.badge(merkez.d.kayitlar.filter { $0.duzeltme != nil && !$0.dinlendi }.count)
+                Tab("Kenar", systemImage: "text.book.closed", value: 2) { KenarIsleriEkrani() }.badge(merkez.bekleyenKenar.count)
+                Tab("Ayarlar", systemImage: "gearshape", value: 3) { AyarlarEkrani() }
             }
             .tint(.ayna)
             .preferredColorScheme(.dark)

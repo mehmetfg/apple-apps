@@ -44,7 +44,7 @@ struct KuleOyunu: View {
                                     Text(dogruCumle(s)).font(Tema.ingilizce(.title3, .semibold))
                                     Button { sonraki() } label: {
                                         Text("Sonraki").font(.headline).foregroundStyle(.white).frame(maxWidth: .infinity, minHeight: 50)
-                                            .background(Capsule().fill(Oyun.kule.renk))
+                                            .background { Capsule().fill(Oyun.kule.renk) }
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -64,7 +64,7 @@ struct KuleOyunu: View {
                     .onChange(of: dizi) { _, d in if sonuc == nil, d.count == (s.tas?.count ?? 0) { denetle(s, k) } }
                 }
             }
-            .background(Lekeler(renkler: [Oyun.kule.renk, Tema.vurgu, Tema.renk("sari")]))
+            .background { Lekeler(renkler: [Oyun.kule.renk, Tema.vurgu, Tema.renk("sari")]) }
             .onAppear { if liste.isEmpty { kur() } }
         }
     }

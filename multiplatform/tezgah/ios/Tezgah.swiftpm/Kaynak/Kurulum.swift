@@ -45,14 +45,12 @@ struct Kurulum: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 20)
-        .background(
-            ZStack {
+        .background { ZStack {
                 T.zemin
                 Circle().fill(T.cumle.opacity(0.18)).frame(width: 340).blur(radius: 80).offset(x: 120, y: -260)
                 Circle().fill(T.muhendis.opacity(0.16)).frame(width: 300).blur(radius: 80).offset(x: -140, y: 60)
             }
-            .ignoresSafeArea()
-        )
+            .ignoresSafeArea() }
         .fileImporter(isPresented: $sec, allowedContentTypes: [.folder]) { sonuc in
             if case .success(let url) = sonuc { depo.klasorSecildi(url) }
         }

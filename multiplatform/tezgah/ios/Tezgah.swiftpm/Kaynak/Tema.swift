@@ -182,7 +182,7 @@ struct KartKutu<Icerik: View>: View {
             .padding(dolgu)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(T.yuzey, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(T.cizgi, lineWidth: 1))
+            .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(T.cizgi, lineWidth: 1) }
             .shadow(color: .black.opacity(0.04), radius: 10, y: 4)
     }
 }
@@ -361,10 +361,8 @@ struct IsiSatiri: View {
                 ForEach(Array(gunler.enumerated()), id: \.offset) { i, v in
                     RoundedRectangle(cornerRadius: k * 0.28, style: .continuous)
                         .fill(v == 0 ? T.tint : renk.opacity([0, 0.35, 0.65, 1][min(3, v)]))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: k * 0.28, style: .continuous)
-                                .strokeBorder(T.murekkep.opacity(i == gunler.count - 1 ? 0.7 : 0), lineWidth: 1.2)
-                        )
+                        .overlay { RoundedRectangle(cornerRadius: k * 0.28, style: .continuous)
+                                .strokeBorder(T.murekkep.opacity(i == gunler.count - 1 ? 0.7 : 0), lineWidth: 1.2) }
                         .frame(width: k, height: y)
                         .scaleEffect(goster ? 1 : 0.2)
                         .opacity(goster ? 1 : 0)
@@ -471,12 +469,13 @@ struct Serit<Oge: Identifiable, Hucre: View>: View {
                 .frame(width: 393, alignment: .leading)
                 .clipped()
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: bosluk) {
                     ForEach(ogeler) { hucre($0).id($0.id) }
                 }
                 .scrollTargetLayout()
             }
+            .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $konum)
             .contentMargins(.horizontal, kenar, for: .scrollContent)

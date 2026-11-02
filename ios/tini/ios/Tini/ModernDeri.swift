@@ -17,7 +17,7 @@ struct ModernDeri: View {
                     .shadow(color: .black.opacity(0.45), radius: 24, y: 14)
                     .scaleEffect(calar.caliyorMu ? 1 : 0.92)
                     .animation(.spring(response: 0.45, dampingFraction: 0.7), value: calar.caliyorMu)
-                    .onTapGesture { gezinti.sayfa = .kutuphane }
+                    .onTapGesture { gezinti.sayfa = .kutuphane }.accessibilityAddTraits(.isButton)
                 bilgi
                 SpektrumCubuklari(bant: 40, renkler: [.white.opacity(0.95), .white.opacity(0.55), .white.opacity(0.15)], tepeRengi: .white)
                     .frame(height: 38)
@@ -51,7 +51,7 @@ struct ModernDeri: View {
 
     private var ustCubuk: some View {
         HStack {
-            Button { gezinti.sayfa = .ayarlar } label: { Image(systemName: "rectangle.stack").font(.title3) }
+            Button { gezinti.sayfa = .ayarlar } label: { Image(systemName: "rectangle.stack").font(.title3) }.accessibilityLabel("Ayarlar")
             Spacer()
             VStack(spacing: 1) {
                 Text("TINI").font(.caption.weight(.heavy)).tracking(4)
@@ -88,30 +88,30 @@ struct ModernDeri: View {
         HStack {
             Button { calar.karisik.toggle() } label: {
                 Image(systemName: "shuffle").opacity(calar.karisik ? 1 : 0.4)
-            }
+            }.accessibilityLabel("Karışık çal")
             Spacer()
-            Button { calar.onceki() } label: { Image(systemName: "backward.fill").font(.title) }
+            Button { calar.onceki() } label: { Image(systemName: "backward.fill").font(.title) }.accessibilityLabel("Önceki parça")
             Spacer()
             Button { calar.acKapa() } label: {
                 Image(systemName: calar.caliyorMu ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 66)).symbolRenderingMode(.hierarchical)
                     .contentTransition(.symbolEffect(.replace))
-            }
+            }.accessibilityLabel(calar.caliyorMu ? "Duraklat" : "Çal")
             Spacer()
-            Button { calar.sonraki() } label: { Image(systemName: "forward.fill").font(.title) }
+            Button { calar.sonraki() } label: { Image(systemName: "forward.fill").font(.title) }.accessibilityLabel("Sonraki parça")
             Spacer()
             Button {
                 calar.tekrar = calar.tekrar == .kapali ? .tum : (calar.tekrar == .tum ? .tek : .kapali)
             } label: {
                 Image(systemName: calar.tekrar == .tek ? "repeat.1" : "repeat").opacity(calar.tekrar == .kapali ? 0.4 : 1)
-            }
+            }.accessibilityLabel("Tekrar")
         }
         .font(.title3)
         .buttonStyle(.plain)
     }
 
     private var efektSeridi: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 8) {
                 Menu {
                     ForEach(Hazir.Grup.allCases, id: \.self) { g in
@@ -138,6 +138,7 @@ struct ModernDeri: View {
             }
             .buttonStyle(.plain)
         }
+        .scrollIndicators(.hidden)
     }
 
     private var altCubuk: some View {

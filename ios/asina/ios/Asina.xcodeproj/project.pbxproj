@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		A100000000000000000B0001 /* AsinaWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A100000000000000000F0002 /* AsinaWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PDA68F4F7B752ECFD7B5C9B6 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD1D02FE0E9DA20171C23E70 /* PDMBus */; };
+		PDD51E95F3081B5A25F055C9 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD674A1D8D81A08E9699A5AA /* PDMBus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDA68F4F7B752ECFD7B5C9B6 /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -76,6 +79,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDD51E95F3081B5A25F055C9 /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +128,7 @@
 			);
 			name = Asina;
 			packageProductDependencies = (
+				PD1D02FE0E9DA20171C23E70 /* PDMBus */,
 			);
 			productName = Asina;
 			productReference = A100000000000000000F0001 /* Asina.app */;
@@ -147,6 +152,7 @@
 			);
 			name = AsinaWidgetExtension;
 			packageProductDependencies = (
+				PD674A1D8D81A08E9699A5AA /* PDMBus */,
 			);
 			productName = AsinaWidgetExtension;
 			productReference = A100000000000000000F0002 /* AsinaWidgetExtension.appex */;
@@ -180,6 +186,9 @@
 			);
 			mainGroup = A100000000000000001D0001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PD4F5B1739E554A8BA20F41B /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A100000000000000001D0002 /* Products */;
 			projectDirPath = "";
@@ -294,7 +303,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Asina/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aşina";
+				INFOPLIST_KEY_CFBundleDisplayName = VocuTeach;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -328,7 +337,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Asina/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aşina";
+				INFOPLIST_KEY_CFBundleDisplayName = VocuTeach;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -360,7 +369,7 @@
 				DEVELOPMENT_TEAM = EK4WY8PSFE;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AsinaWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aşina";
+				INFOPLIST_KEY_CFBundleDisplayName = VocuTeach;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -388,7 +397,7 @@
 				DEVELOPMENT_TEAM = EK4WY8PSFE;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AsinaWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Aşina";
+				INFOPLIST_KEY_CFBundleDisplayName = VocuTeach;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -437,6 +446,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PD4F5B1739E554A8BA20F41B /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PD1D02FE0E9DA20171C23E70 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PD4F5B1739E554A8BA20F41B /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+		PD674A1D8D81A08E9699A5AA /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PD4F5B1739E554A8BA20F41B /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A100000000000000001F0001 /* Project object */;
 }

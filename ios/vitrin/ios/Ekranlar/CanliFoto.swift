@@ -93,7 +93,7 @@ final class CanliYazici {
         img = img.transformed(by: CGAffineTransform(translationX: -(img.extent.width - boy.width) / 2,
                                                     y: -(img.extent.height - boy.height) / 2))
             .cropped(to: CGRect(origin: .zero, size: boy))
-        while !girdi.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 5_000_000) }
+        while !girdi.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(5)) }
         guard let havuz = uyarlayici.pixelBufferPool else { throw CanliFotoHata.yazma("tampon havuzu yok") }
         var tampon: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(nil, havuz, &tampon)

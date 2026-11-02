@@ -216,7 +216,7 @@ struct BicimGorseli: View {
         case "halka":
             HStack(spacing: 10) {
                 Halka(oran: s.ilerleme?.oran ?? 0, renk: renk, kalinlik: 5).frame(width: 40, height: 40)
-                    .overlay(Text("%\(Int((s.ilerleme?.oran ?? 0) * 100))").font(.system(size: 10, weight: .bold).monospacedDigit()))
+                    .overlay { Text("%\(Int((s.ilerleme?.oran ?? 0) * 100))").font(.system(size: 10, weight: .bold).monospacedDigit()) }
                 if let i = s.ilerleme {
                     Text("\(i.a)/\(i.b)\n\(i.birim)").font(.system(size: 10)).foregroundStyle(.secondary)
                 }

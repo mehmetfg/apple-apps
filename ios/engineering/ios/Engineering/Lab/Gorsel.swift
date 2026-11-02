@@ -60,7 +60,7 @@ struct EkSerit: View {
     var body: some View {
         if let ek = kare.ek {
             if sayac {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 4) {
                         ForEach(0..<ek.count, id: \.self) { v in
                             VStack(spacing: 2) {
@@ -74,6 +74,7 @@ struct EkSerit: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
             } else {
                 GeometryReader { g in
                     let n = ek.count
@@ -115,7 +116,7 @@ struct HeapAgaci: View {
                         .foregroundStyle(kare.isaret[i] != nil ? Color.white : Tema.murekkep)
                         .frame(width: r * 2, height: r * 2)
                         .background(kare.isaret[i].map { Tema.renk($0) } ?? Tema.kart2, in: Circle())
-                        .overlay(Circle().strokeBorder(Tema.cizgi, lineWidth: 0.5))
+                        .overlay { Circle().strokeBorder(Tema.cizgi, lineWidth: 0.5) }
                         .position(konum(i, g.size, h))
                 }
             }
@@ -139,7 +140,7 @@ struct KodPaneli: View {
 
     var body: some View {
         ScrollViewReader { okuyucu in
-            ScrollView([.vertical, .horizontal], showsIndicators: false) {
+            ScrollView([.vertical, .horizontal]) {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(kod.satirlar.enumerated()), id: \.offset) { i, s in
                         HStack(spacing: 10) {
@@ -155,6 +156,7 @@ struct KodPaneli: View {
                 }
                 .padding(.vertical, 8)
             }
+            .scrollIndicators(.hidden)
             .frame(height: yukseklik)
             .background(Tema.kodZemin, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .onChange(of: satir) { _, s in

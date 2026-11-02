@@ -84,6 +84,7 @@ final class Tezgah: ObservableObject {
     @Published var atlananGunler: Set<Int> = []
     @Published var arsiv = Arsiv()
     @Published var gramer: [GramerKart] = []
+    @Published var practice: [String: [PracticeQuestion]] = [:]   // tezgah-practice.js: 3 questions per topic
     let sozluk = Sozluk()
     @Published var sozlukHazir = false
 
@@ -93,6 +94,7 @@ final class Tezgah: ObservableObject {
 
     // telefon
     @Published var hazirlik = Hazirlik()
+    @Published var events: [Olay] = []          // every device's events (Dinleme view)
     @Published var rota: [Rota] = []
     @Published var kayitlar: [VaultKayit] = []
 
@@ -106,6 +108,13 @@ final class Tezgah: ObservableObject {
     @Published var gramerI = 0
     @Published var haritaAcik = true
     @Published var editorOdak = UUID()           // değişince yazma alanı odağı alır
+    @Published var wordsOpen = false
+    @Published var theme: AppTheme = AppTheme.stored {
+        didSet {
+            UserDefaults.standard.set(theme.rawValue, forKey: "theme")
+            NSApp.appearance = theme.appearance
+        }
+    }
 
     let ses = Ses()
     let calici = Calici()
@@ -119,7 +128,7 @@ final class Tezgah: ObservableObject {
     private var arsivTarihi: Date?
     private var gorunurI = -1
 
-    enum Gorunum: Hashable { case bugun, gecmis }
+    enum Gorunum: Hashable { case bugun, gecmis, dinleme }
 
     var gramerMap: [String: GramerKart] { Dictionary(gramer.map { ($0.ad, $0) }, uniquingKeysWith: { a, _ in a }) }
 
@@ -140,6 +149,7 @@ final class Tezgah: ObservableObject {
         try? FileManager.default.createDirectory(at: Yol.durum, withIntermediateDirectories: true)
         tumGunler = Gunler.tara(); gunTarihi = GunVeri.degisti
         gramer = Gramer.yukle()
+        practice = Practice.load()
         arsiv = Arsiv.yukle(); arsivTarihi = Tezgah.tarih(Yol.veri.appendingPathComponent("tezgah-arsiv.js"))
         yerelGecmis = (Tezgah.jsonOku(Yol.durum.appendingPathComponent("gecmis.json")) as? [[String: Any]]) ?? []
         hatirYukle()
@@ -164,6 +174,7 @@ final class Tezgah: ObservableObject {
     /// Telefonun olayları, kayıtlar, sabah gelen yeni metin ve arşiv — birkaç saniyede bir.
     func tazele(hepsi: Bool = false) {
         let ol = OnCalisma.olaylar()
+        if ol.count != events.count || ol.last?.id != events.last?.id { events = ol }
         let b = Set(ol.filter { $0.tur == "bitti" }.map(\.gun))
         if b != bittiGunler { bittiGunler = b }
         let atlanan = Set(ol.filter { $0.tur == "atladi" }.map(\.gun))
@@ -902,8 +913,15 @@ final class Tezgah: ObservableObject {
 
     // MARK: Gramer sayfası
 
+    /// Today's grammar: the text's own structures first, then the two cycle reminders.
+    var todayTopics: (text: [String], cycle: [String]) {
+        let text = (o?.gun ?? gunMasa)?.sahne.filter { gramerMap[$0] != nil } ?? []
+        let cycle = (o?.hatirlatma ?? hatirAta()).konular.filter { !text.contains($0) }
+        return (text, cycle)
+    }
+
     func gramerAc(_ liste: [String]? = nil, _ i: Int = 0) {
-        let l = liste ?? (o?.hatirlatma ?? hatirAta()).konular
+        let l = liste ?? { let x = todayTopics; return x.text + x.cycle }()
         gramerSayfa = l; gramerI = i
     }
 

@@ -115,7 +115,7 @@ struct WidgetGorunum: View {
             }
             .opacity(0.65)
             .padding(.vertical, 3).padding(.horizontal, 8)
-            .background(Capsule().stroke(renk.opacity(0.35), lineWidth: 1))
+            .background { Capsule().stroke(renk.opacity(0.35), lineWidth: 1) }
         } else {
             Text(s).font(y.aile.font(boy, ikincil: true)).lineLimit(2).minimumScaleFactor(0.7)
                 .transition(.opacity)
@@ -145,6 +145,9 @@ struct WidgetGorunum: View {
             dugme("arrow.forward", SonrakiNiyeti(t.id))
             if t.icerik == .kelime {
                 dugme("speaker.wave.2.fill", SeslendirNiyeti(metin: g.ana, ses: g.ses))
+                if !g.ana.isEmpty, g.ana != "Kelime yok" {
+                    dugme("checkmark", BiliyorumNiyeti(kelime: g.ana))
+                }
             }
         }
     }
@@ -153,7 +156,7 @@ struct WidgetGorunum: View {
         let yuz = Image(systemName: simge)
             .font(.system(size: 11, weight: .bold))
             .frame(width: 26, height: 26)
-            .background(Circle().fill(renk.opacity(0.16)))
+            .background { Circle().fill(renk.opacity(0.16)) }
             .foregroundStyle(renk)
         if canli {
             Button(intent: niyet) { yuz }.buttonStyle(.plain)

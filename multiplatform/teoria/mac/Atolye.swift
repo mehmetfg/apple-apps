@@ -264,9 +264,9 @@ struct AtolyeEkrani: View {
                 Spacer(minLength: 0)
             }
             .padding(10)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(secili ? Tema.yuzey : .clear))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(secili ? renk.opacity(0.5) : .clear, lineWidth: 1))
+            .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(secili ? Tema.yuzey : .clear) }
+            .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(secili ? renk.opacity(0.5) : .clear, lineWidth: 1) }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -312,7 +312,7 @@ struct AtolyeEkrani: View {
     private func nasilSatiri(_ n: String, _ b: String, _ a: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Text(n).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Tema.vurgu)
-                .frame(width: 26, height: 26).background(Circle().fill(Tema.vurgu.opacity(0.12)))
+                .frame(width: 26, height: 26).background { Circle().fill(Tema.vurgu.opacity(0.12)) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(b).font(.system(size: 15, weight: .semibold)).foregroundStyle(Tema.metin)
                 Text(a).font(.callout).foregroundStyle(Tema.ikincil).fixedSize(horizontal: false, vertical: true)
@@ -326,7 +326,7 @@ struct AtolyeEkrani: View {
         HStack(spacing: 14) {
             Text("Basamak \(kip.no)/9").font(.system(size: 12, weight: .bold)).tracking(0.4)
                 .padding(.horizontal, 9).padding(.vertical, 4)
-                .background(Capsule().fill(Tema.hat(kip.hat).opacity(0.14))).foregroundStyle(Tema.hat(kip.hat))
+                .background { Capsule().fill(Tema.hat(kip.hat).opacity(0.14)) }.foregroundStyle(Tema.hat(kip.hat))
             Text(kip.ad).font(.headline)
             Spacer()
             TimelineView(.periodic(from: .now, by: 30)) { _ in
@@ -374,15 +374,15 @@ struct AtolyeEkrani: View {
                         Text("ÖRNEK").font(.system(size: 11, weight: .heavy)).tracking(0.8).foregroundStyle(Tema.soluk)
                         Text(kip.ornek).font(Tema.serif(.callout)).foregroundStyle(Tema.metin).lineSpacing(3)
                             .padding(12).tamGenislik()
-                            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Tema.yuzey2.opacity(0.7)))
+                            .background { RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Tema.yuzey2.opacity(0.7)) }
                     }
                 }
                 .padding(.horizontal, 16).padding(.bottom, 16)
                 .transition(.opacity)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(r.opacity(0.25)))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(r.opacity(0.25)) }
     }
 
     private func rehberSatiri(_ e: String, _ d: String) -> some View {
@@ -439,7 +439,7 @@ struct AtolyeEkrani: View {
             if let b = a.baglam {
                 Text(b).font(Tema.serif(.title2)).foregroundStyle(Tema.metin).lineSpacing(4)
                     .padding(20).tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+                    .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
             }
             Text(a.soru).font(Tema.serif(.title2, .semibold)).foregroundStyle(Tema.metin)
                 .fixedSize(horizontal: false, vertical: true)
@@ -474,7 +474,7 @@ struct AtolyeEkrani: View {
         return Button { choose(a, o) } label: {
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 Text("\(i + 1)").font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Tema.ikincil)
-                    .frame(width: 24, height: 24).background(Circle().fill(Tema.yuzey2))
+                    .frame(width: 24, height: 24).background { Circle().fill(Tema.yuzey2) }
                 Text(o).font(Tema.serif(.title3)).foregroundStyle(Tema.metin)
                     .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
@@ -484,8 +484,8 @@ struct AtolyeEkrani: View {
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 13)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(border, lineWidth: chosen == nil ? 0.7 : 1.4))
+            .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey) }
+            .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(border, lineWidth: chosen == nil ? 0.7 : 1.4) }
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -505,7 +505,7 @@ struct AtolyeEkrani: View {
                 Text(b).font(Tema.serif(.title2)).foregroundStyle(Tema.metin).lineSpacing(4)
                     .textSelection(.enabled)
                     .padding(20).tamGenislik()
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
+                    .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
             }
             Text(a.soru).font(.title3.weight(.semibold)).foregroundStyle(Tema.metin)
             if ipucu > 0 {
@@ -545,8 +545,8 @@ struct AtolyeEkrani: View {
         }
         .frame(minHeight: yukseklik)
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(odak ? Tema.vurgu.opacity(0.4) : Tema.cizgi))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(odak ? Tema.vurgu.opacity(0.4) : Tema.cizgi) }
     }
 
     // MARK: Sonuç (aynı sayfada, gönderince altta açılır)
@@ -557,7 +557,7 @@ struct AtolyeEkrani: View {
             Bolumbasi(metin: a.kademe >= 5 ? "Karşılaştır · bir örnek ses" : "Karşılaştır · kaynak", sembol: "text.quote", renk: Tema.basari)
             Text(a.model).font(Tema.serif(.title3)).foregroundStyle(Tema.metin).lineSpacing(3).textSelection(.enabled)
                 .padding(18).tamGenislik()
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey) }
             if !a.anahtar.isEmpty {
                 let b = Dil.kapsam(yazi, a.anahtar).bulunan
                 AkanYerlesim(aralik: 6) {
@@ -799,8 +799,8 @@ struct MacAkis: View {
             Image(systemName: s).font(.system(size: 14, weight: .medium)).foregroundStyle(r)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 34, height: 34)
-                .background(Circle().fill(Tema.yuzey.opacity(0.85)))
-                .overlay(Circle().strokeBorder(Tema.cizgi, lineWidth: 0.6))
+                .background { Circle().fill(Tema.yuzey.opacity(0.85)) }
+                .overlay { Circle().strokeBorder(Tema.cizgi, lineWidth: 0.6) }
         }
         .buttonStyle(.plain)
         .help(ad)
@@ -814,7 +814,7 @@ struct MacAkis: View {
             .prefix(8)
         if !l.isEmpty {
             Bolumbasi(metin: "Aynı kitaptan", sembol: "books.vertical").padding(.top, 38).padding(.bottom, 12)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(Array(l)) { k in
                         Button { withAnimation(.snappy) { secili = k } } label: {
@@ -826,9 +826,9 @@ struct MacAkis: View {
                             }
                             .padding(.leading, 16).padding(.trailing, 14).padding(.vertical, 14)
                             .frame(width: 232, height: 150, alignment: .topLeading)
-                            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey))
+                            .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey) }
                             .overlay(alignment: .leading) { Capsule().fill(kr.opacity(0.7)).frame(width: 2.5).padding(.vertical, 14).padding(.leading, 7) }
-                            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.6))
+                            .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.6) }
                             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                         .buttonStyle(.plain)
@@ -836,6 +836,7 @@ struct MacAkis: View {
                 }
                 .padding(.vertical, 2)
             }
+            .scrollIndicators(.hidden)
         }
     }
 
@@ -861,9 +862,9 @@ struct MacAkis: View {
                     .padding(10)
                     .frame(minHeight: 200)
             }
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(odak ? Tema.vurgu.opacity(0.5) : Tema.cizgi, lineWidth: odak ? 1.2 : 0.7))
+            .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
+            .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(odak ? Tema.vurgu.opacity(0.5) : Tema.cizgi, lineWidth: odak ? 1.2 : 0.7) }
             HStack(spacing: 12) {
                 Text(goster ? (bakti ? "Buzlandırıp sonra baktın." : "Metin açık. İstersen Buzlandır'la önce hatırlayarak yaz.") : "Metin buzlu — hatırlayarak yazıyorsun.")
                     .font(.system(size: 12.5)).foregroundStyle(goster ? Tema.soluk : Tema.basari)

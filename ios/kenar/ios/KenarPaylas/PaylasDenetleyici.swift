@@ -57,7 +57,7 @@ struct PaylasGorunumu: View {
                     .font(.serif(17))
                     .scrollContentBackground(.hidden)
                     .padding(8)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.kart))
+                    .background { RoundedRectangle(cornerRadius: 12).fill(Color.kart) }
                 Text("Kutu'ya düşer. Hangi bölüme gideceğine sonra karar verirsin.").font(.footnote).foregroundStyle(Color.soluk)
             }
             .padding()

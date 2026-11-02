@@ -60,7 +60,7 @@ struct BugunEkrani: View {
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 10)
                     .background(Tema.durum(s).opacity(d.say(s) > 0 ? 0.13 : 0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Tema.durum(s).opacity(d.say(s) > 0 ? 0.35 : 0.08), lineWidth: 1))
+                    .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Tema.durum(s).opacity(d.say(s) > 0 ? 0.35 : 0.08), lineWidth: 1) }
                 }
             }
         }
@@ -97,7 +97,7 @@ struct BugunEkrani: View {
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 12)
                     .background(Tema.kart, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Tema.cizgi, lineWidth: 1))
+                    .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Tema.cizgi, lineWidth: 1) }
                 }
                 .buttonStyle(.plain)
             }
@@ -157,7 +157,7 @@ struct BugunEkrani: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(LinearGradient(colors: [renk.opacity(0.20), renk.opacity(0.04)], startPoint: .leading, endPoint: .trailing),
                                 in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(renk.opacity(0.35), lineWidth: 1))
+                    .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(renk.opacity(0.35), lineWidth: 1) }
                 }
                 .buttonStyle(.plain)
                 .contextMenu { Button("Yarına bırak", systemImage: "moon") { merkez.ertele(h.surecId) } }
@@ -196,7 +196,7 @@ struct BugunEkrani: View {
             HStack(spacing: 14) {
                 Halka(oran: uretim?.surec.ilerleme?.oran ?? 0, renk: Tema.alan("vault"), kalinlik: 6)
                     .frame(width: 54, height: 54)
-                    .overlay(Text("\(uretim?.surec.ilerleme?.a ?? 0)/\(uretim?.surec.ilerleme?.b ?? 1)").font(.yuvarlak(13, .bold)).foregroundStyle(.white))
+                    .overlay { Text("\(uretim?.surec.ilerleme?.a ?? 0)/\(uretim?.surec.ilerleme?.b ?? 1)").font(.yuvarlak(13, .bold)).foregroundStyle(.white) }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(d.veri.yon.ana).font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.white)
                     Text("Hedef: " + d.veri.yon.hedef).font(.system(size: 12)).foregroundStyle(.white.opacity(0.55)).lineLimit(2)
@@ -229,8 +229,8 @@ struct BuyukNabiz: View {
                 Text("NABIZ").font(.system(size: 10, weight: .heavy)).tracking(2).foregroundStyle(.white.opacity(0.5))
             }
         }
-        .background(Circle().fill(RadialGradient(colors: [renk.opacity(0.22), .clear], center: .center, startRadius: 0, endRadius: boy * 0.75))
-            .frame(width: boy * 1.5, height: boy * 1.5))
+        .background { Circle().fill(RadialGradient(colors: [renk.opacity(0.22), .clear], center: .center, startRadius: 0, endRadius: boy * 0.75))
+            .frame(width: boy * 1.5, height: boy * 1.5) }
         .frame(width: boy, height: boy)
     }
 }

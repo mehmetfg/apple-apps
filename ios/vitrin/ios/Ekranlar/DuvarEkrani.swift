@@ -27,7 +27,7 @@ struct DuvarlarEkrani: View {
                                 Text("Yeni duvar").font(.subheadline)
                             }
                             .frame(maxWidth: .infinity).frame(height: 300)
-                            .background(RoundedRectangle(cornerRadius: 28).stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6])).foregroundStyle(Renkler.cizgi.opacity(3)))
+                            .background { RoundedRectangle(cornerRadius: 28).stroke(style: StrokeStyle(lineWidth: 1.5, dash: [6, 6])).foregroundStyle(Renkler.cizgi.opacity(3)) }
                         }
                         .buttonStyle(.plain)
                         ForEach(m.kayit.duvarlar) { d in
@@ -211,7 +211,7 @@ struct DuvarEditoru: View {
             if d.icerik == .metin {
                 TextField("Kendi cümlen", text: $d.metin, axis: .vertical)
                     .lineLimit(2...5)
-                    .padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2))
+                    .padding(12).background { RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2) }
             }
             if d.icerik != .yok {
                 Kaydirici(ad: "Dikey konum", deger: $d.konum, aralik: 0.15...0.9, bicim: { String(format: "%.0f%%", $0 * 100) })

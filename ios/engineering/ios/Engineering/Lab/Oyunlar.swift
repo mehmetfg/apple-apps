@@ -582,10 +582,11 @@ struct DedektifOyunu: View {
 struct KodBlogu: View {
     let metin: String
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             Text(metin).font(Tema.kod).foregroundStyle(Tema.kodYazi)
                 .padding(14)
         }
+        .scrollIndicators(.hidden)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Tema.kodZemin, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }

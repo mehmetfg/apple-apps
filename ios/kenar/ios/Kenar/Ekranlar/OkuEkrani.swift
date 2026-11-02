@@ -75,11 +75,11 @@ struct OkuEkrani: View {
                     Image(systemName: "chevron.up.chevron.down").font(.caption)
                 }
                 .font(.body.weight(.medium)).foregroundStyle(Color.murekkep)
-                .padding(14).background(RoundedRectangle(cornerRadius: 14).fill(Color.kart))
+                .padding(14).background { RoundedRectangle(cornerRadius: 14).fill(Color.kart) }
             }
             TextField("Bu metne hangi soruyla giriyorsun?", text: $soru, axis: .vertical)
                 .font(.serif(18).italic()).lineLimit(2...4).focused($soruOdak)
-                .padding(14).background(RoundedRectangle(cornerRadius: 14).fill(Color.kart))
+                .padding(14).background { RoundedRectangle(cornerRadius: 14).fill(Color.kart) }
             Text("Soru, metnin sorusuyla aynı olmak zorunda değil; ama ona hizmet etmeli.").font(.caption).foregroundStyle(Color.soluk)
             Button {
                 guard let k = secilenKitap else { return }
@@ -121,7 +121,7 @@ struct OkuEkrani: View {
                 }
         }
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.kart))
+        .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.kart) }
     }
 
     private var gecmis: some View {
@@ -143,7 +143,7 @@ struct OkuEkrani: View {
                                 Text("\(o.isaret) işaret").font(.caption2).foregroundStyle(Color.soluk)
                             }
                         }
-                        .padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Color.kart))
+                        .padding(12).background { RoundedRectangle(cornerRadius: 12).fill(Color.kart) }
                     }
                 }
             }
@@ -159,7 +159,7 @@ struct OkuEkrani: View {
             Label("Uygulama simgesine basılı tut: Oku · Kamera · Anlat · Kutu.", systemImage: "hand.tap")
         }
         .font(.footnote).foregroundStyle(Color.soluk)
-        .padding(14).background(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.cizgi))
+        .padding(14).background { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.cizgi) }
     }
 }
 
@@ -208,7 +208,7 @@ struct KameraEkrani: View {
                 Text(merkez.d.aktifOturum.map { "Kaynak: \($0.kitapAdi)" } ?? "Oturum yok — kaynak: kâğıt kitap").font(.caption).foregroundStyle(Color.soluk)
                 TextField("Dokunduğun satırlar burada birleşir; düzelt, kırp.", text: $metin, axis: .vertical)
                     .font(.serif(16)).lineLimit(2...6)
-                    .padding(10).background(RoundedRectangle(cornerRadius: 12).fill(Color.kart))
+                    .padding(10).background { RoundedRectangle(cornerRadius: 12).fill(Color.kart) }
                 HStack {
                     Button("Temizle") { secilen = []; metin = "" }.disabled(metin.isEmpty)
                     Spacer()

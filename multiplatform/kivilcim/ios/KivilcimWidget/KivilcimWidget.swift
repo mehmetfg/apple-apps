@@ -1,7 +1,7 @@
 // Kıvılcım widget uzantısı:
 //  • Kilit ekranı / Denetim Merkezi denetimi (iOS 18): tek dokunuş, kilit açılmadan kayıt
 //  • Kilit ekranı ve ana ekran widget'ları: kayıt düğmesi + son fikir
-//  • Canlı Etkinlik: kayıt sürerken kilit ekranında ve Dynamic Island'da süre ve ■ bitir
+//  • Canlı Etkinlik: kayıt sürerken kilit ekranında ve Dynamic Island'da süre, canlı dalga, vazgeç · duraklat · bitir
 import WidgetKit
 import SwiftUI
 import AppIntents
@@ -166,40 +166,58 @@ struct WidgetGorunumu: View {
     }
 }
 
-// MARK: Canlı Etkinlik
+// MARK: Canlı Etkinlik — yarı saydam sistem zemini, düz düğmeler: kilit ekranı, Dynamic Island ve adasız telefonda (13 Pro Max) şerit.
+// Uygulama saniyede bir sayaç/duraklama/dalga yollar; düğmeler (vazgeç · duraklat · bitir) uygulamanın sürecinde çalışır.
 
 struct KayitCanliEtkinligi: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: KayitEtkinligi.self) { c in
             KilitEkraniEtkinligi(d: c.state)
-                .activityBackgroundTint(Color(hex: "#1B0F0C"))
+                // yarı saydam zemin: duvar kâğıdının bulanığı arkadan geçer, panel cam gibi durur
+                .activityBackgroundTint(Color.black.opacity(0.32))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { c in
-            DynamicIsland {
+            let d = c.state
+            return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label(c.state.bitti ? "Kaydedildi" : "Kıvılcım", systemImage: c.state.bitti ? "checkmark.circle.fill" : "waveform")
-                        .font(.caption.weight(.semibold)).foregroundStyle(Color.kivilcim).padding(.leading, 4)
+                    Kure(d: d, boy: 38).padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    sayac(c.state).font(.title3.weight(.semibold).monospacedDigit()).foregroundStyle(.white).padding(.trailing, 4)
+                    sayac(d).font(.system(size: 26, weight: .semibold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.white).multilineTextAlignment(.trailing)
+                        .frame(width: 96, alignment: .trailing).padding(.trailing, 4).padding(.top, 4)
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    Text(durumYazisi(d)).font(.caption.weight(.bold)).foregroundStyle(etkinlikRengi(d)).padding(.top, 2)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    if c.state.bitti {
-                        Text(c.state.baslik).font(.subheadline).lineLimit(1).foregroundStyle(.white.opacity(0.8))
+                    if d.bitti {
+                        Text(d.baslik).font(.subheadline.weight(.medium)).lineLimit(2)
+                            .foregroundStyle(.white.opacity(0.85)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6)
                     } else {
-                        Button(intent: KaydiBitirNiyeti()) {
-                            Label("Bitir ve kaydet", systemImage: "stop.fill").font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity)
-                        }.tint(.kivilcim)
+                        VStack(spacing: 8) {
+                            Dalga(seviyeler: d.seviyeler, duraklatildi: d.duraklatildi, adet: 24).frame(height: 18)
+                            DenetimSirasi(d: d, boy: 34)
+                        }
+                        .padding(.horizontal, 4)
                     }
                 }
             } compactLeading: {
-                Image(systemName: c.state.bitti ? "checkmark" : "record.circle.fill").foregroundStyle(Color.kivilcim)
+                Image(systemName: d.bitti ? "checkmark" : (d.duraklatildi ? "pause.fill" : "waveform"))
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(etkinlikRengi(d))
+                    .symbolEffect(.variableColor.iterative, isActive: !d.bitti && !d.duraklatildi)
+                    .padding(.leading, 2)
             } compactTrailing: {
-                sayac(c.state).monospacedDigit().frame(width: 44).foregroundStyle(Color.kivilcim)
+                sayac(d).font(.system(.subheadline, design: .rounded).weight(.semibold)).monospacedDigit()
+                    .frame(width: 44).foregroundStyle(etkinlikRengi(d))
             } minimal: {
-                Image(systemName: "waveform").foregroundStyle(Color.kivilcim)
+                Image(systemName: d.bitti ? "checkmark" : (d.duraklatildi ? "pause.fill" : "waveform"))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(etkinlikRengi(d))
+                    .symbolEffect(.variableColor.iterative, isActive: !d.bitti && !d.duraklatildi)
             }
-            .keylineTint(.kivilcim)
+            .keylineTint(etkinlikRengi(d))
         }
     }
 }
@@ -207,31 +225,62 @@ struct KayitCanliEtkinligi: Widget {
 @ViewBuilder
 func sayac(_ d: KayitEtkinligi.ContentState) -> some View {
     if d.bitti { Text(Zaman.sure(d.sure)) }
-    else { Text(timerInterval: d.baslangic...Date.distantFuture, countsDown: false) }
+    else { Text(timerInterval: d.baslangic...Date.distantFuture, pauseTime: d.duraklama, countsDown: false, showsHours: false) }
 }
 
 struct KilitEkraniEtkinligi: View {
     let d: KayitEtkinligi.ContentState
     var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(Color.kivilcim.opacity(0.18)).frame(width: 46, height: 46)
-                Image(systemName: d.bitti ? "checkmark" : "waveform").font(.system(size: 20, weight: .semibold)).foregroundStyle(Color.kivilcim)
-                    .symbolEffect(.variableColor.iterative, isActive: !d.bitti)
+        VStack(spacing: 14) {
+            HStack(spacing: 14) {
+                Kure(d: d, boy: 52)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("KIVILCIM · \(durumYazisi(d).uppercased())")
+                        .font(.caption2.weight(.bold)).tracking(0.8).foregroundStyle(etkinlikRengi(d))
+                    if d.bitti {
+                        Text(d.baslik).font(.headline).foregroundStyle(.white).lineLimit(2)
+                    } else {
+                        sayac(d).font(.system(size: 34, weight: .semibold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if d.bitti {
+                    Text(Zaman.sure(d.sure)).font(.system(.title3, design: .rounded).weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.75))
+                } else {
+                    Dalga(seviyeler: d.seviyeler, duraklatildi: d.duraklatildi, adet: 14).frame(width: 92, height: 36)
+                }
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(d.bitti ? "Kaydedildi" : "Kıvılcım dinliyor").font(.headline).foregroundStyle(.white)
-                if d.bitti { Text(d.baslik).font(.subheadline).foregroundStyle(.white.opacity(0.7)).lineLimit(1) }
-                else { sayac(d).font(.system(.title2, design: .rounded).weight(.semibold).monospacedDigit()).foregroundStyle(.white) }
-            }
-            Spacer()
-            if !d.bitti {
-                Button(intent: KaydiBitirNiyeti()) {
-                    Image(systemName: "stop.fill").font(.system(size: 20, weight: .bold)).foregroundStyle(.white)
-                        .frame(width: 52, height: 52).background(Circle().fill(Color.kivilcim))
-                }.buttonStyle(.plain)
-            }
+            if !d.bitti { DenetimSirasi(d: d, boy: 46) }
         }
         .padding(16)
+    }
+}
+
+/// Kilit ekranında ve adada aynı üç düğme: ✕ vazgeç · ‖ duraklat / ▶ devam · ■ bitir.
+struct DenetimSirasi: View {
+    let d: KayitEtkinligi.ContentState
+    var boy: CGFloat = 44
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(intent: KaydiIptalNiyeti()) {
+                Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(.white.opacity(0.9))
+                    .frame(width: boy, height: boy).background { DugmeZemini() }
+            }
+            .buttonStyle(.plain).accessibilityLabel("Vazgeç")
+            Button(intent: KaydiDuraklatNiyeti()) {
+                Label(d.duraklatildi ? "Devam" : "Duraklat", systemImage: d.duraklatildi ? "play.fill" : "pause.fill")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                    .frame(maxWidth: .infinity).frame(height: boy).background { DugmeZemini() }
+            }
+            .buttonStyle(.plain)
+            Button(intent: KaydiBitirNiyeti()) {
+                Label("Bitir", systemImage: "stop.fill")
+                    .font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                    .frame(maxWidth: .infinity).frame(height: boy).background { DugmeZemini(renk: .kivilcim) }
+            }
+            .buttonStyle(.plain)
+        }
     }
 }

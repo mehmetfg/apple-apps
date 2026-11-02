@@ -1,5 +1,6 @@
 // Bugün: tek konu, üç küçük adım (kart · mini quiz · oyun). Seri yok, bekleyen sayısı yok; yarım bırakmak serbest.
 import SwiftUI
+import PDMBus
 
 struct BugunEkrani: View {
     @Environment(Depo.self) private var depo
@@ -25,7 +26,7 @@ struct BugunEkrani: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
-            .background(Lekeler(renkler: [depo.gununKonusu.map { depo.renk($0) } ?? Tema.vurgu, Tema.renk("turuncu")]))
+            .background { Lekeler(renkler: [depo.gununKonusu.map { depo.renk($0) } ?? Tema.vurgu, Tema.renk("turuncu")]) }
             .navigationTitle(tarihBasligi)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -64,7 +65,7 @@ struct BugunEkrani: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Bugün yine uğrayanlar").font(Tema.baslik(.headline))
             Text("Mini quiz'de birer soruyla dönerler.").font(.caption).foregroundStyle(.secondary)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(depo.donenKonular.prefix(8)) { k in
                         Button { ac(.konu(k.id)) } label: {
@@ -73,12 +74,13 @@ struct BugunEkrani: View {
                                 Text(k.tr).font(.subheadline.weight(.medium)).lineLimit(1)
                             }
                             .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(Capsule().fill(Tema.yuzey))
+                            .background { Capsule().fill(Tema.yuzey) }
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
+            .scrollIndicators(.hidden)
         }
     }
 
@@ -101,7 +103,7 @@ struct BugunEkrani: View {
                                 Circle()
                                     .fill(kad == 0 ? Color(.tertiarySystemFill) : Tema.renk(b.renk).opacity(0.25 + 0.19 * Double(kad)))
                                     .frame(width: 11, height: 11)
-                                    .overlay(Circle().stroke(k.id == depo.durum.gununKonusu ? Color.primary : .clear, lineWidth: 1.5))
+                                    .overlay { Circle().stroke(k.id == depo.durum.gununKonusu ? Color.primary : .clear, lineWidth: 1.5) }
                             }
                         }
                         Spacer(minLength: 0)
@@ -145,7 +147,7 @@ struct KahramanKart: View {
                 Text(konu.imge).font(.callout).foregroundStyle(.primary.opacity(0.85))
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey.opacity(0.7)))
+                    .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Tema.yuzey.opacity(0.7)) }
                 Akis(aralik: 6, satirAraligi: 6, ortala: false) {
                     ForEach(konu.yasalar, id: \.id) { ky in
                         if let y = depo.yasa(ky.id) {
@@ -156,14 +158,12 @@ struct KahramanKart: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(20)
-            .background(
-                ZStack {
+            .background { ZStack {
                     Tema.yuzey
                     LinearGradient(colors: [renk.opacity(0.20), renk.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                }
-            )
+                } }
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(renk.opacity(0.18)))
+            .overlay { RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(renk.opacity(0.18)) }
             .shadow(color: renk.opacity(0.12), radius: 14, y: 8)
         }
         .buttonStyle(.plain)
@@ -226,6 +226,7 @@ struct AyarlarEkrani: View {
                     }
                     Toggle("Titreşim", isOn: $depo.durum.ayar.haptik)
                 }
+                PDMSettingsSection(bus: depo.bus)
                 Section("Görünüm") {
                     Picker("Tema", selection: $depo.durum.ayar.gorunum) {
                         Text("Sistem").tag(0); Text("Açık").tag(1); Text("Koyu").tag(2)

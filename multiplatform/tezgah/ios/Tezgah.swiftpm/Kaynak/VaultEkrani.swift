@@ -43,7 +43,7 @@ struct KokenKarti: View {
                     Chart(dilim, id: \.0) { d in
                         SectorMark(angle: .value("n", ciz ? d.1 : (d.0 == "belirsiz" ? 1 : 0)),
                                    innerRadius: .ratio(0.62), angularInset: 1.5)
-                            .foregroundStyle(T.koken(d.0)).cornerRadius(4)
+                            .foregroundStyle(T.koken(d.0)).clipShape(.rect(cornerRadius: 4))
                     }
                     VStack(spacing: 0) {
                         Text("%\(Int((Double(k["ben"] ?? 0) / Double(toplam) * 100).rounded()))")
@@ -108,9 +108,9 @@ struct IsiHaritasi: View {
                                 let d = gun.map(deger) ?? 0
                                 RoundedRectangle(cornerRadius: 2.5, style: .continuous)
                                     .fill(gun == nil ? .clear : d == 0 ? T.tint : renk.opacity(0.25 + 0.75 * min(1, Double(d) / Double(mx) * 1.6)))
-                                    .overlay(RoundedRectangle(cornerRadius: 2.5).strokeBorder(T.murekkep, lineWidth: gun != nil && gun?.id == secili?.id ? 1.5 : 0))
+                                    .overlay { RoundedRectangle(cornerRadius: 2.5).strokeBorder(T.murekkep, lineWidth: gun != nil && gun?.id == secili?.id ? 1.5 : 0) }
                                     .frame(width: k, height: k)
-                                    .onTapGesture { if let gun { withAnimation(T.yay) { secili = gun } } }
+                                    .onTapGesture { if let gun { withAnimation(T.yay) { secili = gun } } }.accessibilityAddTraits(.isButton)
                             }
                         }
                         .opacity(goster ? 1 : 0)
@@ -177,7 +177,7 @@ struct SonNotlar: View {
                             .padding(.horizontal, 14).padding(.vertical, 7)
                             .background(suzgec == k ? T.vault : T.yuzey, in: Capsule())
                             .foregroundStyle(suzgec == k ? .white : T.murekkep)
-                            .overlay(Capsule().strokeBorder(T.cizgi, lineWidth: suzgec == k ? 0 : 1))
+                            .overlay { Capsule().strokeBorder(T.cizgi, lineWidth: suzgec == k ? 0 : 1) }
                     }
                     .buttonStyle(.plain)
                 }
@@ -230,7 +230,7 @@ struct NotSatiri: View {
         }
         .padding(10)
         .contentShape(Rectangle())
-        .onTapGesture { withAnimation(T.yay) { acik.toggle() } }
+        .onTapGesture { withAnimation(T.yay) { acik.toggle() } }.accessibilityAddTraits(.isButton)
         .contextMenu {
             if let u = obsidianURL { Link(destination: u) { Label("Obsidian'da aç", systemImage: "arrow.up.forward.app") } }
         }

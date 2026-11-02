@@ -105,11 +105,11 @@ struct AnaGorunum: View {
                 NavigationStack { OkuEkrani(odakKipi: true) }
             } else {
                 TabView(selection: $rota.sekme) {
-                    MetinEkrani().tabItem { Label("Metin", systemImage: "text.book.closed") }.tag(0)
-                    KutuEkrani().tabItem { Label("Kutu", systemImage: "tray") }.badge(merkez.d.kutu.count).tag(1)
-                    NavigationStack { OkuEkrani(odakKipi: false) }.tabItem { Label("Oku", systemImage: "book") }.tag(2)
-                    HaritaEkrani().tabItem { Label("Harita", systemImage: "point.3.connected.trianglepath.dotted") }.tag(3)
-                    AnlatEkrani().tabItem { Label("Anlat", systemImage: "waveform") }.tag(4)
+                    Tab("Metin", systemImage: "text.book.closed", value: 0) { MetinEkrani() }
+                    Tab("Kutu", systemImage: "tray", value: 1) { KutuEkrani() }.badge(merkez.d.kutu.count)
+                    Tab("Oku", systemImage: "book", value: 2) { NavigationStack { OkuEkrani(odakKipi: false) } }
+                    Tab("Harita", systemImage: "point.3.connected.trianglepath.dotted", value: 3) { HaritaEkrani() }
+                    Tab("Anlat", systemImage: "waveform", value: 4) { AnlatEkrani() }
                 }
             }
         }

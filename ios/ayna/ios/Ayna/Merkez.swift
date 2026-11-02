@@ -221,6 +221,8 @@ enum Vault {
     }
 }
 
+@MainActor   // UIKit feedback generators must be used on the main thread
+
 enum Haptik {
     static func hafif() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
     static func secim() { UISelectionFeedbackGenerator().selectionChanged() }

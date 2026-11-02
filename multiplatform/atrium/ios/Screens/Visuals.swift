@@ -37,10 +37,8 @@ struct CalendarPage: View {
         }
         .frame(width: 92 * size)
         .clipShape(RoundedRectangle(cornerRadius: 12 * size, style: .continuous))
-        .background(
-            RoundedRectangle(cornerRadius: 12 * size, style: .continuous).fill(Color(white: 0.9)).offset(y: 3 * size)
-                .shadow(color: .black.opacity(0.18), radius: 6 * size, y: 4 * size)
-        )
+        .background { RoundedRectangle(cornerRadius: 12 * size, style: .continuous).fill(Color(white: 0.9)).offset(y: 3 * size)
+                .shadow(color: .black.opacity(0.18), radius: 6 * size, y: 4 * size) }
         .overlay(alignment: .topTrailing) {
             if let badge, badge > 0 {
                 Text("\(badge)").font(.system(size: 11 * size, weight: .bold, design: .rounded)).foregroundStyle(.white)
@@ -119,7 +117,7 @@ struct HeatMap: View {
                                 .overlay {
                                     if key == selected { RoundedRectangle(cornerRadius: cell * 0.28).stroke(Color.primary, lineWidth: 1.5) }
                                 }
-                                .onTapGesture { if date <= today { onSelect(key) } }
+                                .onTapGesture { if date <= today { onSelect(key) } }.accessibilityAddTraits(.isButton)
                         }
                     }
                 }
@@ -141,7 +139,7 @@ struct OriginDonut: View {
         ZStack {
             Chart(slices, id: \.0) { s in
                 SectorMark(angle: .value("n", drawn ? s.1 : (s.0 == slices.first?.0 ? 1 : 0)), innerRadius: .ratio(0.64), angularInset: 1.5)
-                    .foregroundStyle(Palette.origin(s.0)).cornerRadius(4)
+                    .foregroundStyle(Palette.origin(s.0)).clipShape(.rect(cornerRadius: 4))
             }
             .chartLegend(.hidden)
             VStack(spacing: 0) {

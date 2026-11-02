@@ -44,14 +44,14 @@ struct HafizaOyunu: View {
                         ForEach(Array(kartlar.enumerated()), id: \.element.id) { i, k in
                             KartYuzu(kart: k)
                                 .frame(width: gen, height: yuk)
-                                .onTapGesture { cevir(i) }
+                                .onTapGesture { cevir(i) }.accessibilityAddTraits(.isButton)
                         }
                     }
                     .padding(.horizontal, 16)
                 }
                 .padding(.bottom, 8)
             }
-            .background(Lekeler(renkler: [Oyun.hafiza.renk, Tema.vurgu, Tema.renk("turkuaz")]))
+            .background { Lekeler(renkler: [Oyun.hafiza.renk, Tema.vurgu, Tema.renk("turkuaz")]) }
             .onAppear { if kartlar.isEmpty { kur() } }
         }
     }
@@ -115,22 +115,20 @@ private struct KartYuzu: View {
             // arka yüz
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(LinearGradient(colors: [Oyun.hafiza.renk, Tema.vurgu], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .overlay(Image(systemName: "gearshape.2.fill").font(.title).foregroundStyle(.white.opacity(0.35)))
+                .overlay { Image(systemName: "gearshape.2.fill").font(.title).foregroundStyle(.white.opacity(0.35)) }
                 .opacity(kart.acik || kart.eslesti ? 0 : 1)
             // ön yüz
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(kart.eslesti ? kart.renk.opacity(0.22) : Tema.yuzey)
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(kart.renk.opacity(kart.eslesti ? 0.9 : 0.35), lineWidth: kart.eslesti ? 2 : 1))
-                .overlay(
-                    VStack(spacing: 4) {
+                .overlay { RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(kart.renk.opacity(kart.eslesti ? 0.9 : 0.35), lineWidth: kart.eslesti ? 2 : 1) }
+                .overlay { VStack(spacing: 4) {
                         Circle().fill(kart.renk).frame(width: 6, height: 6)
                         Text(kart.metin)
                             .font(kart.ingilizce ? Tema.ingilizce(.footnote, .medium) : .system(.footnote, design: .rounded).weight(.bold))
                             .multilineTextAlignment(.center)
                             .minimumScaleFactor(0.7)
                     }
-                    .padding(6)
-                )
+                    .padding(6) }
                 .scaleEffect(x: -1)   // dönüşte ters görünmesin
                 .opacity(kart.acik || kart.eslesti ? 1 : 0)
         }

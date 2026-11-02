@@ -32,6 +32,17 @@ enum Onizleme {
                         b, sema, dir.appendingPathComponent("\(ad)-\(tur)-\(son).png"))
                 }
             }
+            if let cl = a.cumle, let ck = cl.first {
+                let cg = CumleGiris(date: Date(), kelime: ck, liste: cl, gun: a.cumleGun, baslik: a.cumleBaslik)
+                for (ad, aile, b) in boyutlar + [("satir", WidgetFamily.accessoryInline, CGSize(width: 260, height: 30))] {
+                    yaz(CumleGorunumu(g: cg, zorla: aile), arka: AnyView(CumleZemini()), b, sema,
+                        dir.appendingPathComponent("cumle-\(ad)-\(son).png"))
+                }
+                // Kelime widget'ının kilit görünümü, Cümle kelimesiyle
+                let kg = Giris(date: Date(), kelime: ck, sonrakiler: [], anlik: a, acik: false, onceHatirla: false)
+                yaz(KelimeGorunumu(g: kg, zorla: .accessoryRectangular), arka: AnyView(Color.black), 
+                    CGSize(width: 172, height: 76), sema, dir.appendingPathComponent("kilit-cumlekelime-\(son).png"))
+            }
             yaz(IlerlemeGorunumu(a: a, zorla: .systemSmall), arka: AnyView(IlerlemeZemini()),
                 CGSize(width: 170, height: 170), sema, dir.appendingPathComponent("ilerleme-\(son).png"))
         }

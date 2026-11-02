@@ -37,8 +37,8 @@ final class Ses: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     /// Çalma bitene (en çok `sn` saniye) kadar bekler — arka planda uygulamanın erken askıya alınmaması için.
     func bekle(en sn: Double = 8) async {
         let bitis = Date().addingTimeInterval(sn)
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        while caliyor, Date() < bitis { try? await Task.sleep(nanoseconds: 150_000_000) }
+        try? await Task.sleep(for: .milliseconds(500))
+        while caliyor, Date() < bitis { try? await Task.sleep(for: .milliseconds(150)) }
     }
 
     func oku(_ metin: String, yavas: Bool = false) {
@@ -64,7 +64,7 @@ final class Ses: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         o.play()
         // 1,5 sn içinde başlamazsa (çevrimdışı) cihaz sesine düş.
         Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            try? await Task.sleep(for: .milliseconds(1500))
             guard let self, self.oynatici === o else { return }
             if o.currentItem?.status != .readyToPlay || o.timeControlStatus != .playing && o.currentTime().seconds < 0.1 {
                 self.oku(yedek)

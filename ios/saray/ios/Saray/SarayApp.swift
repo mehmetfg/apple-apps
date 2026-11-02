@@ -2,6 +2,7 @@
 // Sekmeler: Kamera · Sözlük. Adresler: saray://kamera · saray://kamera/<oda> · saray://sozluk
 import AppIntents
 import SwiftUI
+import PDMBus
 
 final class Rota: ObservableObject {
     static let shared = Rota()
@@ -36,17 +37,19 @@ struct SarayApp: App {
     @StateObject private var goz = Goz.shared
     @StateObject private var ses = Ses.shared
     @StateObject private var rota = Rota.shared
+    @StateObject private var network = NetworkWords.shared
     @Environment(\.scenePhase) private var faz
 
     var body: some Scene {
         WindowGroup {
             TabView(selection: $rota.sekme) {
-                KameraEkrani().tabItem { Label("Kamera", systemImage: "camera.viewfinder") }.tag(0)
-                SozlukEkrani().tabItem { Label("Sözlük", systemImage: "list.bullet.rectangle") }.tag(1)
+                Tab("Kamera", systemImage: "camera.viewfinder", value: 0) { KameraEkrani() }
+                Tab("Sözlük", systemImage: "list.bullet.rectangle", value: 1) { SozlukEkrani() }
             }
             .tint(.saray)
             .environmentObject(goz)
             .environmentObject(ses)
+            .environmentObject(network)
             .onOpenURL { rota.git($0.absoluteString) }
             .task {
                 #if DEBUG
@@ -56,6 +59,13 @@ struct SarayApp: App {
         }
         .onChange(of: faz) { _, yeni in
             if yeni == .background { goz.durdur() }
+            if yeni == .active {
+                Ag.bus.emitOpenedToday()
+                Task {
+                    await Ag.bus.sync()
+                    network.refresh()
+                }
+            }
         }
     }
 }

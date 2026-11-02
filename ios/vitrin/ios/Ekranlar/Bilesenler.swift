@@ -14,10 +14,8 @@ struct Telefon<Icerik: View>: View {
         icerik(u)
             .frame(width: gen, height: yukseklik)
             .clipShape(RoundedRectangle(cornerRadius: 56 * u, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 56 * u, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: max(1, 5 * u))
-            )
+            .overlay { RoundedRectangle(cornerRadius: 56 * u, style: .continuous)
+                    .stroke(Color.white.opacity(0.16), lineWidth: max(1, 5 * u)) }
             .overlay(alignment: .top) {
                 Capsule().fill(.black).frame(width: 124 * u, height: 36 * u).padding(.top, 11 * u)
             }
@@ -48,10 +46,10 @@ struct KilitKatmani: View {
             Spacer()
             HStack {
                 Circle().fill(.black.opacity(0.35)).frame(width: 50 * u, height: 50 * u)
-                    .overlay(Image(systemName: "flashlight.off.fill").font(.system(size: 18 * u)))
+                    .overlay { Image(systemName: "flashlight.off.fill").font(.system(size: 18 * u)) }
                 Spacer()
                 Circle().fill(.black.opacity(0.35)).frame(width: 50 * u, height: 50 * u)
-                    .overlay(Image(systemName: "camera.fill").font(.system(size: 18 * u)))
+                    .overlay { Image(systemName: "camera.fill").font(.system(size: 18 * u)) }
             }
             .padding(.horizontal, 46 * u)
             Capsule().fill(.white).frame(width: 140 * u, height: 5 * u).padding(.top, 22 * u).padding(.bottom, 10 * u)
@@ -87,7 +85,7 @@ struct AnaKatmani: View {
                 }
             }
             .padding(14 * u)
-            .background(RoundedRectangle(cornerRadius: 34 * u, style: .continuous).fill(.white.opacity(0.12)))
+            .background { RoundedRectangle(cornerRadius: 34 * u, style: .continuous).fill(.white.opacity(0.12)) }
             .padding(.bottom, 14 * u)
         }
     }
@@ -113,7 +111,7 @@ struct WidgetOnizleme: View {
             WidgetGorunum(t: t, g: g, aile: aile, tarih: tarih, cevrik: cevrik, veri: veri, bilinen: bilinen, canli: false)
                 .padding(16)
                 .frame(width: s.width, height: s.height)
-                .background(ZeminGorunum(zemin: t.zemin, fotoBoyu: 900))
+                .background { ZeminGorunum(zemin: t.zemin, fotoBoyu: 900) }
                 .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
         }
     }
@@ -132,7 +130,7 @@ struct Cip: View {
                 Text(ad).font(.subheadline.weight(.medium))
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Capsule().fill(secili ? Renkler.vurgu : Renkler.kart2))
+            .background { Capsule().fill(secili ? Renkler.vurgu : Renkler.kart2) }
             .foregroundStyle(secili ? Color.black : Color.white)
         }
         .buttonStyle(.plain)
@@ -158,8 +156,8 @@ struct Kart<Icerik: View>: View {
         icerik
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Renkler.kart))
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Renkler.cizgi))
+            .background { RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Renkler.kart) }
+            .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Renkler.cizgi) }
     }
 }
 

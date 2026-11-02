@@ -5,9 +5,29 @@ import Charts
 
 enum KitapSekmesi: String, CaseIterable, Identifiable {
     case suren, okunmamis, biten, arsiv, sozluk, teoria
+    case ag, kavramlar, kaynakca, istatistik      // Mac only: İdrak's library views (mac/KutuphaneAg.swift)
     var id: String { rawValue }
-    var ad: String { switch self { case .suren: "Süren"; case .okunmamis: "Okunmamış"; case .biten: "Biten"; case .arsiv: "Arşiv"; case .sozluk: "Sözlük"; case .teoria: "Paketler" } }
-    var sembol: String { switch self { case .suren: "book"; case .okunmamis: "tray"; case .biten: "checkmark.seal"; case .arsiv: "books.vertical"; case .sozluk: "character.book.closed"; case .teoria: "shippingbox" } }
+    var ad: String {
+        switch self {
+        case .suren: "Süren"; case .okunmamis: "Okunmamış"; case .biten: "Biten"; case .arsiv: "Arşiv"; case .sozluk: "Sözlük"; case .teoria: "Paketler"
+        case .ag: "Ağ"; case .kavramlar: "Kavramlar"; case .kaynakca: "Kaynakça"; case .istatistik: "İstatistik"
+        }
+    }
+    var sembol: String {
+        switch self {
+        case .suren: "book"; case .okunmamis: "tray"; case .biten: "checkmark.seal"; case .arsiv: "books.vertical"; case .sozluk: "character.book.closed"; case .teoria: "shippingbox"
+        case .ag: "point.3.filled.connected.trianglepath.dotted"; case .kavramlar: "list.bullet.rectangle"; case .kaynakca: "text.book.closed"; case .istatistik: "chart.bar.xaxis"
+        }
+    }
+    /// The views that fill the window themselves (no outer scroll).
+    var tamEkran: Bool { [.sozluk, .ag, .kavramlar, .kaynakca, .istatistik].contains(self) }
+    static var gorunen: [KitapSekmesi] {
+        #if os(macOS)
+        allCases
+        #else
+        [.suren, .okunmamis, .biten, .arsiv, .sozluk, .teoria]
+        #endif
+    }
 }
 
 struct KitaplarEkrani: View {
@@ -18,6 +38,7 @@ struct KitaplarEkrani: View {
     @State private var sekme: KitapSekmesi?
     @State private var istatistik = false
     @State private var vitrinOrta: String?
+    @State private var showNotes = false
 
     var secili: KitapSekmesi { sekme ?? ilkSekme }
     var suren: [OkumaKitabi] { depo.akis.kitaplar.filter(\.suruyor).sorted { $0.sonZaman > $1.sonZaman } }
@@ -36,17 +57,25 @@ struct KitaplarEkrani: View {
     var body: some View {
         NavigationStack {
             Group {
-                if secili == .sozluk {
+                if secili.tamEkran {
                     VStack(spacing: 0) {
                         secici.padding(.horizontal, 18).padding(.vertical, 10)
-                        SozlukEkrani()
+                        switch secili {
+                        #if os(macOS)
+                        case .ag: ReadingNetworkView()
+                        case .kavramlar: ConceptIndexView()
+                        case .kaynakca: SourcesIndexView()
+                        case .istatistik: ShelfStatsView()
+                        #endif
+                        default: SozlukEkrani()
+                        }
                     }
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 18) {
                             secici
                             switch secili {
-                            case .suren: vitrin(suren); ozet; izgara(suren, bos: "Süren kitap yok. Voice Dream'de dinlemeye başladığın kitap burada durur.")
+                            case .suren: voiceReaderShelf; vitrin(suren); ozet; izgara(suren, bos: "Süren kitap yok. Voice Dream'de dinlemeye başladığın kitap burada durur.")
                             case .okunmamis:
                                 Text("Voice Dream'e eklenmiş, henüz dinlemeye başlamadığın metinler. Başlayınca Süren'e geçer.")
                                     .font(.footnote).foregroundStyle(Tema.ikincil)
@@ -54,7 +83,7 @@ struct KitaplarEkrani: View {
                             case .biten: izgara(biten, bos: "Henüz biten kitap yok.")
                             case .arsiv: ArsivRafi()
                             case .teoria: teoriaPaketleri
-                            case .sozluk: EmptyView()
+                            default: EmptyView()
                             }
                         }
                         .padding(18)
@@ -66,19 +95,32 @@ struct KitaplarEkrani: View {
             .background(Tema.arka.ignoresSafeArea())
             .navigationTitle("Kitaplar")
             #if os(iOS)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { GuncelleDugmesi() } }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showNotes = true } label: { Label("Notlarım", systemImage: "square.and.pencil") }
+                }
+                ToolbarItem(placement: .topBarTrailing) { GuncelleDugmesi() }
+            }
+            .sheet(isPresented: $showNotes) { NotlarimEkrani().environmentObject(depo) }
             #endif
             .navigationDestination(for: String.self) { id in
+                #if os(macOS)
+                // Mac: the book opens as a wide reading room with the whole book's map beside it (mac/BookStudio.swift)
+                if let k = depo.akis.kitaplar.first(where: { $0.id == id }), let e = library.entry(forAkis: k) { BookStudio(entry: e) }
+                else if let e = library.entry(id) { BookStudio(entry: e) }
+                else { KitapDetay(kitapId: id, sesAc: sesAc) }
+                #else
                 if let k = depo.akis.kitaplar.first(where: { $0.id == id }), let e = library.entry(forAkis: k) { BookScreen(entry: e) }
                 else if let e = library.entry(id) { BookScreen(entry: e) }
                 else { KitapDetay(kitapId: id, sesAc: sesAc) }
+                #endif
             }
         }
     }
 
     private var secici: some View {
         // iPhone'da beş sekme sığsın: seçili olmayanlarda yalnız simge.
-        SimgeSecici(secenekler: KitapSekmesi.allCases.map { .init(deger: $0, ad: $0.ad, sembol: $0.sembol) },
+        SimgeSecici(secenekler: KitapSekmesi.gorunen.map { .init(deger: $0, ad: $0.ad, sembol: $0.sembol) },
                     secili: Binding(get: { secili }, set: { sekme = $0 }), sikisik: telefon)
     }
 
@@ -100,7 +142,7 @@ struct KitaplarEkrani: View {
             .tint(Tema.ikincil)
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
+        .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
     }
 
     private var haftalik: some View {
@@ -132,6 +174,25 @@ struct KitaplarEkrani: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: Voice Reader — the books on the phone now (Mac only, 2026-10-20)
+
+    @ViewBuilder
+    private var voiceReaderShelf: some View {
+        #if os(macOS)
+        let l = library.index.books.filter { $0.inVR == true }.sorted { $0.lastDate > $1.lastDate }
+        if !l.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Voice Reader'da · \(l.count)", systemImage: "iphone").font(.system(size: 13, weight: .semibold)).foregroundStyle(Tema.ikincil)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104, maximum: 140), spacing: 14, alignment: .top)], spacing: 22) {
+                    ForEach(l) { e in
+                        NavigationLink(value: e.id) { ArsivKarti(entry: e) }.buttonStyle(KapakBasma())
+                    }
+                }
+            }
+        }
+        #endif
+    }
+
     // MARK: Vitrin — süren kitaplar, 3B kayan raf
 
     /// Büyük kapaklar yatay kayar; ortadaki düz ve parlak durur, kenara kaydıkça cilt gibi döner ve geri çekilir.
@@ -140,7 +201,7 @@ struct KitaplarEkrani: View {
         if l.count > 1 {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Okuduğun", systemImage: "book.pages").font(.system(size: 13, weight: .semibold)).foregroundStyle(Tema.ikincil)
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     LazyHStack(spacing: 18) {
                         ForEach(l.prefix(10)) { k in
                             NavigationLink(value: k.id) {
@@ -165,6 +226,7 @@ struct KitaplarEkrani: View {
                     .scrollTargetLayout()
                     .padding(.horizontal, 24).padding(.vertical, 14)
                 }
+                .scrollIndicators(.hidden)
                 .scrollTargetBehavior(.viewAligned)
                 .padding(.horizontal, -18)
                 .scrollPosition(id: $vitrinOrta)
@@ -332,11 +394,11 @@ struct KitapDetay: View {
                 VStack(spacing: 0) {
                     ForEach(isaretler) { x in
                         GonderiSatiri(isaret: x, acik: acik == x.id, sesAc: sesAc, alintila: { alinti = AlintiHedefi(isaret: x, rol: $0) })
-                            .onTapGesture { withAnimation(.snappy) { acik = acik == x.id ? nil : x.id } }
+                            .onTapGesture { withAnimation(.snappy) { acik = acik == x.id ? nil : x.id } }.accessibilityAddTraits(.isButton)
                         Rectangle().fill(Tema.cizgi).frame(height: 0.5)
                     }
                 }
-                .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
+                .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
             .padding(18)
@@ -360,10 +422,15 @@ struct ArsivRafi: View {
     var body: some View {
         let q = Dil.normal(arama)
         let all = library.index.books.filter { (dis || $0.claude || $0.percent > 0 || $0.highlights > 0) && (q.isEmpty || Dil.normal($0.title).contains(q)) }
-        let groups: [(String, String, [LibraryEntry])] = [
+        #if os(macOS)
+        let phone: [(String, String, [LibraryEntry])] = [("Voice Reader'da", "iphone", all.filter { $0.inVR == true && !$0.inVD })]
+        #else
+        let phone: [(String, String, [LibraryEntry])] = []
+        #endif
+        let groups: [(String, String, [LibraryEntry])] = phone + [
             ("Okunuyor", "book", all.filter { $0.inVD && $0.percent > 0 && $0.percent < 90 }),
             ("Bitti", "checkmark.seal", all.filter { $0.inVD && $0.percent >= 90 }),
-            ("Voice Dream'den silinenler", "archivebox", all.filter { !$0.inVD }),
+            ("Voice Dream'den silinenler", "archivebox", all.filter { !$0.inVD && (phone.isEmpty || $0.inVR != true) }),
             ("Açılmamış", "tray", all.filter { $0.inVD && $0.percent == 0 }),
         ]
         VStack(alignment: .leading, spacing: 20) {
@@ -374,7 +441,7 @@ struct ArsivRafi: View {
             }
             .font(.system(size: 15))
             .padding(.horizontal, 14).padding(.vertical, 9)
-            .background(Capsule().fill(Tema.yuzey2))
+            .background { Capsule().fill(Tema.yuzey2) }
             Text("\(library.index.books.count) kitap · \(library.index.books.reduce(0) { $0 + $1.highlights }) işaret · \(library.insights.count) özet. Voice Dream'den silinse de burada kalır.")
                 .font(.caption).foregroundStyle(Tema.soluk)
             if library.index.books.isEmpty {
@@ -404,7 +471,7 @@ struct ArsivKarti: View {
                 .overlay(alignment: .topLeading) {
                     if library.insights[entry.id] != nil {
                         Image(systemName: "text.alignleft").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
-                            .padding(5).background(Circle().fill(Tema.vurgu)).padding(6)
+                            .padding(5).background { Circle().fill(Tema.vurgu) }.padding(6)
                     }
                 }
                 .overlay(alignment: .bottomTrailing) {
@@ -531,13 +598,14 @@ struct SozlukEkrani: View {
             }
             .font(.system(size: 15))
             .padding(.horizontal, 14).padding(.vertical, 9)
-            .background(Capsule().fill(Tema.yuzey2))
-            ScrollView(.horizontal, showsIndicators: false) {
+            .background { Capsule().fill(Tema.yuzey2) }
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     kitapHapi(nil, "Hepsi", Tema.metin)
                     ForEach(depo.paket.kitaplar) { k in kitapHapi(k.id, k.baslik, Tema.renk(k.renk)) }
                 }
             }
+            .scrollIndicators(.hidden)
             let otur = depo.durum.oturmusKavramlar(depo.paket).count
             Text("\(depo.paket.kavramlar.count) kavram · \(otur) tanesi kalıcı hafızada (★)")
                 .font(.system(size: 12)).foregroundStyle(Tema.soluk)
@@ -549,8 +617,8 @@ struct SozlukEkrani: View {
         Button { Dokunus.secim(); withAnimation(.snappy) { kitap = id } } label: {
             Text(ad).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(Capsule().fill(kitap == id ? r.opacity(0.18) : Tema.yuzey))
-                .overlay(Capsule().strokeBorder(kitap == id ? r.opacity(0.5) : Tema.cizgi))
+                .background { Capsule().fill(kitap == id ? r.opacity(0.18) : Tema.yuzey) }
+                .overlay { Capsule().strokeBorder(kitap == id ? r.opacity(0.5) : Tema.cizgi) }
                 .foregroundStyle(kitap == id ? r : Tema.metin)
         }
         .buttonStyle(.plain)
@@ -609,7 +677,7 @@ struct KavramKarti: View {
                     Text(a.fark).font(.callout).foregroundStyle(Tema.ikincil)
                 }
                 .padding(14).tamGenislik()
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.uyari.opacity(0.07)))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.uyari.opacity(0.07)) }
             }
             if !kavram.anahtar.isEmpty {
                 AkanYerlesim(aralik: 6) { ForEach(kavram.anahtar, id: \.self) { Hap(metin: $0, renk: r) } }

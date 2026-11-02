@@ -1,4 +1,5 @@
 import SwiftUI
+import PDMBus
 
 @main
 struct DisliApp: App {
@@ -10,7 +11,13 @@ struct DisliApp: App {
             AnaGorunum()
                 .environment(depo)
                 .preferredColorScheme(depo.durum.ayar.gorunum == 1 ? .light : depo.durum.ayar.gorunum == 2 ? .dark : nil)
-                .onChange(of: faz) { _, yeni in if yeni == .active { depo.gunuYenile() } }
+                .onChange(of: faz) { _, yeni in
+                    if yeni == .active {
+                        depo.gunuYenile()
+                        depo.bus.emitOpenedToday()
+                        Task { await depo.bus.sync() }
+                    }
+                }
                 .task {
                     Ses.acik = depo.durum.ayar.ses
                     Ses.hiz = Float(depo.durum.ayar.sesHizi)

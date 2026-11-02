@@ -34,6 +34,8 @@ enum R {
     static let zor = Color.iki(0xC58A1E, 0xF2B84B)
     /// Deyimsel fiillerin rengi — kelimelerden bir bakışta ayrılsın diye gök mavisi
     static let pv = Color.iki(0x1F78D1, 0x5EB0FF)
+    /// Cümle Tezgâhı kelimeleri — VocuTeach'in mavisi
+    static let cumle = Color.iki(0x1747C9, 0x6E9BFF)
 
     /// Bir kelimenin teması: deyimsel fiil ise gök mavisi, değilse CEFR bandı
     static func ton(_ c: String, pv: Bool) -> Color { pv ? Self.pv : bant(c) }

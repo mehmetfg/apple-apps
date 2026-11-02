@@ -33,7 +33,8 @@ struct Hazirlik: Equatable {
     var takilan: [String] = []
     /// Telefonda yinelenen / geri sarılan / tek başına dinlenen / Türkçesine bakılan cümle → kaç kez
     var takildi: [Int: Int] = [:]
-    var basladi: Bool { dinleme > 0 || okuma || kayit > 0 }
+    var listenSeconds = 0          // phone: real playback seconds for this day (partial stretches too)
+    var basladi: Bool { dinleme > 0 || listenSeconds > 0 || okuma || kayit > 0 }
 
     /// Sonuç JSON'una giden özet (v7 alanlarıyla aynı + takılan cümleler).
     var json: [String: Any] {
@@ -53,6 +54,82 @@ struct VaultKayit: Hashable, Identifiable {
     var url: URL
     var id: String { ad }
     var cihazAdi: String { cihaz == "iphone" ? "iPhone" : cihaz.hasPrefix("mac") ? "Mac" : cihaz }
+}
+
+// MARK: - Listening (phone) — `listened` stretches (Memories ≥ 2026-10-21) + older `dinledi` (≥ 80 % plays)
+
+struct ListenStretch: Hashable { var date: Date; var seconds: Double; var sentences: [Int] }
+
+struct DayListening: Identifiable, Hashable {
+    var day: Int
+    var seconds: Double            // real playback; older days: estimated from full plays
+    var fullPlays: Int             // ≥ 80 % plays (dinledi)
+    var stretches: [ListenStretch]
+    var sentenceHits: [Int: Int]   // sentence index → times heard (only from `listened`)
+    var audioLength: Double?
+    var last: Date?
+    var estimated: Bool            // no stretch data: time = full plays × heard share
+    var id: Int { day }
+}
+
+enum Listening {
+    static func date(_ s: String) -> Date? { Gun.isoSaniye.date(from: s) ?? Gun.iso.date(from: s) }
+
+    /// One row per day that has any listening, newest day first.
+    static func build(_ events: [Olay]) -> [DayListening] {
+        var byDay: [Int: DayListening] = [:]
+        for e in events where e.tur == "listened" || e.tur == "dinledi" {
+            var d = byDay[e.gun] ?? DayListening(day: e.gun, seconds: 0, fullPlays: 0, stretches: [], sentenceHits: [:],
+                                                   audioLength: nil, last: nil, estimated: false)
+            let when = date(e.t)
+            if let w = when, w > (d.last ?? .distantPast) { d.last = w }
+            let sure = e.ham.d("sure") ?? 0, oran = e.ham.d("oran") ?? 0
+            if e.tur == "listened" {
+                let sn = (e.ham["sentences"] as? [Any] ?? []).compactMap { ($0 as? NSNumber)?.intValue }
+                d.stretches.append(ListenStretch(date: when ?? .distantPast, seconds: sure, sentences: sn))
+                for i in sn { d.sentenceHits[i, default: 0] += 1 }
+                if oran > 0.02, d.audioLength == nil { d.audioLength = sure / oran }
+            } else {
+                d.fullPlays += 1
+                if sure > 0 { d.audioLength = sure }
+            }
+            byDay[e.gun] = d
+        }
+        for (k, var d) in byDay {
+            if d.stretches.isEmpty {
+                // older phone version: only ≥ 80 % plays were written → each counts as the share actually heard
+                let plays = events.filter { $0.gun == k && $0.tur == "dinledi" }
+                d.seconds = plays.reduce(0) { $0 + ($1.ham.d("sure") ?? 0) * max($1.ham.d("oran") ?? 0.8, 0.8) }
+                d.estimated = true
+            } else {
+                d.seconds = d.stretches.reduce(0) { $0 + $1.seconds }
+            }
+            byDay[k] = d
+        }
+        return byDay.values.sorted { $0.day > $1.day }
+    }
+
+    /// Calendar-day totals (local time) for the last `n` days, oldest first: (day start, seconds).
+    static func daily(_ rows: [DayListening], events: [Olay], days n: Int) -> [(Date, Double)] {
+        let cal = Calendar.current, today = cal.startOfDay(for: Date())
+        var sums: [Date: Double] = [:]
+        for r in rows {
+            if r.estimated {
+                for e in events where e.gun == r.day && e.tur == "dinledi" {
+                    guard let w = date(e.t) else { continue }
+                    sums[cal.startOfDay(for: w), default: 0] += (e.ham.d("sure") ?? 0) * max(e.ham.d("oran") ?? 0.8, 0.8)
+                }
+            } else {
+                for s in r.stretches where s.date != .distantPast { sums[cal.startOfDay(for: s.date), default: 0] += s.seconds }
+            }
+        }
+        return (0..<n).reversed().compactMap { i in cal.date(byAdding: .day, value: -i, to: today).map { ($0, sums[$0] ?? 0) } }
+    }
+
+    static func minutes(_ s: Double) -> String {
+        let m = Int((s / 60).rounded())
+        return m >= 60 ? "\(m / 60) sa \(m % 60) dk" : "\(m) dk"
+    }
 }
 
 enum OnCalisma {
@@ -134,6 +211,7 @@ enum OnCalisma {
             for w in o.takilan where !h.takilan.contains(w) { h.takilan.append(w) }
         }
         h.takilan = Array(h.takilan.prefix(8))
+        h.listenSeconds = Int(Listening.build(ol).first?.seconds ?? 0)
         h.kayit = kayitlar(gun).count
         h.cihazlar = Array(Set(ol.map(\.cihaz).filter { !$0.isEmpty })).sorted()
         return h

@@ -15,8 +15,8 @@ struct Yuzey<Icerik: View>: View {
         icerik
             .padding(dolgu)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5))
+            .background { RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Tema.yuzey) }
+            .overlay { RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5) }
     }
 }
 
@@ -43,7 +43,7 @@ struct Hap: View {
         Text(metin)
             .font(.system(size: 12, weight: .semibold))
             .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(Capsule().fill(dolu ? renk : renk.opacity(0.12)))
+            .background { Capsule().fill(dolu ? renk : renk.opacity(0.12)) }
             .foregroundStyle(dolu ? Color.white : renk)
     }
 }
@@ -271,7 +271,7 @@ struct SimgeSecici<T: Hashable>: View {
                     .background {
                         if on {
                             Capsule().fill(Tema.yuzey)
-                                .overlay(Capsule().strokeBorder(Tema.vurgu.opacity(0.18)))
+                                .overlay { Capsule().strokeBorder(Tema.vurgu.opacity(0.18)) }
                                 .shadow(color: .black.opacity(0.10), radius: 4, y: 2)
                                 .matchedGeometryEffect(id: "hap", in: hap)
                         }
@@ -284,7 +284,7 @@ struct SimgeSecici<T: Hashable>: View {
             }
         }
         .padding(3)
-        .background(Capsule().fill(Tema.yuzey2))
+        .background { Capsule().fill(Tema.yuzey2) }
         .dokun(.selection, secili)
     }
 
@@ -319,7 +319,7 @@ private struct AnaDugmeGovde: View {
         configuration.label
             .font(.system(size: 17, weight: .semibold))
             .frame(maxWidth: .infinity).padding(.vertical, 16)
-            .background(Capsule().fill(renk.gradient))
+            .background { Capsule().fill(renk.gradient) }
             .foregroundStyle(.white)
             .opacity(etkin ? 1 : 0.4)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
@@ -333,7 +333,7 @@ struct IkinciDugme: ButtonStyle {
         configuration.label
             .font(.system(size: 15, weight: .semibold))
             .frame(maxWidth: .infinity).padding(.vertical, 13)
-            .background(Capsule().fill(renk.opacity(configuration.isPressed ? 0.22 : 0.13)))
+            .background { Capsule().fill(renk.opacity(configuration.isPressed ? 0.22 : 0.13)) }
             .foregroundStyle(renk)
     }
 }

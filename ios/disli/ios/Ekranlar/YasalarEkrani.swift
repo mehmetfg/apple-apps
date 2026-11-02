@@ -17,7 +17,7 @@ struct YasalarEkrani: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
-            .background(Lekeler(renkler: [Tema.renk("kehribar"), Tema.renk("yesil")]))
+            .background { Lekeler(renkler: [Tema.renk("kehribar"), Tema.renk("yesil")]) }
             .navigationTitle("Yasalar")
             .navigationDestination(for: String.self) { YasaDetay(yasaId: $0, ac: ac) }
         }
@@ -100,7 +100,7 @@ struct YasaDetay: View {
                                 Text("\(oyun.ad) ile oyna").font(.headline)
                             }
                             .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 52).background(Capsule().fill(r))
+                            .frame(maxWidth: .infinity, minHeight: 52).background { Capsule().fill(r) }
                         }
                         .buttonStyle(.plain)
                     }
@@ -142,7 +142,7 @@ struct YasaDetay: View {
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
-            .background(Lekeler(renkler: [r, Tema.vurgu]))
+            .background { Lekeler(renkler: [r, Tema.vurgu]) }
             .navigationBarTitleDisplayMode(.inline)
         }
     }

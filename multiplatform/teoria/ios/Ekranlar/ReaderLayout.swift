@@ -88,7 +88,7 @@ struct LiveMark: Equatable {
     let range: NSRange          // chapter-local characters
     let kind: Kind
     var word: NSRange? = nil    // speech: the word being spoken now, inside `range`
-    enum Kind { case speech, search }
+    enum Kind { case speech, search, cursor }   // cursor: where you left off listening (Mac book studio)
 }
 
 final class BookLayout: @unchecked Sendable {
@@ -254,6 +254,8 @@ final class BookLayout: @unchecked Sendable {
                 if let w = live.word, w.length > 0 {
                     fill(w, style.theme.accent.withAlphaComponent(style.theme.isDark ? 0.55 : 0.32), radius: 3)
                 }
+            } else if live.kind == .cursor {
+                fill(live.range, PColor(hex: 0xFFD60A, alpha: style.theme.isDark ? 0.22 : 0.30), radius: 4)
             } else {
                 fill(live.range, PColor(hex: 0xFF9F0A, alpha: 0.45), radius: 4)
             }

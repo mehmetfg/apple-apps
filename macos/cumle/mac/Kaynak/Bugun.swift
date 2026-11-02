@@ -131,7 +131,7 @@ struct HazirlikKarti: View {
                 if h.basladi { Image(systemName: "checkmark.seal.fill").foregroundStyle(Renk.yesil) }
             }
             HStack(spacing: 10) {
-                adim("headphones", h.dinleme > 0 ? "\(h.dinleme)× dinlendi" : "dinlenmedi", h.dinleme > 0)
+                adim("headphones", h.dinleme > 0 ? "\(h.dinleme)× dinlendi" + (h.listenSeconds > 0 ? " · \(Listening.minutes(Double(h.listenSeconds)))" : "") : h.listenSeconds > 0 ? "\(Listening.minutes(Double(h.listenSeconds))) dinlendi (yarım)" : "dinlenmedi", h.dinleme > 0 || h.listenSeconds > 0)
                 adim("book", h.okuma ? "ekrandan okundu" : "okunmadı", h.okuma)
                 adim("mic", h.kayit > 0 ? "\(h.kayit) kayıt" : "kayıt yok", h.kayit > 0)
             }
@@ -174,7 +174,7 @@ struct HazirlikKarti: View {
     func adim(_ s: String, _ y: String, _ ok: Bool) -> some View {
         Label(y, systemImage: s).font(.callout)
             .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(Capsule().fill(ok ? Renk.yesil.opacity(0.14) : Color.secondary.opacity(0.1)))
+            .background { Capsule().fill(ok ? Renk.yesil.opacity(0.14) : Color.secondary.opacity(0.1)) }
             .foregroundStyle(ok ? Renk.yesil : .secondary)
     }
 }
@@ -185,13 +185,13 @@ struct GramerSeridi: View {
         let h = t.o?.hatirlatma ?? t.hatirAta()
         HStack(spacing: 8) {
             Image(systemName: "book.closed").foregroundStyle(Renk.vurgu)
-            Text("Bugünün gramer konuları: ") + Text(h.konular.map(Gramer.kisa).joined(separator: " · ")).bold()
+            Text("Bugünün gramer konuları: \(Text(h.konular.map(Gramer.kisa).joined(separator: " · ")).bold())")
             Spacer()
             Button("aç") { t.gramerAc() }.buttonStyle(.borderless).keyboardShortcut("g", modifiers: .option)
         }
         .font(.callout)
         .padding(.horizontal, 14).padding(.vertical, 9)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Renk.vurgu.opacity(0.08)))
+        .background { RoundedRectangle(cornerRadius: 10).fill(Renk.vurgu.opacity(0.08)) }
     }
 }
 
@@ -203,6 +203,8 @@ struct OkuEkrani: View {
     @ObservedObject var k: Kaydedici
     @State private var tanima = true
     @State private var trAcik = false
+    @AppStorage("oku.cumleCumle") private var cumleCumle = false
+    @State private var kopyalanan: String?
 
     init() {
         // @EnvironmentObject init'te okunamaz; paylaşılan nesneler AppDelegate'teki tek Tezgâh'tan
@@ -244,9 +246,16 @@ struct OkuEkrani: View {
                         Label(ses.zincirde ? "Dur" : "Paragrafı dinle", systemImage: ses.zincirde ? "stop.fill" : "play.fill")
                     }
                     .buttonStyle(.borderedProminent)
-                    Text("cümleye tıkla → o cümleyi dinle").font(.caption).foregroundStyle(.secondary)
+                    Text(cumleCumle ? "her cümlede: dinle · kopyala · YZ istemi" : "cümleye tıkla → o cümleyi dinle")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Picker("Görünüm", selection: $cumleCumle) {
+                        Text("Paragraf").tag(false)
+                        Text("Cümle cümle").tag(true)
+                    }
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
-                metin(o)
+                if cumleCumle { cumleListesi(o) } else { metin(o) }
                 kelimeler(o)
                 SesliOkuma(tanima: $tanima)
                 Button { t.ses.dur(); t.adimaGit(.cumle); t.cumleGit(0) } label: {
@@ -280,7 +289,51 @@ struct OkuEkrani: View {
             })
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(18)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Renk.kart))
+            .background { RoundedRectangle(cornerRadius: 14).fill(Renk.kart) }
+    }
+
+    /// Cümle cümle: her cümlenin yanında 🔊 dinle · kopyala · ✨ YZ istemi (iPhone'daki Memories ile aynı istem).
+    func cumleListesi(_ o: Oturum) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(o.gun.cumleler.enumerated()), id: \.offset) { i, c in
+                HStack(alignment: .top, spacing: 12) {
+                    Text("\(i + 1)").font(.callout.monospacedDigit().weight(.semibold)).foregroundStyle(.tertiary)
+                        .frame(width: 22, alignment: .trailing).padding(.top, 3)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(c.en).font(.serif(18)).lineSpacing(4).textSelection(.enabled)
+                        if let tr = c.tr { Text(tr).font(.callout).foregroundStyle(.secondary).textSelection(.enabled) }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 6) {
+                        Button { ses.soyle(c.en, cumle: i) } label: {
+                            Image(systemName: ses.calanCumle == i ? "speaker.wave.3.fill" : "speaker.wave.2")
+                        }
+                        .help("Bu cümleyi dinle")
+                        Button { kopyala(c.en, "c\(i)") } label: {
+                            Image(systemName: kopyalanan == "c\(i)" ? "checkmark" : "doc.on.doc")
+                        }
+                        .help("Cümleyi kopyala")
+                        Button { kopyala(YZIstemi.metin(en: c.en, tr: c.tr), "y\(i)") } label: {
+                            Label(kopyalanan == "y\(i)" ? "Panoda" : "YZ istemi", systemImage: kopyalanan == "y\(i)" ? "checkmark" : "sparkles")
+                        }
+                        .tint(.orange)
+                        .help("Yapısal inceleme istemini panoya al: parçalara ayır, yapıları adlandır, 5 örnek, 2 sık hata, 3 alıştırma")
+                    }
+                    .buttonStyle(.bordered).controlSize(.small)
+                }
+                .padding(.vertical, 10)
+                .background { if ses.calanCumle == i { RoundedRectangle(cornerRadius: 8).fill(Renk.vurgu.opacity(0.1)).padding(.horizontal, -8) } }
+                if i < o.gun.cumleler.count - 1 { Divider() }
+            }
+        }
+        .padding(18)
+        .background { RoundedRectangle(cornerRadius: 14).fill(Renk.kart) }
+    }
+
+    func kopyala(_ s: String, _ kimlik: String) {
+        t.panoya(s)
+        withAnimation { kopyalanan = kimlik }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { if kopyalanan == kimlik { withAnimation { kopyalanan = nil } } }
     }
 
     func boya(_ en: String, bas: Int, isaretli: Bool) -> AttributedString {
@@ -345,7 +398,7 @@ struct SesliOkuma: View {
             Group {
                 if case .hata(let m) = k.hal { Text(m) }
                 else if let s = k.sonuc, k.hal == .bitti {
-                    Text("Okuduğun \(s.okunan) kelimenin %\(s.yuzde)'i tanındı. ") + Text(s.takilan.isEmpty ? "Takılan kelime yok." : "Sarılar tanıyıcının duymadığı kelimeler — tıkla, Oxford kaydını dinle, sonra bir daha oku.")
+                    Text("Okuduğun \(s.okunan) kelimenin %\(s.yuzde)'i tanındı. \(s.takilan.isEmpty ? "Takılan kelime yok." : "Sarılar tanıyıcının duymadığı kelimeler — tıkla, Oxford kaydını dinle, sonra bir daha oku.")")
                 } else if k.hal == .bitti { Text("Kayıt alındı. Aşağıdan dinle, sonra \"Paragrafı dinle\" ile doğru okunuşla karşılaştır.") }
                 else { Text("Paragrafı baştan sona, acele etmeden oku. Bitince düğmeye yeniden bas. Kayıt telefonla aynı klasöre gider.") }
             }
@@ -363,7 +416,7 @@ struct SesliOkuma: View {
                         if let s = r.sure { Text(String(format: "%d:%02d", Int(s) / 60, Int(s) % 60)).monospacedDigit().foregroundStyle(.secondary) }
                         if let ta = r.tanima { Text("tanınan %\(Int(ta * 100))").foregroundStyle(.secondary) }
                         Spacer()
-                        Button { t.ses.dur(); c.cal(r.url) } label: { Image(systemName: c.calan == r.url ? "stop.circle.fill" : "play.circle") }
+                        Button { t.ses.dur(); c.cal(r.url) } label: { Image(systemName: c.calan == r.url ? "stop.circle.fill" : "play.circle") }.accessibilityLabel(c.calan == r.url ? "Durdur" : "Dinle")
                             .buttonStyle(.borderless).font(.title3)
                     }
                     .font(.callout)
@@ -438,18 +491,18 @@ struct CumleEkrani: View {
             if t.ipucuAcik && !bitti && lv >= 1 {
                 let g = c.konu.flatMap { t.gramerMap[$0] }, gt = Sezici.tespit(c.en)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(c.konu ?? gt.etiket).bold() + Text(" — " + (g?.ne ?? gt.aciklama))
+                    Text("\(Text(c.konu ?? gt.etiket).bold()) — \(g?.ne ?? gt.aciklama)")
                     if let g { Text(g.formul).font(.callout.monospaced()).foregroundStyle(.secondary) }
                 }
                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Renk.sari.opacity(0.1)))
+                .background { RoundedRectangle(cornerRadius: 8).fill(Renk.sari.opacity(0.1)) }
                 if lv >= 2 {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(Metin.iskelet(c.en)).font(.serif(19)).tracking(1)
                         Text("\(Metin.kelimeler(c.en).count) kelime · her kelimenin ilk harfi").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Renk.sari.opacity(0.1)))
+                    .background { RoundedRectangle(cornerRadius: 8).fill(Renk.sari.opacity(0.1)) }
                 }
             }
             if t.cumleAcik && !bitti {
@@ -473,8 +526,8 @@ struct CumleEkrani: View {
                    },
                    degisti: { t.yaziyor($0) })
                 .frame(minHeight: 110, maxHeight: 180)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Renk.kart2))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Renk.vurgu.opacity(0.5), lineWidth: 1.5))
+                .background { RoundedRectangle(cornerRadius: 12).fill(Renk.kart2) }
+                .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Renk.vurgu.opacity(0.5), lineWidth: 1.5) }
             HStack(spacing: 14) {
                 Button("Kontrol et") { t.cumleTamamla(yazi) }.disabled(yazi.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Text("↩ kontrol et · ⇧↩ alt satır · ⌥H ipucu · ⌥E cümle · ⌘[ ⌘] gezin")
@@ -545,8 +598,8 @@ struct ParagrafEkrani: View {
                         HStack {
                             Baslik(metin: "Türkçe paragraf · \(o.paraOdak + 1) / \(o.toplam)")
                             Spacer()
-                            Button { t.o?.paraOdak = max(0, o.paraOdak - 1) } label: { Image(systemName: "chevron.up") }.disabled(o.paraOdak == 0)
-                            Button { t.o?.paraOdak = min(o.toplam - 1, o.paraOdak + 1) } label: { Image(systemName: "chevron.down") }.disabled(o.paraOdak >= o.toplam - 1)
+                            Button { t.o?.paraOdak = max(0, o.paraOdak - 1) } label: { Image(systemName: "chevron.up") }.accessibilityLabel("Önceki paragraf").disabled(o.paraOdak == 0)
+                            Button { t.o?.paraOdak = min(o.toplam - 1, o.paraOdak + 1) } label: { Image(systemName: "chevron.down") }.accessibilityLabel("Sonraki paragraf").disabled(o.paraOdak >= o.toplam - 1)
                             Button { t.ses.soyle(o.cumle(o.paraOdak).en) } label: { Image(systemName: "speaker.wave.2") }.help("bu cümlenin İngilizcesini dinle")
                             Toggle("hepsini göster", isOn: $hepsi).toggleStyle(.checkbox).font(.caption)
                         }
@@ -567,7 +620,7 @@ struct ParagrafEkrani: View {
                                         }
                                         .id(i)
                                         .contentShape(Rectangle())
-                                        .onTapGesture { t.o?.paraOdak = i }
+                                        .onTapGesture { t.o?.paraOdak = i }.accessibilityAddTraits(.isButton)
                                     }
                                 }
                             }
@@ -587,8 +640,8 @@ struct ParagrafEkrani: View {
                            },
                            degisti: { t.paraYaziyor($0) })
                         .frame(minHeight: 220)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Renk.kart2))
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Renk.vurgu.opacity(0.5), lineWidth: 1.5))
+                        .background { RoundedRectangle(cornerRadius: 12).fill(Renk.kart2) }
+                        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Renk.vurgu.opacity(0.5), lineWidth: 1.5) }
                     HStack {
                         Button { bitir(false) } label: { Text("Karşılaştır").padding(.horizontal, 8) }
                             .buttonStyle(.borderedProminent).keyboardShortcut(.return, modifiers: .command)

@@ -242,6 +242,7 @@ final class Uygulama: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavig
 
     func applicationDidFinishLaunching(_ n: Notification) {
         NSApp.setActivationPolicy(.regular)
+        AppUpdater.start()
         menuKur()
         pencereKur()
         simgeKur()

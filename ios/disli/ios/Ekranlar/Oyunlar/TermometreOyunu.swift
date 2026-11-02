@@ -51,13 +51,13 @@ struct TermometreOyunu: View {
                     Spacer(minLength: 0)
                     Button { olculdu ? sonraki() : olc(t) } label: {
                         Text(olculdu ? "Sonraki" : "Ölç").font(.headline).foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 52).background(Capsule().fill(renk))
+                            .frame(maxWidth: .infinity, minHeight: 52).background { Capsule().fill(renk) }
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal).padding(.bottom, 12)
                 }
             }
-            .background(Lekeler(renkler: [renk, Tema.renk("mor"), Tema.renk("turuncu")]))
+            .background { Lekeler(renkler: [renk, Tema.renk("mor"), Tema.renk("turuncu")]) }
             .onAppear { if liste.isEmpty { kur() } }
         }
     }

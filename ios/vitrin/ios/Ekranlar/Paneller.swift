@@ -10,20 +10,21 @@ struct ZeminPaneli: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(ZeminTuru.allCases) { t in
                         Cip(ad: t.ad, simge: t.simge, secili: z.tur == t) { z.tur = t }
                     }
                 }
             }
+            .scrollIndicators(.hidden)
 
             if z.tur == .foto {
                 HStack(spacing: 10) {
                     PhotosPicker(selection: $secim, matching: .images) {
                         Label(z.foto == nil ? "Fotoğraf seç" : "Fotoğrafı değiştir", systemImage: "photo.badge.plus")
                             .frame(maxWidth: .infinity).padding(.vertical, 11)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2))
+                            .background { RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2) }
                     }
                     if let foto = z.foto {
                         Button {
@@ -35,7 +36,7 @@ struct ZeminPaneli: View {
                         } label: {
                             Label("Paleti al", systemImage: "eyedropper")
                                 .frame(maxWidth: .infinity).padding(.vertical, 11)
-                                .background(RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2))
+                                .background { RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2) }
                         }
                     }
                 }
@@ -55,11 +56,11 @@ struct ZeminPaneli: View {
                 } label: {
                     Label("Karıştır", systemImage: "shuffle")
                         .frame(maxWidth: .infinity).padding(.vertical, 11)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2))
+                        .background { RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2) }
                 }
                 .buttonStyle(.plain)
             case .desen:
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(DesenTuru.allCases) { d in
                             Button { z.desen = d } label: {
@@ -67,7 +68,7 @@ struct ZeminPaneli: View {
                                     ZeminGorunum(zemin: { var k = z; k.desen = d; k.tane = 0; k.vinyet = 0; return k }())
                                         .frame(width: 64, height: 64)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(z.desen == d ? Renkler.vurgu : .clear, lineWidth: 2))
+                                        .overlay { RoundedRectangle(cornerRadius: 12).stroke(z.desen == d ? Renkler.vurgu : .clear, lineWidth: 2) }
                                     Text(d.ad).font(.caption2)
                                 }
                             }
@@ -75,10 +76,11 @@ struct ZeminPaneli: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
                 Button { z.tohum += 1 } label: {
                     Label("Yerleşimi değiştir", systemImage: "dice")
                         .frame(maxWidth: .infinity).padding(.vertical, 11)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2))
+                        .background { RoundedRectangle(cornerRadius: 14).fill(Renkler.kart2) }
                 }
                 .buttonStyle(.plain)
             default: EmptyView()
@@ -113,7 +115,7 @@ struct PaletSatiri: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 10) {
                     ForEach(Palet.hepsi) { p in
                         Button {
@@ -126,7 +128,7 @@ struct PaletSatiri: View {
                                 }
                                 .frame(width: 66, height: 30)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(renkler == p.renkler ? Renkler.vurgu : Renkler.cizgi, lineWidth: renkler == p.renkler ? 2 : 1))
+                                .overlay { RoundedRectangle(cornerRadius: 8).stroke(renkler == p.renkler ? Renkler.vurgu : Renkler.cizgi, lineWidth: renkler == p.renkler ? 2 : 1) }
                                 Text(p.ad).font(.caption2).lineLimit(1).frame(width: 70)
                             }
                         }
@@ -134,6 +136,7 @@ struct PaletSatiri: View {
                     }
                 }
             }
+            .scrollIndicators(.hidden)
             HStack(spacing: 12) {
                 ForEach(renkler.indices, id: \.self) { i in
                     ColorPicker("", selection: Binding(
@@ -155,7 +158,7 @@ struct YaziPaneli: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     ForEach(YaziAilesi.allCases) { a in
                         Button { y.aile = a } label: {
@@ -164,13 +167,14 @@ struct YaziPaneli: View {
                                 Text(a.ad).font(.caption2)
                             }
                             .frame(width: 66, height: 66)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(y.aile == a ? Renkler.vurgu.opacity(0.22) : Renkler.kart2))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(y.aile == a ? Renkler.vurgu : .clear, lineWidth: 1.5))
+                            .background { RoundedRectangle(cornerRadius: 14).fill(y.aile == a ? Renkler.vurgu.opacity(0.22) : Renkler.kart2) }
+                            .overlay { RoundedRectangle(cornerRadius: 14).stroke(y.aile == a ? Renkler.vurgu : .clear, lineWidth: 1.5) }
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
+            .scrollIndicators(.hidden)
             Kaydirici(ad: "Boyut", deger: $y.olcek, aralik: 0.6...1.6, bicim: { String(format: "%.0f%%", $0 * 100) })
             Picker("Hiza", selection: $y.hiza) {
                 ForEach(Hiza.allCases) { Image(systemName: $0.simge).tag($0) }
@@ -194,8 +198,8 @@ struct RenkSecici: View {
             Text(ad).font(.subheadline).frame(width: 52, alignment: .leading)
             ForEach(Array(Set(palet + ["#FFFFFF", "#111111"])).sorted { RenkHesap.parlaklik($0) < RenkHesap.parlaklik($1) }, id: \.self) { r in
                 Circle().fill(Color(hex: r)).frame(width: 26, height: 26)
-                    .overlay(Circle().stroke(hex.uppercased() == r.uppercased() ? Renkler.vurgu : Color.white.opacity(0.2), lineWidth: hex.uppercased() == r.uppercased() ? 2.5 : 1))
-                    .onTapGesture { hex = r }
+                    .overlay { Circle().stroke(hex.uppercased() == r.uppercased() ? Renkler.vurgu : Color.white.opacity(0.2), lineWidth: hex.uppercased() == r.uppercased() ? 2.5 : 1) }
+                    .onTapGesture { hex = r }.accessibilityAddTraits(.isButton)
             }
             Spacer(minLength: 0)
             ColorPicker("", selection: Binding(get: { Color(hex: hex) }, set: { hex = $0.hex }), supportsOpacity: false).labelsHidden()

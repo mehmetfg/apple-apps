@@ -80,7 +80,7 @@ struct KartYuzey: ViewModifier {
             .padding(dolgu)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Tema.kart, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.5))
+            .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.5) }
     }
 }
 
@@ -134,7 +134,7 @@ struct SecenekDugme: View {
             .foregroundStyle(Tema.murekkep.opacity(durum == .soluk ? 0.45 : 1))
             .padding(.horizontal, 16).padding(.vertical, 13)
             .background(arka, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(kenar, lineWidth: durum == .notr ? 0.5 : 1.5))
+            .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(kenar, lineWidth: durum == .notr ? 0.5 : 1.5) }
         }
         .buttonStyle(.plain)
     }
@@ -195,6 +195,8 @@ struct TurkceDestek: View {
         }
     }
 }
+
+@MainActor   // UIKit feedback generators must be used on the main thread
 
 enum Dokunma {
     static func basari() { UINotificationFeedbackGenerator().notificationOccurred(.success) }

@@ -111,7 +111,7 @@ struct DeyimselEkrani: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Parçacık haritası").font(.headline)
             Text("Parçacığın çekirdek fikri anlamı tahmin etmene yardım eder.").font(.footnote).foregroundStyle(R.soluk)
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 LazyHStack(spacing: 12) {
                     ForEach(Parcaciklar.liste) { p in
                         VStack(alignment: .leading, spacing: 8) {
@@ -125,12 +125,13 @@ struct DeyimselEkrani: View {
                         .padding(16)
                         .frame(width: 230, height: 190, alignment: .topLeading)
                         .background(R.yuzey, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(R.pv.opacity(0.25), lineWidth: 1))
+                        .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(R.pv.opacity(0.25), lineWidth: 1) }
                     }
                 }
                 .scrollTargetLayout()
                 .padding(.vertical, 4)
             }
+            .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned)
             .scrollClipDisabled()
         }
@@ -194,7 +195,7 @@ struct PVKart: View {
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(R.yuzey, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(R.cizgi.opacity(0.7), lineWidth: 0.5))
+            .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(R.cizgi.opacity(0.7), lineWidth: 0.5) }
         }
         .buttonStyle(Bas())
     }

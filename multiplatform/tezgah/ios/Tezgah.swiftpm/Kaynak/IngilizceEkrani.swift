@@ -132,7 +132,7 @@ struct CevrilenKart: View {
                 .opacity(cevrik ? 1 : 0)
         }
         .rotation3DEffect(.degrees(cevrik ? 180 : 0), axis: (0, 1, 0), perspective: 0.6)
-        .onTapGesture { withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) { cevrik.toggle() } }
+        .onTapGesture { withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) { cevrik.toggle() } }.accessibilityAddTraits(.isButton)
         .sensoryFeedback(.impact(flexibility: .soft), trigger: cevrik)
     }
 
@@ -148,7 +148,7 @@ struct CevrilenKart: View {
         .padding(22)
         .frame(maxWidth: .infinity, minHeight: 210, maxHeight: 210, alignment: .leading)
         .background(renk, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(T.cizgi))
+        .overlay { RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(T.cizgi) }
         .shadow(color: .black.opacity(0.06), radius: 12, y: 6)
     }
 }
@@ -232,7 +232,7 @@ struct HataGrafigi: View {
                 Chart(hatalar.prefix(6)) { h in
                     BarMark(x: .value("Sayı", ciz ? h.sayi : 0), y: .value("Tür", h.ad))
                         .foregroundStyle(T.cumle.gradient)
-                        .cornerRadius(6)
+                        .clipShape(.rect(cornerRadius: 6))
                         .annotation(position: .trailing) {
                             Text("\(h.sayi)").font(.caption.monospacedDigit()).foregroundStyle(T.yumusak)
                         }
@@ -334,7 +334,7 @@ struct DepoKarti: View {
                     Chart(dilimler, id: \.0) { d in
                         SectorMark(angle: .value("n", ciz ? d.1 : (d.0 == "işlenmedi" ? 1 : 0)),
                                    innerRadius: .ratio(0.64), angularInset: 1.5)
-                            .foregroundStyle(d.2).cornerRadius(4)
+                            .foregroundStyle(d.2).clipShape(.rect(cornerRadius: 4))
                     }
                     VStack(spacing: 0) {
                         Text(Bicim.sayi(havuz)).font(.system(.headline, design: .rounded).weight(.bold))
@@ -515,7 +515,7 @@ struct KayitListesi: View {
                     }
                     .padding(12)
                     .contentShape(Rectangle())
-                    .onTapGesture { withAnimation(T.yay) { acik = acik == k.id ? nil : k.id } }
+                    .onTapGesture { withAnimation(T.yay) { acik = acik == k.id ? nil : k.id } }.accessibilityAddTraits(.isButton)
                     if i < kayitlar.count - 1 { Divider().padding(.leading, 29) }
                 }
             }

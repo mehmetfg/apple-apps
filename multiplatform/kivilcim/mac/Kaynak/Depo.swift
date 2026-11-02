@@ -28,6 +28,7 @@ final class Depo: ObservableObject {
     let kayitDosyasi = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Logs/Kivilcim.log")
 
     private var izleyici: Timer?
+    private var sonTelefon = Date.distantPast       // isle.py'nin telefondan doğrudan alma bakışı (10 dk'da bir)
     private var tekrarIste = false
     private var tekrarHizli = true
     private var dizinTarihi: Date?
@@ -193,7 +194,8 @@ final class Depo: ObservableObject {
         }
     }
 
-    /// Her 45 sn: yerel kuyruğu boşalt, dökülmemiş kayıt varsa işle, dizin dışarıdan değiştiyse yeniden oku.
+    /// Her 45 sn: yerel kuyruğu boşalt, dökülmemiş kayıt varsa işle, dizin dışarıdan değiştiyse yeniden oku; 10 dk'da bir
+    /// telefonda kalmış kayıt var mı diye de bak (isle.py).
     func izle() {
         izleyici?.invalidate()
         izleyici = Timer.scheduledTimer(withTimeInterval: 45, repeats: true) { _ in
@@ -212,6 +214,8 @@ final class Depo: ObservableObject {
             .contains { $0 > max(sonIsleme, dizinTarihi ?? .distantPast) }
         if eksik && !isleniyor { isle() }
         else if olayYeni && !isleniyor { isle(hizli: true) }
+        // iCloud telefondan getirmezse: telefon eşleşikken isle.py kayıtları devicectl ile kendisi alır
+        else if !isleniyor, Date().timeIntervalSince(sonTelefon) > 600 { sonTelefon = Date(); isle() }
         else {
             let t = (try? kok.appendingPathComponent("dizin.json").resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             if t != dizinTarihi { yukle() }

@@ -69,7 +69,7 @@ struct DinleEkrani: View {
             }
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 20).fill(Color.white.opacity(0.07)))
+        .background { RoundedRectangle(cornerRadius: 20).fill(Color.white.opacity(0.07)) }
     }
 }
 
@@ -83,7 +83,7 @@ struct KayitSatiri: View {
                 Text("\(k.tarih.formatted(date: .abbreviated, time: .shortened)) · \(k.durum)").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            if !k.hatalar.isEmpty { Text("\(k.hatalar.count)").font(.caption.weight(.bold)).padding(6).background(Circle().fill(Color.orange.opacity(0.25))) }
+            if !k.hatalar.isEmpty { Text("\(k.hatalar.count)").font(.caption.weight(.bold)).padding(6).background { Circle().fill(Color.orange.opacity(0.25)) } }
         }
     }
 }

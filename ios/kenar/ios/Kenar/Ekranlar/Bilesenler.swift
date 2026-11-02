@@ -25,7 +25,7 @@ struct BolumRozeti: View {
             .font(.system(size: boy * 0.46, weight: .bold, design: .serif))
             .foregroundStyle(dolu ? .white : Color.bolum(no))
             .frame(width: boy, height: boy)
-            .background(Circle().fill(dolu ? Color.bolum(no) : Color.bolum(no).opacity(0.14)))
+            .background { Circle().fill(dolu ? Color.bolum(no) : Color.bolum(no).opacity(0.14)) }
     }
 }
 
@@ -41,7 +41,7 @@ struct Cip: View {
         .font(.caption.weight(.semibold))
         .foregroundStyle(renk)
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Capsule().fill(renk.opacity(0.12)))
+        .background { Capsule().fill(renk.opacity(0.12)) }
     }
 }
 
@@ -81,13 +81,13 @@ struct IsaretKarti: View {
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.kart))
+        .background { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.kart) }
         .overlay(alignment: .leading) {
             if let b = x.bolum, let bol = merkez.d.metin?.bolumler.first(where: { $0.id == b }) {
                 RoundedRectangle(cornerRadius: 2).fill(Color.bolum(bol.no)).frame(width: 4).padding(.vertical, 10)
             }
         }
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.cizgi, lineWidth: 0.6))
+        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.cizgi, lineWidth: 0.6) }
     }
 }
 

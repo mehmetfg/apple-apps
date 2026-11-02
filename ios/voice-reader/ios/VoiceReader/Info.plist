@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>tr</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Belge</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+				<string>org.idpf.epub-container</string>
+				<string>org.openxmlformats.wordprocessingml.document</string>
+				<string>public.plain-text</string>
+				<string>public.html</string>
+				<string>public.rtf</string>
+				<string>net.daringfireball.markdown</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.fatihgocgun.okur</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wisepath</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Bisiklet ve yürüyüş modunda yolunu kaydeder: kaç km gittiğin, ne kadar tırmandığın, hızın ve yaktığın kalori. Ekran kapalıyken ve telefon cebindeyken de sürer; mod kapanınca durur. Konum yalnız telefonunda ve vault klasöründe saklanır, hiçbir yere gönderilmez.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Okurken aklına geleni sesli not olarak kaydetmek için.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Yürüyüşte adımlarını, bisiklette ve yürüyüşte tırmandığın yüksekliği ölçmek için.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Sesli notlarını telefonda hemen yazıya dökmek için.</string>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.com.fatihgocgun.voicereader</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+			<true/>
+			<key>NSUbiquitousContainerName</key>
+			<string>Voice Reader</string>
+			<key>NSUbiquitousContainerSupportedFolderLevels</key>
+			<string>Any</string>
+		</dict>
+	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>location</string>
+	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+</dict>
+</plist>

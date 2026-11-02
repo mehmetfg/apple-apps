@@ -60,25 +60,11 @@ struct AnaEkran: View {
                 .onChange(of: perde) { _, v in Ayar.perde = v }
                 .onChange(of: yukseklik) { _, v in Ayar.yukseklik = v }
                 Section {
-                    Toggle("Müzik arası", isOn: $muzikArasi)
-                    Stepper("Her \(muzikDakika) dakikada bir", value: $muzikDakika, in: 5...60, step: 5)
-                        .disabled(!muzikArasi)
-                    Toggle("Arka plan müziği", isOn: $arkaPlan)
-                    if arkaPlan {
-                        LabeledContent("Seviye", value: String(format: "%%%.0f", arkaPlanSeviye * 100))
-                        Slider(value: $arkaPlanSeviye, in: 0.05...0.5, step: 0.05)
-                    }
-                    Text(muzikler.isEmpty ? "Henüz müzik yok." : muzikler.joined(separator: "\n"))
+                    Text("Ema, okuduğu sese müzik ya da ses dosyası katmaz.")
                         .font(.footnote).foregroundStyle(.secondary)
                 } header: {
                     Text("Müzik")
-                } footer: {
-                    Text("Dosyalar › iPhone'umda › Ema › Müzik klasörüne mp3/m4a koy. Ema'yı kullanan her yerde (Voice Dream) çalar. Spotify ve Apple Music şifreli olduğu için bu yolla çalınamaz.")
                 }
-                .onChange(of: muzikArasi) { _, v in Ayar.muzikArasi = v }
-                .onChange(of: muzikDakika) { _, v in Ayar.muzikDakika = v }
-                .onChange(of: arkaPlan) { _, v in Ayar.arkaPlan = v }
-                .onChange(of: arkaPlanSeviye) { _, v in Ayar.arkaPlanSeviye = v }
                 Section {
                     Picker("İmleç birimi", selection: $isaretBirimi) {
                         Text("bayt").tag(4)

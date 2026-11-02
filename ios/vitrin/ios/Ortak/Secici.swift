@@ -1,6 +1,38 @@
 // Günün içeriği: tarihe bağlı, belirlenimci. Aynı gün aynı kelime; duvar, widget ve kestirme aynı şeyi görür.
 // Kelime havuzu vitrin.py'den B2 → B1 → A2 → A1 sırasıyla gelir; sıra günden güne ilerler, bilinenler atlanır.
 import Foundation
+import PDMBus
+
+/// PDM Ağı'nın odağı: App Group önbelleğindeki `words.json` özeti (uygulama her açılışta tazeler, widget yalnız okur).
+/// Odak kelimeleri günün ilk kelimeleridir; "biliyorum" denen ya da ağda bilinen kelime hiç çıkmaz.
+enum AgOdak {
+    private static var onbellek: (an: Date, ozet: PDMWordSummary?)?
+
+    static var ozet: PDMWordSummary? {
+        if let o = onbellek, Date().timeIntervalSince(o.an) < 20 { return o.ozet }
+        let s = PDMBus.cachedWords()
+        onbellek = (Date(), s)
+        return s
+    }
+
+    static func sifirla() { onbellek = nil }
+
+    /// Ağda `known` ya da `dropped` olanlar
+    static var kapali: Set<String> { Set(ozet?.closed ?? []) }
+
+    static func kelimeler(_ v: VitrinVeri, bilinen: Set<String>) -> [Kelime] {
+        guard let s = ozet else { return [] }
+        var dizin: [String: Kelime] = [:]
+        for k in v.kelimeler where dizin[k.w.lowercased()] == nil { dizin[k.w.lowercased()] = k }
+        return s.openFocus(extraClosed: bilinen).map { f in
+            var k = dizin[f.word.lowercased()]
+                ?? Kelime(w: f.word, ipa: "", tr: f.tr ?? "", trTam: f.tr ?? "", d: "", x: f.example ?? "",
+                          c: f.cefr ?? "", p: "", au: "")
+            k.neden = f.why
+            return k
+        }
+    }
+}
 
 enum Secici {
     static let gunlukKelime = 6          // her gün altı kelime: biri duvarda, hepsi widget'ta sırayla
@@ -25,15 +57,22 @@ enum Secici {
         return Int(d.timeIntervalSince(bas) / Double(max(1, dongu) * 60))
     }
 
-    static func kelime(_ v: VitrinVeri, _ d: Date, adim: Int = 0, bilinen: Set<String>) -> Kelime? {
-        let havuz = v.kelimeler.filter { !bilinen.contains($0.w) }
-        guard !havuz.isEmpty else { return nil }
-        let i = gunNo(d) * gunlukKelime + (adim % gunlukKelime)
-        return havuz[i % havuz.count]
+    /// Günün altı kelimesi: önce PDM Ağı'nın odağı (sırasıyla), kalan yerler depodan gün gün ilerleyen sırayla.
+    static func gununKelimeleri(_ v: VitrinVeri, _ d: Date, bilinen: Set<String>) -> [Kelime] {
+        let odak = AgOdak.kelimeler(v, bilinen: bilinen)
+        var out = Array(odak.prefix(gunlukKelime))
+        let disari = AgOdak.kapali.union(bilinen.map { $0.lowercased() }).union(odak.map { $0.w.lowercased() })
+        let havuz = v.kelimeler.filter { !disari.contains($0.w.lowercased()) }
+        if out.count < gunlukKelime, !havuz.isEmpty {
+            let bas = gunNo(d) * gunlukKelime
+            for j in 0..<(gunlukKelime - out.count) { out.append(havuz[(bas + j) % havuz.count]) }
+        }
+        return out
     }
 
-    static func gununKelimeleri(_ v: VitrinVeri, _ d: Date, bilinen: Set<String>) -> [Kelime] {
-        (0..<gunlukKelime).compactMap { kelime(v, d, adim: $0, bilinen: bilinen) }
+    static func kelime(_ v: VitrinVeri, _ d: Date, adim: Int = 0, bilinen: Set<String>) -> Kelime? {
+        let l = gununKelimeleri(v, d, bilinen: bilinen)
+        return l.isEmpty ? nil : l[adim % l.count]
     }
 
     static func alinti(_ v: VitrinVeri, _ d: Date, adim: Int = 0) -> Alinti? {
@@ -65,7 +104,7 @@ struct Gosterilen: Hashable {
         switch tur {
         case .kelime:
             if let k = Secici.kelime(v, d, adim: adim, bilinen: bilinen) {
-                g.ust = "\(k.c) · \(k.p)".uppercased(with: Locale(identifier: "en"))
+                g.ust = k.neden ?? "\(k.c) · \(k.p)".uppercased(with: Locale(identifier: "en"))
                 g.ana = k.w
                 g.ara = k.ipa
                 g.alt = k.tr

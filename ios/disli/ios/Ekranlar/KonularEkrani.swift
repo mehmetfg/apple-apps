@@ -68,10 +68,10 @@ struct KonularEkrani: View {
         }
         switch sira {
         case .yol:
-            let sirasi = Dictionary(uniqueKeysWithValues: depo.veri.yol.enumerated().map { ($1, $0) })
+            let sirasi = Dictionary(depo.veri.yol.enumerated().map { ($1, $0) }, uniquingKeysWith: { ilk, _ in ilk })
             l.sort { (sirasi[$0.id] ?? 999) < (sirasi[$1.id] ?? 999) }
         case .bolge:
-            let bs = Dictionary(uniqueKeysWithValues: depo.veri.bolgeler.enumerated().map { ($1.id, $0) })
+            let bs = Dictionary(depo.veri.bolgeler.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { ilk, _ in ilk })
             l.sort { (bs[$0.bolge] ?? 0, $0.faz) < (bs[$1.bolge] ?? 0, $1.faz) }
         case .alfabe:
             l.sort { $0.tr.compare($1.tr, locale: Locale(identifier: "tr_TR")) == .orderedAscending }
@@ -104,7 +104,7 @@ struct KonularEkrani: View {
                 .padding(.bottom, 30)
             }
             .scrollDismissesKeyboard(.immediately)
-            .background(Lekeler(renkler: [Tema.renk("yesil"), Tema.renk("mor")]))
+            .background { Lekeler(renkler: [Tema.renk("yesil"), Tema.renk("mor")]) }
             .navigationTitle("Konular")
             .searchable(text: $arama, prompt: "Konu, kalıp ya da kelime ara")
             .toolbar {
@@ -135,15 +135,15 @@ struct KonularEkrani: View {
             .pickerStyle(.segmented)
             .padding(.horizontal)
 
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     if suzgecVar {
                         Button {
                             withAnimation(.snappy) { bolge = nil; yasa = nil; faz = nil; asinalik = nil }
                         } label: {
                             Image(systemName: "xmark").font(.caption.weight(.bold))
-                                .frame(width: 32, height: 32).background(Circle().fill(Tema.yuzey))
-                                .overlay(Circle().stroke(Tema.cizgi))
+                                .frame(width: 32, height: 32).background { Circle().fill(Tema.yuzey) }
+                                .overlay { Circle().stroke(Tema.cizgi) }
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Süzgeçleri temizle")
@@ -185,6 +185,7 @@ struct KonularEkrani: View {
                 }
                 .padding(.horizontal)
             }
+            .scrollIndicators(.hidden)
         }
         .padding(.top, 4)
     }
@@ -308,8 +309,8 @@ struct SuzgecCipi: View {
         .font(.subheadline.weight(secili ? .semibold : .regular))
         .foregroundStyle(secili ? Color.primary : .secondary)
         .padding(.horizontal, 13).frame(height: 32)
-        .background(Capsule().fill(secili ? (renk ?? Tema.vurgu).opacity(0.14) : Tema.yuzey))
-        .overlay(Capsule().stroke(secili ? (renk ?? Tema.vurgu).opacity(0.35) : Tema.cizgi))
+        .background { Capsule().fill(secili ? (renk ?? Tema.vurgu).opacity(0.14) : Tema.yuzey) }
+        .overlay { Capsule().stroke(secili ? (renk ?? Tema.vurgu).opacity(0.35) : Tema.cizgi) }
     }
 }
 
@@ -330,7 +331,7 @@ struct KonuSatiri: View {
                         Text(konu.tr).font(.body.weight(.semibold)).foregroundStyle(.primary).lineLimit(1)
                         if konu.id == depo.durum.gununKonusu {
                             Text("bugün").font(.caption2.weight(.bold)).padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(Capsule().fill(r.opacity(0.16))).foregroundStyle(r)
+                                .background { Capsule().fill(r.opacity(0.16)) }.foregroundStyle(r)
                         }
                     }
                     Text(konu.ad).font(Tema.ingilizce(.subheadline).italic()).foregroundStyle(.secondary).lineLimit(1)
@@ -381,9 +382,7 @@ struct KonuKutusu: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 168, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey)
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Tema.cizgi))
-        )
+        .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey)
+                .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Tema.cizgi) } }
     }
 }

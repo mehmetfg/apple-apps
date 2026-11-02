@@ -1,5 +1,6 @@
 // Ayarlar: günlük tempo, bildirimler, ses, widget kipi, vault bağlantısı.
 import SwiftUI
+import PDMBus
 import UserNotifications
 
 struct AyarlarEkrani: View {
@@ -30,17 +31,20 @@ struct AyarlarEkrani: View {
 
                 Section {
                     if izin == .denied {
-                        Label("Bildirim izni kapalı — Ayarlar › Aşina'dan aç.", systemImage: "bell.slash")
+                        Label("Bildirim izni kapalı — Ayarlar › VocuTeach'ten aç.", systemImage: "bell.slash")
                             .foregroundStyle(R.yanlis)
                     } else if izin != .authorized && izin != .provisional {
                         Button { Task { _ = await Bildirim.izinIste(); await izinOku(); depo.planla() } } label: {
                             Label("Bildirimlere izin ver", systemImage: "bell.badge")
                         }
                     }
+                    Stepper(value: $ayar.cumleTekrar, in: 0...3) {
+                        satir("Cümle kelimesi bildirimi", ayar.cumleTekrar == 0 ? "kapalı" : "her biri günde \(ayar.cumleTekrar)×")
+                    }
                     Stepper(value: $ayar.bildirimSayisi, in: 0...12) {
                         satir("Günde kelime bildirimi", ayar.bildirimSayisi == 0 ? "kapalı" : "\(ayar.bildirimSayisi)")
                     }
-                    if ayar.bildirimSayisi > 0 {
+                    if ayar.bildirimSayisi > 0 || ayar.cumleTekrar > 0 {
                         Stepper(value: $ayar.bildirimBas, in: 6...(ayar.bildirimSon - 1)) {
                             satir("İlk", "\(ayar.bildirimBas):00")
                         }
@@ -55,13 +59,13 @@ struct AyarlarEkrani: View {
                         }
                     }
                 } header: { Text("Gün boyu") } footer: {
-                    Text("Kelime bildirimleri sessiz gelir, yalnız ekranda belirir. Uzun bas: \"Biliyordum\" ya da \"Oturumda sor\". Hatırlatma, o günün destesi bittiyse gelmez.")
+                    Text("Cümle Tezgâhı'nın günün 6 kelimesi ekranı yakarak gelir (sessiz): İngilizce tanım, Türkçe karşılık ve Tezgâh cümlesi; uzun bas › \"Cümleyi dinle\". Öteki kelime bildirimleri sessiz gelir, yalnız listede belirir. Uzun bas: \"Biliyordum\" ya da \"Oturumda sor\". Hatırlatma, o günün destesi bittiyse gelmez.")
                 }
 
                 Section {
                     Toggle("Önce hatırla", isOn: $ayar.onceHatirla)
                 } header: { Text("Widget") } footer: {
-                    Text("Açıkken widget anlamı gizler; önce kendin hatırlarsın, sonra göz düğmesiyle açarsın. Ana ekrana eklemek için: boş yere basılı tut › + › Aşina. Kilit ekranına: kilit ekranına basılı tut › Özelleştir.")
+                    Text("Açıkken widget anlamı gizler; önce kendin hatırlarsın, sonra göz düğmesiyle açarsın. Ana ekrana eklemek için: boş yere basılı tut › + › VocuTeach. Kilit ekranına: kilit ekranına basılı tut › Özelleştir.")
                 }
 
                 Section("Ses") {
@@ -95,8 +99,10 @@ struct AyarlarEkrani: View {
                     if let h = kasa.hata { Text(h).font(.footnote).foregroundStyle(R.yanlis) }
                     LabeledContent("Kelime verisi", value: depo.paketSurum)
                 } header: { Text("Vault") } footer: {
-                    Text("iCloud Drive › Obsidian › Personel Data Management'ı seç. Uygulama oradan güncel kelime deposunu okur, ilerlemeni `_projects/asina/telefon/ilerleme.json`'a yazar. Bildiğin kelimeler Örgü ve Cümle Tezgâhı'nın havuzundan da düşer.")
+                    Text("iCloud Drive › Obsidian › Personel Data Management'ı seç (alt klasörü değil). Uygulama oradan güncel kelime deposunu okur, ilerlemeni `_projects/asina/telefon/ilerleme.json`'a yazar. Bildiğin kelimeler Örgü ve Cümle Tezgâhı'nın havuzundan da düşer.")
                 }
+
+                PDMSettingsSection(bus: depo.bus, selectsVault: false)
             }
             .navigationTitle("Ayarlar")
             .navigationBarTitleDisplayMode(.inline)

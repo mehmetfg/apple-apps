@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Wise Path · mantıksal akış ve aksama noktaları",
+    "viewBox": [
+      1080,
+      520
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "okuma-yolu",
+        "label": "Okuma yolu",
+        "focus": [
+          "belgeler",
+          "iceaktar",
+          "kutuphane",
+          "ses",
+          "sen",
+          "yer"
+        ],
+        "note": "Belge içe alınır, kütüphanede durur, ses motoru okur; konum yer defterine yazılır."
+      },
+      {
+        "id": "aksama",
+        "label": "Aksama: iCloud",
+        "focus": [
+          "kayitlar",
+          "icloud",
+          "mac"
+        ],
+        "note": "Telefon dosyayı yazar, iCloud Mac'e yüklemez; Mac kabloyla (devicectl) çeker."
+      },
+      {
+        "id": "widget-yolu",
+        "label": "Widget yolu",
+        "focus": [
+          "kutuphane",
+          "grup",
+          "widget"
+        ],
+        "note": "Uygulama App Group klasörüne anlık görüntü ve kapak yazar; widget'lar okur."
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "emphasis": {
+          "label": "ana yol"
+        },
+        "security": {
+          "label": "aksama"
+        },
+        "dashed": {
+          "label": "seyrek güncelleme"
+        },
+        "database": {
+          "label": "veri deposu"
+        },
+        "default": {
+          "label": "veri akışı"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Kaynak"
+    },
+    {
+      "label": "İçe alma"
+    },
+    {
+      "label": "Çekirdek"
+    },
+    {
+      "label": "Paylaşım"
+    },
+    {
+      "label": "Tüketen"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "belgeler",
+      "type": "external",
+      "label": "Belgeler",
+      "sublabel": "Dosyalar · pano · epub",
+      "stage": 0,
+      "row": 0,
+      "tag": "giriş",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "sen",
+      "type": "frontend",
+      "label": "Sen",
+      "sublabel": "oynat · işaret · GPS",
+      "stage": 0,
+      "row": 2,
+      "tag": "dokunuş",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "iceaktar",
+      "type": "backend",
+      "label": "İçe aktarıcı",
+      "sublabel": "EPUB · PDF · DOCX",
+      "stage": 1,
+      "row": 0,
+      "tag": "arka plan",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "ses",
+      "type": "backend",
+      "label": "Ses motoru",
+      "sublabel": "SpeechPlayer · VoiceMaster",
+      "stage": 2,
+      "row": 1,
+      "tag": "AVAudioEngine",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "kutuphane",
+      "type": "database",
+      "label": "Kütüphane",
+      "sublabel": "library.json · içerik",
+      "stage": 2,
+      "row": 0,
+      "tag": "liste",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "yer",
+      "type": "database",
+      "label": "Yer defteri",
+      "sublabel": "places.json",
+      "stage": 3,
+      "row": 1,
+      "tag": "1 sn",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "kayitlar",
+      "type": "database",
+      "label": "Kayıtlar",
+      "sublabel": "dinleme · not · yol",
+      "stage": 2,
+      "row": 2,
+      "tag": "günlük",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "grup",
+      "type": "messagebus",
+      "label": "App Group",
+      "sublabel": "widget.json · kapak",
+      "stage": 3,
+      "row": 0,
+      "tag": "paylaşım",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "icloud",
+      "type": "cloud",
+      "label": "iCloud · vault",
+      "sublabel": "durum/ aynası",
+      "stage": 3,
+      "row": 2,
+      "tag": "AKSAMA",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "ekran",
+      "type": "frontend",
+      "label": "Ekranlar",
+      "sublabel": "Kütüphane · Okuyucu",
+      "stage": 4,
+      "row": 1,
+      "tag": "SwiftUI",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "widget",
+      "type": "frontend",
+      "label": "Widget'lar",
+      "sublabel": "devam · alıntı",
+      "stage": 4,
+      "row": 0,
+      "tag": "WidgetKit",
+      "height": 64,
+      "width": 140
+    },
+    {
+      "id": "mac",
+      "type": "external",
+      "label": "Mac",
+      "sublabel": "Teoria · PDM Ağı",
+      "stage": 4,
+      "row": 2,
+      "tag": "okur",
+      "height": 64,
+      "width": 140
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-dosya",
+      "from": "belgeler",
+      "to": "iceaktar",
+      "label": "dosya",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "f-metin",
+      "from": "iceaktar",
+      "to": "kutuphane",
+      "label": "metin + kapak",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "f-oku",
+      "from": "kutuphane",
+      "to": "ses",
+      "label": "içerik",
+      "variant": "emphasis",
+      "route": "straight",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        530,
+        217
+      ]
+    },
+    {
+      "id": "f-komut",
+      "from": "sen",
+      "to": "ses",
+      "label": "oynat · işaretle",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-gunluk",
+      "from": "sen",
+      "to": "kayitlar",
+      "label": "ses notu · GPS",
+      "variant": "default",
+      "route": "straight",
+      "labelAt": [
+        405,
+        388
+      ]
+    },
+    {
+      "id": "f-konum",
+      "from": "ses",
+      "to": "yer",
+      "label": "konum / 2 sn",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "f-anlik",
+      "from": "kutuphane",
+      "to": "grup",
+      "label": "anlık görüntü",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "f-widget",
+      "from": "grup",
+      "to": "widget",
+      "label": "okur",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "f-yuzde",
+      "from": "yer",
+      "to": "ekran",
+      "label": "% değişince",
+      "variant": "dashed",
+      "route": "straight"
+    },
+    {
+      "id": "f-ayna",
+      "from": "kayitlar",
+      "to": "icloud",
+      "label": "yazım",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "f-yukle",
+      "from": "icloud",
+      "to": "mac",
+      "label": "yükleme takılıyor",
+      "variant": "security",
+      "route": "straight",
+      "labelAt": [
+        853,
+        434
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Ana yol",
+      "items": [
+        "Belge içe alınır, kütüphanede durur, ses motoru okur",
+        "Ses motoru konumu 2 saniyede bir yer defterine yazar",
+        "Kütüphane listesi yalnız yüzde değişince güncellenir"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Aksama noktaları",
+      "items": [
+        "iCloud telefondan Mac'e günlerce yüklemiyor (26–28 Ekim)",
+        "Mac kayıtları kabloyla çekiyor: Kıvılcım, Teoria (devicectl)",
+        "Widget yalnız duraklatma, arka plan ve yeni kitapta tazelenir"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Giderilenler",
+      "items": [
+        "Konum yazımı her 2 sn'de bütün ekranları çizdiriyordu",
+        "iOS 27: boş tampon bitiş sanılıyordu, metin atlıyordu",
+        "Müzik modu oturum değişiminde Spotify'ı kesiyordu"
+      ]
+    }
+  ]
+}

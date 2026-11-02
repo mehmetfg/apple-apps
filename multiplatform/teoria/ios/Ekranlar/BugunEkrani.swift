@@ -12,6 +12,7 @@ struct BugunEkrani: View {
 
     @State private var sonGunAcik = false
     @State private var ayarlar = false
+    @State private var morningOpen = false
 
     var d: Durum { depo.durum }
     var oran: Double { min(d.bugunDakika / Double(max(depo.kurDakika, 1)), 1) }
@@ -22,6 +23,7 @@ struct BugunEkrani: View {
             if genis {
                 VStack(alignment: .leading, spacing: 22) {
                     baslik
+                    morningCard
                     HStack(alignment: .top, spacing: 22) {
                         VStack(spacing: 18) {
                             kurKarti
@@ -44,6 +46,7 @@ struct BugunEkrani: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 18) {
                     baslik
+                    morningCard
                     kurKarti
                     sonGunKarti
                     hatlarKarti
@@ -59,6 +62,18 @@ struct BugunEkrani: View {
         }
         .background(Tema.arka.ignoresSafeArea())
         .refreshable { await depo.guncelle() }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $morningOpen) {
+            MorningView(close: { morningOpen = false }).environmentObject(depo)
+        }
+        #endif
+    }
+
+    /// Sabah: on the Mac it switches to the Sabah tab, on the iPhone it opens the room over everything.
+    private var morningCard: some View {
+        MorningEntryCard {
+            if genis { NotificationCenter.default.post(name: .init("teoria.rota"), object: "bolum:sabah") } else { morningOpen = true }
+        }
     }
 
     @State private var gecmis: (Isaret, String)? = nil
@@ -116,8 +131,8 @@ struct BugunEkrani: View {
             Button { ayarlar = true } label: {
                 Image(systemName: "gearshape").font(.system(size: 15, weight: .semibold)).foregroundStyle(Tema.metin)
                     .frame(width: 38, height: 38)
-                    .background(Circle().fill(.ultraThinMaterial))
-                    .overlay(Circle().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5))
+                    .background { Circle().fill(.ultraThinMaterial) }
+                    .overlay { Circle().strokeBorder(Tema.cizgi.opacity(0.7), lineWidth: 0.5) }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Ayarlar")
@@ -233,7 +248,7 @@ struct BugunEkrani: View {
                         Spacer()
                         Button { depo.favori(a.id) } label: {
                             Image(systemName: d.favoriler.contains(a.id) ? "heart.fill" : "heart").foregroundStyle(r)
-                        }
+                        }.accessibilityLabel(d.favoriler.contains(a.id) ? "Favoriden çıkar" : "Favori")
                         .buttonStyle(.plain)
                         .dokun(.impact(weight: .light), d.favoriler.contains(a.id))
                         ShareLink(item: "“\(a.metin)” — \(a.kaynak)") { Image(systemName: "square.and.arrow.up").foregroundStyle(Tema.ikincil) }
@@ -256,8 +271,8 @@ struct BugunEkrani: View {
                     Spacer()
                     Button { depo.hatirlat(i.id) } label: {
                         Image(systemName: d.hatirlatmalar.contains(i.id) ? "bell.fill" : "bell")
-                    }.buttonStyle(.plain).foregroundStyle(Tema.vurgu)
-                    Button { sesAc(i.id) } label: { Image(systemName: "mic") }.buttonStyle(.plain).foregroundStyle(Tema.vurgu)
+                    }.accessibilityLabel(d.hatirlatmalar.contains(i.id) ? "Hatırlatmadan çıkar" : "Hatırlat").buttonStyle(.plain).foregroundStyle(Tema.vurgu)
+                    Button { sesAc(i.id) } label: { Image(systemName: "mic") }.accessibilityLabel("Sesli not").buttonStyle(.plain).foregroundStyle(Tema.vurgu)
                 }
             }
         }

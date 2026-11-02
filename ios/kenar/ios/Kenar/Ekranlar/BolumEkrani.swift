@@ -63,7 +63,7 @@ struct BolumEkrani: View {
                 .font(.serif(18).italic()).foregroundStyle(Color.murekkep)
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.bolum(b.no).opacity(0.08)))
+        .background { RoundedRectangle(cornerRadius: 14).fill(Color.bolum(b.no).opacity(0.08)) }
     }
 
     private func kanitlar(_ b: Bolum) -> some View {
@@ -81,7 +81,7 @@ struct BolumEkrani: View {
                 Text("Kutu'dan buraya sürükle ya da okurken kamerayla işaretle. Bir bölüm en az iki kanıtla kurulur: biri iddiayı taşır, biri ona karşı çıkar.")
                     .font(.footnote).foregroundStyle(Color.soluk)
                     .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cizgi, style: StrokeStyle(lineWidth: 1, dash: [5])))
+                    .background { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cizgi, style: StrokeStyle(lineWidth: 1, dash: [5])) }
             }
             ForEach(k) { x in
                 IsaretKarti(x: x, satir: 5).contextMenu { IsaretMenusu(x: x) }
@@ -109,7 +109,7 @@ struct BolumEkrani: View {
                 }
                 .tint(Color.murekkep)
                 .padding(14)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.kart))
+                .background { RoundedRectangle(cornerRadius: 14).fill(Color.kart) }
             }
         }
     }
@@ -135,8 +135,8 @@ struct BolumEkrani: View {
                     .focused($yaziyor)
             }
             .padding(10)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.kart))
-            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(yaziyor ? Color.bolum(b.no) : Color.cizgi, lineWidth: yaziyor ? 1.4 : 0.6))
+            .background { RoundedRectangle(cornerRadius: 14).fill(Color.kart) }
+            .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(yaziyor ? Color.bolum(b.no) : Color.cizgi, lineWidth: yaziyor ? 1.4 : 0.6) }
         }
     }
 
@@ -173,6 +173,6 @@ struct BolumEkrani: View {
             Text(e).font(.serif(16)).foregroundStyle(Color.murekkep)
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.07)))
+        .background { RoundedRectangle(cornerRadius: 14).fill(Color.blue.opacity(0.07)) }
     }
 }

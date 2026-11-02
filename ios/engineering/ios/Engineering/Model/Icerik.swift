@@ -133,7 +133,7 @@ final class Kutuphane {
             fatalError("engineering.json okunamadı — `python3 veri/uret.py` çalıştır.")
         }
         self.icerik = icerik
-        dersler = Dictionary(uniqueKeysWithValues: icerik.dersler.map { ($0.id, $0) })
+        dersler = Dictionary(icerik.dersler.map { ($0.id, $0) }, uniquingKeysWith: { ilk, _ in ilk })
         var gorulen = Set<String>(), liste: [Terim] = [], kaynak: [String: String] = [:]
         for d in icerik.dersler {
             for t in d.sozluk where !gorulen.contains(t.id) {

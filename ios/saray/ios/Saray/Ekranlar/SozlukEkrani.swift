@@ -1,14 +1,17 @@
 // Sözlük: odanın bütün eşyaları — Oxford 3000 → Oxford 5000 → ek. Yerleşenler işaretli; kamera tanımayanları elle koyarsın.
 import SwiftUI
+import PDMBus
 
 struct SozlukEkrani: View {
     @EnvironmentObject var goz: Goz
     @EnvironmentObject var ses: Ses
+    @EnvironmentObject var network: NetworkWords
     @State private var oda = Goz.shared.oda
     @State private var suzgec = 0
     @State private var arama = ""
     @State private var secili: Kelime?
     @State private var bilinen = Kasa.bilinen
+    @State private var agAyar = false
 
     private var yerlesen: Set<String> { Set((oda == goz.oda ? goz.etiketler : Kasa.etiketler(oda)).map(\.en)) }
 
@@ -21,6 +24,15 @@ struct SozlukEkrani: View {
             case 3: return a && k.siniflar.isEmpty
             default: return a
             }
+        }
+    }
+
+    /// The network's focus words of today that are in this room (not known here).
+    private var todayFromNetwork: [(word: Kelime, why: String?)] {
+        let room = goz.sozluk.odada(oda)
+        return network.focus.compactMap { f in
+            guard !bilinen.contains(f.word), let k = room.first(where: { $0.en.lowercased() == f.word.lowercased() }) else { return nil }
+            return (k, f.why)
         }
     }
 
@@ -42,6 +54,16 @@ struct SozlukEkrani: View {
                         Text("\(tum.filter { yerlesen.contains($0.en) }.count)/\(tum.count)").font(.caption.monospacedDigit())
                     }
                 }
+                let fromNetwork = todayFromNetwork
+                if arama.isEmpty, !fromNetwork.isEmpty {
+                    Section {
+                        ForEach(fromNetwork, id: \.word.id) { satir($0.word) }
+                    } header: {
+                        Label("Bugün ağdan", systemImage: "point.3.connected.trianglepath.dotted")
+                    } footer: {
+                        Text(Set(fromNetwork.compactMap(\.why)).sorted().joined(separator: " · "))
+                    }
+                }
                 ForEach(["oxford3000", "oxford5000", "ek"], id: \.self) { grup in
                     let ogeler = liste.filter { $0.kaynak == grup }
                     if !ogeler.isEmpty {
@@ -58,7 +80,21 @@ struct SozlukEkrani: View {
             .searchable(text: $arama, prompt: "İngilizce ya da Türkçe")
             .navigationTitle(goz.sozluk.odalar.first { $0.id == oda }?.en ?? "Sözlük")
             .sheet(item: $secili) { KelimeKarti(k: $0).presentationDetents([.medium, .large]) }
-            .onAppear { oda = goz.oda; bilinen = Kasa.bilinen }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { agAyar = true } label: { Image(systemName: "point.3.connected.trianglepath.dotted") }
+                        .accessibilityLabel("PDM Ağı")
+                }
+            }
+            .sheet(isPresented: $agAyar) {
+                NavigationStack {
+                    List { PDMSettingsSection(bus: Ag.bus) }
+                        .navigationTitle("PDM Ağı").navigationBarTitleDisplayMode(.inline)
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Bitti") { agAyar = false } } }
+                }
+                .presentationDetents([.medium, .large])
+            }
+            .onAppear { oda = goz.oda; bilinen = Kasa.bilinen; network.refresh() }
         }
     }
 
@@ -71,14 +107,14 @@ struct SozlukEkrani: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(k.en).font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .foregroundStyle(bilinen.contains(k.en) ? .secondary : .primary)
+                            .foregroundStyle(network.isKnown(k.en, local: bilinen) ? .secondary : .primary)
                         if !k.ses.isEmpty { Text(k.ses).font(.system(size: 12, design: .serif)).foregroundStyle(.secondary) }
                     }
                     Text(k.tr).font(.subheadline).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text(k.rozet).font(.caption2.weight(.bold)).foregroundStyle(k.kaynak == "ek" ? Color.secondary : Color.saray)
-                    .padding(.horizontal, 6).padding(.vertical, 3).background(Capsule().fill((k.kaynak == "ek" ? Color.secondary : Color.saray).opacity(0.14)))
+                    .padding(.horizontal, 6).padding(.vertical, 3).background { Capsule().fill((k.kaynak == "ek" ? Color.secondary : Color.saray).opacity(0.14)) }
             }
         }
         .tint(.primary)
@@ -104,15 +140,15 @@ struct KelimeKarti: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(k.en).font(.system(size: 40, weight: .bold, design: .rounded))
                     Spacer()
-                    Button { ses.oku(k) } label: { Image(systemName: "speaker.wave.2.circle.fill").font(.system(size: 40)) }.tint(.saray)
+                    Button { ses.oku(k) } label: { Image(systemName: "speaker.wave.2.circle.fill").font(.system(size: 40)) }.accessibilityLabel("Dinle").tint(.saray)
                 }
                 if !k.ses.isEmpty { Text(k.ses).font(.system(size: 20, design: .serif)).foregroundStyle(.secondary) }
                 Text(k.tr).font(.title3)
                 HStack(spacing: 6) {
-                    Text(k.rozet).font(.caption.weight(.bold)).padding(.horizontal, 8).padding(.vertical, 4).background(Capsule().fill(Color.saray.opacity(0.18)))
+                    Text(k.rozet).font(.caption.weight(.bold)).padding(.horizontal, 8).padding(.vertical, 4).background { Capsule().fill(Color.saray.opacity(0.18)) }
                     ForEach(k.odalar, id: \.self) { o in
                         Text(goz.sozluk.odalar.first { $0.id == o }?.en ?? o).font(.caption).padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(Capsule().fill(.secondary.opacity(0.12)))
+                            .background { Capsule().fill(.secondary.opacity(0.12)) }
                     }
                 }
                 if !k.tanim.isEmpty {

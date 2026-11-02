@@ -26,7 +26,7 @@ struct VitrinEkrani: View {
             .navigationTitle("Vitrin")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { ayarlar = true } label: { Image(systemName: "gearshape") }
+                    Button { ayarlar = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Ayarlar")
                 }
             }
             .sheet(isPresented: $ayarlar) { AyarlarEkrani() }
@@ -116,25 +116,26 @@ struct VitrinEkrani: View {
                         Text("\(k.c) · \(k.p)".uppercased()).font(.caption.weight(.bold)).tracking(1.2).foregroundStyle(Renkler.vurgu)
                         Spacer()
                         Button { Task { await Ses.ortak.soyle(k.w, url: k.au) } } label: { Image(systemName: "speaker.wave.2.fill") }
-                        Button { m.biliyorum(k.w) } label: { Image(systemName: "checkmark.seal") }
+                        Button { m.biliyorum(k.w) } label: { Image(systemName: "checkmark.seal") }.accessibilityLabel("Biliyorum")
                     }
                     Text(k.w).font(.system(size: 38, weight: .medium, design: .serif))
                     Text(k.ipa).foregroundStyle(Renkler.ikincil)
                     Text(k.trTam).font(.title3)
                     if !k.x.isEmpty { Text(k.x).italic().foregroundStyle(Renkler.ikincil) }
                     Divider().overlay(Renkler.cizgi).padding(.vertical, 4)
-                    ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollView(.horizontal) {
                         HStack(spacing: 8) {
                             ForEach(kelimeler.dropFirst(), id: \.w) { x in
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(x.w).font(.subheadline.weight(.semibold))
                                     Text(x.tr).font(.caption).foregroundStyle(Renkler.ikincil)
                                 }
-                                .padding(10).background(RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2))
-                                .onTapGesture { Task { await Ses.ortak.soyle(x.w, url: x.au) } }
+                                .padding(10).background { RoundedRectangle(cornerRadius: 12).fill(Renkler.kart2) }
+                                .onTapGesture { Task { await Ses.ortak.soyle(x.w, url: x.au) } }.accessibilityAddTraits(.isButton)
                             }
                         }
                     }
+                    .scrollIndicators(.hidden)
                     Text("Widget'ta bu altı kelime gün boyunca sırayla döner.").font(.caption2).foregroundStyle(Renkler.ikincil)
                 }
             }
@@ -193,7 +194,7 @@ struct VitrinEkrani: View {
     private var temalar: some View {
         VStack(alignment: .leading, spacing: 12) {
             Baslik(ad: "Temalar", alt: "Duvar + dört widget, tek dokunuşla")
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 HStack(spacing: 14) {
                     PhotosPicker(selection: $fotoSecim, matching: .images) {
                         VStack(spacing: 10) {
@@ -231,6 +232,7 @@ struct VitrinEkrani: View {
                 }
                 .padding(.vertical, 6)
             }
+            .scrollIndicators(.hidden)
         }
     }
 }
@@ -276,7 +278,7 @@ struct TemaDetay: View {
                     m.uygula(t); kapat()
                 } label: {
                     Text("Temayı ekle").fontWeight(.semibold).frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(RoundedRectangle(cornerRadius: 18).fill(Renkler.vurgu)).foregroundStyle(.black)
+                        .background { RoundedRectangle(cornerRadius: 18).fill(Renkler.vurgu) }.foregroundStyle(.black)
                 }
                 .padding(16)
                 .background(.ultraThinMaterial)

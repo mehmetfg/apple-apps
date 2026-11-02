@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		B300000000000000000B0001 /* DisliWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B300000000000000000F0002 /* DisliWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PD4E48A951D51F5A6046CAB1 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD4732E76AB0BBCC65735E98 /* PDMBus */; };
+		PDA700F0F32E088B1FD49E68 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD0949D0D3BE38E140AEDFC5 /* PDMBus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PD4E48A951D51F5A6046CAB1 /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +80,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDA700F0F32E088B1FD49E68 /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +131,7 @@
 			);
 			name = Disli;
 			packageProductDependencies = (
+				PD4732E76AB0BBCC65735E98 /* PDMBus */,
 			);
 			productName = Disli;
 			productReference = B300000000000000000F0001 /* Disli.app */;
@@ -150,6 +155,7 @@
 			);
 			name = DisliWidgetExtension;
 			packageProductDependencies = (
+				PD0949D0D3BE38E140AEDFC5 /* PDMBus */,
 			);
 			productName = DisliWidgetExtension;
 			productReference = B300000000000000000F0002 /* DisliWidgetExtension.appex */;
@@ -183,6 +189,9 @@
 			);
 			mainGroup = B300000000000000001D0001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PDC6B36BE9F9C3897D12E8ED /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B300000000000000001D0002 /* Products */;
 			projectDirPath = "";
@@ -442,6 +451,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PDC6B36BE9F9C3897D12E8ED /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PD4732E76AB0BBCC65735E98 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDC6B36BE9F9C3897D12E8ED /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+		PD0949D0D3BE38E140AEDFC5 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDC6B36BE9F9C3897D12E8ED /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B300000000000000001F0001 /* Project object */;
 }

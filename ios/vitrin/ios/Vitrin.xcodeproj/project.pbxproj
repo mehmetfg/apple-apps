@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		D500000000000000000B0001 /* VitrinWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D500000000000000000F0002 /* VitrinWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PD5BAF90A9CFE8AA07DCB8FF /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD9C4F2083C8563DA4255751 /* PDMBus */; };
+		PDDE609EAC573B565854B342 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD1935EC06B1787664E03E24 /* PDMBus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PD5BAF90A9CFE8AA07DCB8FF /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +80,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDDE609EAC573B565854B342 /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +131,7 @@
 			);
 			name = Vitrin;
 			packageProductDependencies = (
+				PD9C4F2083C8563DA4255751 /* PDMBus */,
 			);
 			productName = Vitrin;
 			productReference = D500000000000000000F0001 /* Vitrin.app */;
@@ -150,6 +155,7 @@
 			);
 			name = VitrinWidgetExtension;
 			packageProductDependencies = (
+				PD1935EC06B1787664E03E24 /* PDMBus */,
 			);
 			productName = VitrinWidgetExtension;
 			productReference = D500000000000000000F0002 /* VitrinWidgetExtension.appex */;
@@ -183,6 +189,9 @@
 			);
 			mainGroup = D500000000000000001D0001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PDA5C7D6BEC3977211962BE2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D500000000000000001D0002 /* Products */;
 			projectDirPath = "";
@@ -446,6 +455,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PDA5C7D6BEC3977211962BE2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PD9C4F2083C8563DA4255751 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDA5C7D6BEC3977211962BE2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+		PD1935EC06B1787664E03E24 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDA5C7D6BEC3977211962BE2 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D500000000000000001F0001 /* Project object */;
 }

@@ -482,9 +482,9 @@ struct HatKarti: View {
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .strokeBorder(secili ? hat.renk.opacity(0.7) : Tema.cizgi.opacity(0.6), lineWidth: secili ? 1.5 : 0.5))
+        .background { RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Tema.yuzey) }
+        .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .strokeBorder(secili ? hat.renk.opacity(0.7) : Tema.cizgi.opacity(0.6), lineWidth: secili ? 1.5 : 0.5) }
         .opacity(hat.acik ? 1 : 0.75)
         .contentShape(RoundedRectangle(cornerRadius: 20))
     }
@@ -591,7 +591,7 @@ struct ZamanGorunumu: View {
                     .background(Tema.yuzey)
                     Divider()
                     ScrollViewReader { okuyucu in
-                        ScrollView(.horizontal, showsIndicators: false) {
+                        ScrollView(.horizontal) {
                             ZStack(alignment: .topLeading) {
                                 Canvas { c, boyut in ciz(c, boyut) }
                                     .frame(width: CGFloat(gunSayisi) * gunGenislik, height: ust + satir * CGFloat(gorunen.count))
@@ -599,15 +599,16 @@ struct ZamanGorunumu: View {
                                 VStack(spacing: 0) {
                                     Color.clear.frame(height: ust)
                                     ForEach(gorunen) { h in
-                                        Color.clear.frame(height: satir).contentShape(Rectangle()).onTapGesture { ac(h) }
+                                        Color.clear.frame(height: satir).contentShape(Rectangle()).onTapGesture { ac(h) }.accessibilityAddTraits(.isButton)
                                     }
                                 }
                                 Color.clear.frame(width: 1, height: 1).padding(.leading, max(0, x(bugun) - 140)).id("bugun")
                             }
                         }
+                        .scrollIndicators(.hidden)
                         .defaultScrollAnchor(UnitPoint(x: min(1, max(0, x(bugun) / max(CGFloat(gunSayisi) * gunGenislik, 1))), y: 0))
                         .task(id: gunGenislik) {
-                            try? await Task.sleep(nanoseconds: 80_000_000)
+                            try? await Task.sleep(for: .milliseconds(80))
                             okuyucu.scrollTo("bugun", anchor: .leading)
                         }
                     }
@@ -629,7 +630,7 @@ struct ZamanGorunumu: View {
 
     private func lejant(dolu: Bool, _ s: String) -> some View {
         HStack(spacing: 4) {
-            Circle().strokeBorder(Tema.ikincil, lineWidth: 1.2).background(Circle().fill(dolu ? Tema.ikincil : .clear)).frame(width: 8, height: 8)
+            Circle().strokeBorder(Tema.ikincil, lineWidth: 1.2).background { Circle().fill(dolu ? Tema.ikincil : .clear) }.frame(width: 8, height: 8)
             Text(s).font(.caption2)
         }
     }
@@ -644,7 +645,7 @@ struct ZamanGorunumu: View {
             let r = CGRect(x: x(ay), y: 0, width: x(sonraki) - x(ay), height: boyut.height)
             if tek { c.fill(Path(r), with: .color(Tema.yuzey2.opacity(0.45))) }
             c.draw(Text(ay.formatted(.dateTime.month(.abbreviated).locale(Dil.tr)).uppercased(with: Dil.tr))
-                    .font(.system(size: 9.5, weight: .bold)).foregroundColor(Tema.soluk),
+                    .font(.system(size: 9.5, weight: .bold)).foregroundStyle(Tema.soluk),
                    at: CGPoint(x: x(ay) + 6, y: 12), anchor: .leading)
             tek.toggle()
             ay = sonraki
@@ -677,7 +678,7 @@ struct ZamanGorunumu: View {
                 c.stroke(p, with: .color(renk.opacity(h.durum == "suruyor" ? 0.7 : 0.35)),
                          style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [3, 4]))
                 if tb <= son {
-                    c.draw(Text(Tarih.kisa(tb)).font(.system(size: 8.5, weight: .semibold)).foregroundColor(renk),
+                    c.draw(Text(Tarih.kisa(tb)).font(.system(size: 8.5, weight: .semibold)).foregroundStyle(renk),
                            at: CGPoint(x: x(tb) + 4, y: y - 9), anchor: .leading)
                 }
             }
@@ -691,7 +692,7 @@ struct ZamanGorunumu: View {
             }
             // kapanış işareti
             if h.durum == "kapandi", let k = gunTarih(h.kapanis) {
-                c.draw(Text("✕").font(.system(size: 10, weight: .bold)).foregroundColor(Tema.soluk), at: CGPoint(x: x(k) + 6, y: y))
+                c.draw(Text("✕").font(.system(size: 10, weight: .bold)).foregroundStyle(Tema.soluk), at: CGPoint(x: x(k) + 6, y: y))
             }
             // noktalar: aynı güne düşenler üst üste değil yan yana küçük kayarak
             var sayac: [Int: Int] = [:]
@@ -711,7 +712,7 @@ struct ZamanGorunumu: View {
         // bugün çizgisi
         var p = Path(); p.move(to: CGPoint(x: x(bugun), y: 18)); p.addLine(to: CGPoint(x: x(bugun), y: boyut.height))
         c.stroke(p, with: .color(Tema.vurgu), lineWidth: 1.5)
-        c.draw(Text("bugün").font(.system(size: 9, weight: .bold)).foregroundColor(Tema.vurgu), at: CGPoint(x: x(bugun) + 4, y: 24), anchor: .leading)
+        c.draw(Text("bugün").font(.system(size: 9, weight: .bold)).foregroundStyle(Tema.vurgu), at: CGPoint(x: x(bugun) + 4, y: 24), anchor: .leading)
     }
 
     // Son 12 haftanın ritmi: üretilen ve dinlenen birim (bütün hatlar)
@@ -741,7 +742,7 @@ struct ZamanGorunumu: View {
                     BarMark(x: .value("Hafta", r.hafta, unit: .weekOfYear), y: .value("Birim", r.sayi))
                         .foregroundStyle(by: .value("Tür", r.tur))
                         .position(by: .value("Tür", r.tur))
-                        .cornerRadius(2)
+                        .clipShape(.rect(cornerRadius: 2))
                 }
                 .chartForegroundStyleScale(["Üretilen": Tema.vurgu.opacity(0.35), "Dinlenen": Tema.vurgu])
                 .chartXAxis {
@@ -816,7 +817,7 @@ struct SiraGorunumu: View {
                     Spacer(minLength: 0)
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey) }
             }
             .buttonStyle(.plain)
         }
@@ -848,7 +849,7 @@ struct SiraGorunumu: View {
                     if b.count > 4 { Text("+\(b.count - 4) daha").font(.caption2).foregroundStyle(Tema.soluk) }
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey) }
             }
             .buttonStyle(.plain)
         }
@@ -870,7 +871,7 @@ struct SiraGorunumu: View {
                     Spacer(minLength: 0)
                 }
                 .padding(12)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey))
+                .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Tema.yuzey) }
             }
             .buttonStyle(.plain)
         }
@@ -927,7 +928,7 @@ struct HatDetay: View {
             HStack(spacing: 8) {
                 Text(hat.kod).font(.system(size: 12, weight: .bold, design: .monospaced))
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Capsule().fill(hat.renk.opacity(0.15))).foregroundStyle(hat.renk)
+                    .background { Capsule().fill(hat.renk.opacity(0.15)) }.foregroundStyle(hat.renk)
                 Label(MAlan.durumAd(hat.durum), systemImage: MAlan.durumSembol(hat.durum))
                     .font(.caption.weight(.semibold)).foregroundStyle(hat.durum == "suruyor" ? Tema.basari : Tema.ikincil)
                 Text("· \(MAlan.ad(hat.alan))").font(.caption).foregroundStyle(Tema.soluk)
@@ -937,7 +938,7 @@ struct HatDetay: View {
             if let n = hat.durumNot {
                 Label(n, systemImage: "info.circle").font(.footnote).foregroundStyle(Tema.ikincil)
                     .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Tema.yuzey2.opacity(0.7)))
+                    .background { RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Tema.yuzey2.opacity(0.7)) }
             }
             if hat.durum == "kapandi", let n = hat.neden {
                 Label("Kapandı \(kisaTarih(hat.kapanis)) — \(n)", systemImage: "archivebox").font(.footnote).foregroundStyle(Tema.ikincil)
@@ -1014,7 +1015,7 @@ struct HatDetay: View {
                             Rectangle().fill(hat.renk).frame(width: w * o)
                         }
                         .frame(width: w)
-                        .onTapGesture { withAnimation(.snappy) { _ = acik.insert(gr.sira) } }
+                        .onTapGesture { withAnimation(.snappy) { _ = acik.insert(gr.sira) } }.accessibilityAddTraits(.isButton)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -1027,7 +1028,7 @@ struct HatDetay: View {
                         Text("\(f) · \(b.filter { $0.d == .dinlendi }.count)/\(b.count)")
                             .font(.caption2.weight(.semibold)).foregroundStyle(Tema.ikincil)
                             .padding(.horizontal, 8).padding(.vertical, 3)
-                            .background(Capsule().fill(Tema.yuzey2))
+                            .background { Capsule().fill(Tema.yuzey2) }
                     }
                 }
             }
@@ -1091,8 +1092,8 @@ struct HatDetay: View {
                 .transition(.opacity)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5))
+        .background { RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Tema.yuzey) }
+        .overlay { RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Tema.cizgi.opacity(0.6), lineWidth: 0.5) }
     }
 }
 

@@ -65,7 +65,7 @@ struct AnlatEkrani: View {
             }
             .font(.callout)
             .padding(.horizontal, 14).padding(.vertical, 9)
-            .background(Capsule().fill(Color.kart))
+            .background { Capsule().fill(Color.kart) }
         }
         .disabled(kayitci.kayitta)
     }
@@ -122,7 +122,7 @@ struct AnlatEkrani: View {
                         }
                         Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                     }
-                    .padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Color.kart))
+                    .padding(12).background { RoundedRectangle(cornerRadius: 12).fill(Color.kart) }
                 }
                 .buttonStyle(.plain)
                 .contextMenu { Button(role: .destructive) { merkez.anlatimSil(an.id) } label: { Label("Sil", systemImage: "trash") } }
@@ -245,6 +245,7 @@ final class Kayitci: NSObject, ObservableObject, AVAudioRecorderDelegate {
         return await withCheckedContinuation { c in
             var bitti = false
             t.recognitionTask(with: istek) { sonuc, hata in
+                _ = t   // the recognizer must stay alive until the task ends, or the callback never fires
                 guard !bitti else { return }
                 if let sonuc, sonuc.isFinal { bitti = true; c.resume(returning: sonuc.bestTranscription.formattedString) }
                 else if hata != nil { bitti = true; c.resume(returning: nil) }

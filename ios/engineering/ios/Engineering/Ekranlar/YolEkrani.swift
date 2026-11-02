@@ -1,4 +1,5 @@
 import SwiftUI
+import PDMBus
 
 /// Yol: Tezgâh'ın 12 alanı × 180 meselesi. Dolu meseleler açılır; boşlar haritada yerini gösterir.
 struct YolEkrani: View {
@@ -7,6 +8,7 @@ struct YolEkrani: View {
     @State private var ders: Ders?
     @State private var bos: Mesele?
     @State private var karisik = false
+    @State private var agAyar = false
     private let k = Kutuphane.shared
 
     private var siradaki: Ders? { k.sira.first { !ilerleme.bitti($0.id) } }
@@ -31,6 +33,14 @@ struct YolEkrani: View {
         }
         .fullScreenCover(item: $ders) { DersEkrani(ders: $0) }
         .fullScreenCover(isPresented: $karisik) { KarisikEkrani() }
+        .sheet(isPresented: $agAyar) {
+            NavigationStack {
+                List { PDMSettingsSection(bus: ilerleme.bus) }
+                    .navigationTitle("PDM Ağı").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Bitti") { agAyar = false } } }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .sheet(item: $bos) { m in
             BosMesele(mesele: m).presentationDetents([.height(300)]).presentationBackground(Tema.zemin)
         }
@@ -38,7 +48,14 @@ struct YolEkrani: View {
 
     private var baslik: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Engineering").font(.system(size: 40, weight: .heavy, design: .rounded)).foregroundStyle(Tema.murekkep)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Engineering").font(.system(size: 40, weight: .heavy, design: .rounded)).foregroundStyle(Tema.murekkep)
+                Spacer()
+                Button { agAyar = true } label: {
+                    Image(systemName: "point.3.connected.trianglepath.dotted").font(.title3).foregroundStyle(Tema.soluk)
+                }
+                .accessibilityLabel("PDM Ağı")
+            }
             let dolu = k.icerik.alanlar.flatMap(\.meseleler).filter(\.dolu).count
             Text("\(ilerleme.bitenSayisi) of \(k.icerik.dersler.count) lessons · \(dolu) of 180 problems open · \(ilerleme.bilinenSayisi) words known")
                 .font(.footnote).foregroundStyle(Tema.soluk)
@@ -62,14 +79,12 @@ struct YolEkrani: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Tema.kart)
+            .background { RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Tema.kart)
                     .overlay(alignment: .topTrailing) {
                         Circle().fill(renk.opacity(0.13)).frame(width: 180).offset(x: 60, y: -70)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            )
-            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous)) }
+            .overlay { RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.5) }
         }
         .buttonStyle(.plain)
     }
@@ -135,7 +150,7 @@ struct YolEkrani: View {
             }
         }
         .background(Tema.kart, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.5))
+        .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Tema.cizgi, lineWidth: 0.5) }
     }
 
     @ViewBuilder

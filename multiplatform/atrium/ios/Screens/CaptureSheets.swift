@@ -19,7 +19,7 @@ struct ComposeSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollView(.horizontal) {
                         HStack(spacing: 8) {
                             ForEach(NoteKind.allCases) { k in
                                 Button { withAnimation(.snappy) { kind = k } } label: {
@@ -36,6 +36,7 @@ struct ComposeSheet: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    .scrollIndicators(.hidden)
                     Text(kind.hint).font(.footnote).foregroundStyle(.secondary)
                 }
                 if kind != .journal {
@@ -102,7 +103,7 @@ struct ComposeSheet: View {
         do {
             let path = try await store.create(kind: kind, title: title, body: text, folder: folder, discipline: discipline.isEmpty ? nil : discipline)
             dismiss()
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await Task.sleep(for: .milliseconds(350))
             router.open(path)
         } catch {
             store.message = error.localizedDescription
@@ -137,7 +138,7 @@ struct VoiceSheet: View {
                         savedPath = await recorder.stop(into: store)
                         if savedPath != nil {
                             store.message = "Ses Kıvılcım'a düştü; Mac yazıya dökecek."
-                            try? await Task.sleep(nanoseconds: 900_000_000)
+                            try? await Task.sleep(for: .milliseconds(900))
                             dismiss()
                         }
                     } else {

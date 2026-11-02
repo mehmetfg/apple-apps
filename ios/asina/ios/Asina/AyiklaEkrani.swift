@@ -17,7 +17,7 @@ struct AyiklaEkrani: View {
                 Button { kapat() } label: {
                     Image(systemName: "xmark").font(.body.weight(.semibold)).foregroundStyle(R.ikincil)
                         .frame(width: 36, height: 36)
-                }
+                }.accessibilityLabel("Kapat")
                 Spacer()
                 VStack(spacing: 0) {
                     Text("Ayıkla").font(.headline)
@@ -28,7 +28,7 @@ struct AyiklaEkrani: View {
                     Image(systemName: "arrow.uturn.backward").font(.body.weight(.semibold))
                         .foregroundStyle(gecmis.isEmpty ? R.soluk : R.murekkep)
                         .frame(width: 36, height: 36)
-                }
+                }.accessibilityLabel("Geri al")
                 .disabled(gecmis.isEmpty)
             }
             .padding(.horizontal, 16).padding(.top, 8)
@@ -94,17 +94,15 @@ struct AyiklaEkrani: View {
         .frame(maxWidth: .infinity)
         .frame(height: 420)
         .background(R.yuzey, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .stroke(x > 40 ? R.dogru : x < -40 ? R.yanlis : R.cizgi, lineWidth: abs(x) > 40 ? 3 : 1)
-        )
+        .overlay { RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(x > 40 ? R.dogru : x < -40 ? R.yanlis : R.cizgi, lineWidth: abs(x) > 40 ? 3 : 1) }
         .overlay(alignment: .top) {
             if ust && abs(x) > 40 {
                 Text(x > 0 ? "BİLİYORUM" : "BİLMİYORUM")
                     .font(.headline.weight(.heavy)).tracking(1)
                     .foregroundStyle(x > 0 ? R.dogru : R.yanlis)
                     .padding(.horizontal, 14).padding(.vertical, 6)
-                    .overlay(Capsule().stroke(x > 0 ? R.dogru : R.yanlis, lineWidth: 2))
+                    .overlay { Capsule().stroke(x > 0 ? R.dogru : R.yanlis, lineWidth: 2) }
                     .rotationEffect(.degrees(x > 0 ? -8 : 8))
                     .padding(.top, 70)
             }
@@ -112,7 +110,7 @@ struct AyiklaEkrani: View {
         .shadow(color: .black.opacity(ust ? 0.08 : 0.03), radius: 18, y: 10)
         .offset(x: x, y: ust ? surukle.height * 0.2 : 0)
         .rotationEffect(.degrees(Double(x) / 22))
-        .onTapGesture { if ust { withAnimation(.easeOut(duration: 0.2)) { anlam.toggle() } } }
+        .onTapGesture { if ust { withAnimation(.easeOut(duration: 0.2)) { anlam.toggle() } } }.accessibilityAddTraits(.isButton)
         .gesture(ust ? DragGesture()
             .onChanged { surukle = $0.translation }
             .onEnded { d in
@@ -162,7 +160,7 @@ struct AyiklaEkrani: View {
                 Image(systemName: simge).font(.system(size: 26, weight: .bold)).foregroundStyle(renk)
                     .frame(width: 72, height: 72)
                     .background(R.yuzey, in: Circle())
-                    .overlay(Circle().stroke(renk.opacity(0.35), lineWidth: 1.5))
+                    .overlay { Circle().stroke(renk.opacity(0.35), lineWidth: 1.5) }
                     .shadow(color: renk.opacity(0.18), radius: 10, y: 4)
                 Text(ad).font(.caption.weight(.semibold)).foregroundStyle(R.ikincil)
             }

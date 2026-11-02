@@ -54,8 +54,8 @@ struct SurecKaro: View {
         }
         .frame(width: genislik, height: yukseklik)
         .background(renk.opacity(sessiz ? 0.06 : h.durum == .akiyor ? 0.16 : 0.26), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .stroke(renk.opacity(sessiz ? 0.18 : 0.6), style: StrokeStyle(lineWidth: 1, dash: h.durum == .gorunmuyor ? [2, 2] : [])))
+        .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .stroke(renk.opacity(sessiz ? 0.18 : 0.6), style: StrokeStyle(lineWidth: 1, dash: h.durum == .gorunmuyor ? [2, 2] : [])) }
     }
 }
 

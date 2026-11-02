@@ -20,8 +20,8 @@ struct RecallEkrani: View {
                     ForEach(Array(r.sorular.enumerated()), id: \.offset) { n, s in
                         Circle().fill(s.sonuc == "tam" ? Renk.yesil : s.sonuc == "kismi" ? Renk.sari : s.sonuc != nil ? Renk.kirmizi : Color.secondary.opacity(0.25))
                             .frame(width: 11, height: 11)
-                            .overlay(Circle().strokeBorder(Renk.vurgu, lineWidth: n == (r.bakilan ?? r.j) ? 2 : 0).padding(-3))
-                            .onTapGesture { if s.sonuc != nil { t.o?.recall?.bakilan = n } }
+                            .overlay { Circle().strokeBorder(Renk.vurgu, lineWidth: n == (r.bakilan ?? r.j) ? 2 : 0).padding(-3) }
+                            .onTapGesture { if s.sonuc != nil { t.o?.recall?.bakilan = n } }.accessibilityAddTraits(.isButton)
                     }
                 }
                 if let b = r.bakilan { sonucKart(o, r.sorular[b], geri: true) }
@@ -38,7 +38,7 @@ struct RecallEkrani: View {
         let bos = String(repeating: "_", count: min(14, max(4, Metin.kelimeler(s.cevap).joined().count)))
         let ic = dolu ? s.cevap : bos
         let renk: Color = durum == "tam" ? Renk.yesil : durum == nil ? Renk.vurgu : Renk.kirmizi
-        return (Text(s.once) + Text(ic).foregroundColor(renk).bold().underline() + Text(s.sonra)).font(.serif(22))
+        return Text("\(Text(s.once))\(Text(ic).foregroundStyle(renk).bold().underline())\(Text(s.sonra))").font(.serif(22))
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -85,10 +85,10 @@ struct RecallEkrani: View {
             HStack {
                 Text(h == "tam" ? "✓ Doğru" : h == "kismi" ? "~ Doğru kelime, yanlış biçim" : "✗ Tutmadı").font(.headline)
                     .foregroundStyle(h == "tam" ? Renk.yesil : h == "kismi" ? Renk.sari : Renk.kirmizi)
-                Button { t.ses.soyle(o.cumle(s.cumleIdx).en) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.borderless)
+                Button { t.ses.soyle(o.cumle(s.cumleIdx).en) } label: { Image(systemName: "speaker.wave.2") }.accessibilityLabel("Dinle").buttonStyle(.borderless)
             }
             let ver = s.verilen.filter { !$0.isEmpty }
-            (Text("Doğrusu: ") + Text(s.cevap).bold() + Text(ver.isEmpty ? " · boş bıraktın" : " · senin yazdığın: " + ver.joined(separator: " → ")))
+            Text("Doğrusu: \(Text(s.cevap).bold())\(Text(ver.isEmpty ? " · boş bıraktın" : " · senin yazdığın: " + ver.joined(separator: " → ")))")
                 .font(.callout)
             if let a = s.aciklama { Text(a).font(.callout).foregroundStyle(.secondary) }
             HStack {
@@ -122,16 +122,16 @@ struct RecallEkrani: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(h == "tam" ? "✓" : h == "kismi" ? "~" : "✗").font(.headline).foregroundStyle(h == "tam" ? Renk.yesil : h == "kismi" ? Renk.sari : Renk.kirmizi)
                     VStack(alignment: .leading, spacing: 2) {
-                        (Text(s.once) + Text(s.cevap).bold() + Text(s.sonra)).font(.serif(16))
+                        Text("\(Text(s.once))\(Text(s.cevap).bold())\(Text(s.sonra))").font(.serif(16))
                         Text(h == "tam" ? (s.deneme == 1 ? "ilk denemede" : "\(s.deneme). denemede")
                              : s.verilen.filter { !$0.isEmpty }.isEmpty ? "boş bıraktın" : "yazdığın: " + s.verilen.filter { !$0.isEmpty }.joined(separator: " → "))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button { t.ses.soyle(o.cumle(s.cumleIdx).en) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.borderless)
+                    Button { t.ses.soyle(o.cumle(s.cumleIdx).en) } label: { Image(systemName: "speaker.wave.2") }.accessibilityLabel("Dinle").buttonStyle(.borderless)
                 }
                 .contentShape(Rectangle())
-                .onTapGesture { t.o?.recall?.bakilan = n }
+                .onTapGesture { t.o?.recall?.bakilan = n }.accessibilityAddTraits(.isButton)
             }
         }
     }
@@ -165,8 +165,8 @@ struct KendiEkrani: View {
                                yerTutucu: "Kendi hayatından bir cümle…", boyut: 18, odak: n == 0 ? t.editorOdak : UUID(uuidString: "00000000-0000-0000-0000-00000000000\(n)")!,
                                gonder: nil)
                             .frame(minHeight: 70, maxHeight: 120)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Renk.kart2))
-                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator))
+                            .background { RoundedRectangle(cornerRadius: 10).fill(Renk.kart2) }
+                            .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(.separator) }
                         durum(k)
                     }
                 }
@@ -328,7 +328,7 @@ struct KuizSayfasi: View {
             Text("Kopyalamadan önce düzenleyebilirsin. Paragrafı, sahne ve hatırlatma yapılarını, zorlandığın kelimeleri ve hata profilini taşır.")
                 .font(.callout).foregroundStyle(.secondary)
             TextEditor(text: $metin).font(.system(.callout, design: .monospaced)).frame(minHeight: 380)
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
+                .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(.separator) }
             HStack {
                 Button("Kopyala → Gemini") {
                     t.panoya(metin); NSWorkspace.shared.open(URL(string: "https://gemini.google.com/app")!)
@@ -346,78 +346,7 @@ struct KuizSayfasi: View {
     }
 }
 
-// MARK: - Gramer sayfası: yazarken göz önünde durmaz; istenince açılır. Bugün · Döngü
-
-struct GramerSayfasi: View {
-    @EnvironmentObject var t: Tezgah
-    @Environment(\.dismiss) var kapat
-    @State private var sekme = 0
-    @State private var cevap = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Picker("", selection: $sekme) {
-                    ForEach(Array((t.gramerSayfa ?? []).enumerated()), id: \.offset) { n, k in Text("\(n + 1) · \(Gramer.kisa(k))").tag(n) }
-                    Text("Döngü").tag(-1)
-                }
-                .pickerStyle(.segmented).labelsHidden()
-                Spacer()
-                Button("Kapat") { kapat() }.keyboardShortcut(.cancelAction)
-            }
-            .padding(16)
-            Divider()
-            ScrollView {
-                Group {
-                    if sekme == -1 { DonguGorunum(ac: { k in t.gramerSayfa = [k]; sekme = 0; cevap = false }) }
-                    else if let ad = t.gramerSayfa?[safe: sekme] { kart(ad) }
-                }
-                .padding(26)
-                .frame(maxWidth: 680, alignment: .leading)
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(width: 760, height: 640)
-        .onAppear { sekme = t.gramerI }
-        .onChange(of: sekme) { _, _ in cevap = false }
-    }
-
-    @ViewBuilder func kart(_ ad: String) -> some View {
-        if let g = t.gramerMap[ad] {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("FAZ \(g.faz)" + (g.yildiz ? " · KALICI BOŞLUK ⭐" : "")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    Text(g.ad).font(.largeTitle.bold())
-                    Text(g.tr).font(.title3).foregroundStyle(.secondary)
-                }
-                bolum("Ne zaman kullanılır") { Text(g.ne).font(.title3) }
-                bolum("Kalıp") {
-                    Text(g.formul.components(separatedBy: " · ").joined(separator: "\n")).font(.system(.title3, design: .monospaced))
-                        .padding(12).frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: 8).fill(Renk.vurgu.opacity(0.08)))
-                }
-                bolum("Örnek") {
-                    ForEach(g.ornek, id: \.self) { o in
-                        HStack(alignment: .top) {
-                            Button { t.ses.soyle(o.first ?? "") } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.borderless)
-                            VStack(alignment: .leading) { Text(o.first ?? "").font(.serif(19)); Text(o.last ?? "").foregroundStyle(.secondary) }
-                        }
-                    }
-                }
-                bolum("Dikkat") { Text(g.tuzak).font(.title3).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(RoundedRectangle(cornerRadius: 8).fill(Renk.sari.opacity(0.1))) }
-                bolum("Kendini yokla") {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(g.yoklaS).font(.serif(19))
-                        Button(cevap ? "gizle" : "cevabı göster") { cevap.toggle() }
-                        if cevap { Text(g.yoklaC).font(.serif(19)).bold().foregroundStyle(Renk.yesil) }
-                    }
-                }
-            }
-        } else { Text("Bu konunun kartı yok.").foregroundStyle(.secondary) }
-    }
-    func bolum<I: View>(_ b: String, @ViewBuilder _ i: () -> I) -> some View {
-        VStack(alignment: .leading, spacing: 8) { Text(b.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(.secondary).tracking(0.6); i() }
-    }
-}
+// Gramer sayfası → Grammar.swift (GrammarSheet). Döngü takvimi burada kalır.
 
 /// 30 günlük döngü takvimi + bütün konular. Takvime değil çalışılan güne bağlı; vade yok.
 struct DonguGorunum: View {
@@ -442,12 +371,12 @@ struct DonguGorunum: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(i + 1)").font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
                         ForEach([ad1, ad2].compactMap { $0 }, id: \.self) { ad in
-                            Text(Gramer.kisa(ad)).font(.caption2).lineLimit(1).onTapGesture { ac(ad) }
+                            Text(Gramer.kisa(ad)).font(.caption2).lineLimit(1).onTapGesture { ac(ad) }.accessibilityAddTraits(.isButton)
                         }
                     }
                     .padding(6).frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(b < d.konum ? Renk.yesil.opacity(0.12) : a == d.konum ? Renk.vurgu.opacity(0.18) : Color.secondary.opacity(0.07)))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(a >= t.gramer.count ? Renk.sari.opacity(0.5) : .clear))
+                    .background { RoundedRectangle(cornerRadius: 6).fill(b < d.konum ? Renk.yesil.opacity(0.12) : a == d.konum ? Renk.vurgu.opacity(0.18) : Color.secondary.opacity(0.07)) }
+                    .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(a >= t.gramer.count ? Renk.sari.opacity(0.5) : .clear) }
                 }
             }
             ForEach([1, 2, 3], id: \.self) { faz in

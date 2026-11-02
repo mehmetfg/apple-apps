@@ -92,11 +92,13 @@ struct Siniflar: Codable, Sendable {
     var amaclar: [Amac]
     var dolgu: [String]?
 
-    func alan(_ id: String) -> Alan { alanlar.first { $0.id == id } ?? alanlar.last! }
-    func amac(_ id: String) -> Amac { amaclar.first { $0.id == id } ?? amaclar.last! }
+    // A class file from the vault may arrive with an empty list; fall back to the built-in defaults instead of crashing.
+    func alan(_ id: String) -> Alan { alanlar.first { $0.id == id } ?? alanlar.last ?? Self.varsayilan.alanlar[Self.varsayilan.alanlar.count - 1] }
+    func amac(_ id: String) -> Amac { amaclar.first { $0.id == id } ?? amaclar.last ?? Self.varsayilan.amaclar[Self.varsayilan.amaclar.count - 1] }
 
     static func yukle(_ u: URL?) -> Siniflar {
-        if let u, let v = try? Data(contentsOf: u), let s = try? JSONDecoder().decode(Siniflar.self, from: v) { return s }
+        if let u, let v = try? Data(contentsOf: u), let s = try? JSONDecoder().decode(Siniflar.self, from: v),
+           !s.alanlar.isEmpty, !s.amaclar.isEmpty { return s }
         return varsayilan
     }
 

@@ -67,7 +67,7 @@ struct AreaTile: View {
             LinearGradient(colors: [color.opacity(0.13), Palette.card], startPoint: .topLeading, endPoint: .bottomTrailing),
             in: RoundedRectangle(cornerRadius: 22, style: .continuous)
         )
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(color.opacity(0.18)))
+        .overlay { RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(color.opacity(0.18)) }
     }
 }
 
@@ -129,7 +129,7 @@ struct FolderScreen: View {
             ToolbarItem {
                 Button { router.composeKind = .note; UserDefaults.standard.set(path, forKey: "composeFolder") } label: {
                     Image(systemName: "square.and.pencil")
-                }
+                }.accessibilityLabel("Yeni not")
             }
         }
     }
@@ -146,12 +146,13 @@ struct SearchScreen: View {
         let names = store.search(query).filter { kind == nil || $0.kind == kind }
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         chip(nil, "Hepsi", "square.grid.2x2")
                         ForEach(NoteKind.allCases) { k in chip(k, k.label, k.symbol) }
                     }
                 }
+                .scrollIndicators(.hidden)
                 if query.isEmpty {
                     SectionTitle(title: kind == nil ? "Son dokunulanlar" : kind!.label)
                     NoteList(notes: Array(store.records.filter { kind == nil || $0.kind == kind }.prefix(40)), showFolder: true)
@@ -191,7 +192,7 @@ struct SearchScreen: View {
         .task(id: query) {
             contentHits = []
             guard query.count >= 3 else { return }
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
             searching = true
             let hits = await store.searchContents(query)
