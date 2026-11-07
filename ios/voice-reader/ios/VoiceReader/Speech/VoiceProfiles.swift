@@ -97,6 +97,43 @@ final class ProfileRenderer: @unchecked Sendable {
     }
     private let master = VoiceMaster()          // system voices rendered whole (Düzlük on), used only on `queue`
 
+    /// Measure the Turkish voice as the phone's Spoken Content settings make it, and find the Kalınlık and speed
+    /// that give the same sound from Wise Path's own settings. Nobody hears it (about two seconds of work).
+    /// The pitch is the median over the voiced frames (YIN); the Kalınlık is then tried and corrected twice, so the
+    /// answer is what this phone's engine really gives, not what a formula says. Nil when it cannot be measured.
+    func phoneVoice(voiceID: String) -> PhoneVoice? {
+        let text = "Felsefe, insanın kendi aklını kendi üzerine çevirmesiyle başlar. Bu cümle yalnız sesi ölçmek için okunur ve kimse duymaz."
+        func hz(_ r: RenderedSpeech) -> Double? {
+            let v = PitchShift.f0Track(r.samples, sr: 48_000, hop: 240).filter { $0 > 0 }.sorted()
+            return v.count > 40 ? v[v.count / 2] : nil
+        }
+        func seconds(_ r: RenderedSpeech) -> Double {          // from the first to the last sample that speaks
+            guard let a = r.samples.firstIndex(where: { abs($0) > 0.01 }), let z = r.samples.lastIndex(where: { abs($0) > 0.01 }), z > a
+            else { return 0 }
+            return Double(z - a) / 48_000
+        }
+        let never: () -> Bool = { false }
+        guard let plain = apple.render(text, voiceID: voiceID, rate: 0.5, cancelled: never), let plainHz = hz(plain),
+              let phone = apple.render(text, voiceID: voiceID, rate: 0.5, assistive: true, cancelled: never), let phoneHz = hz(phone)
+        else { return nil }
+        var k = min(max(SystemPitch.kalinlik(ratio: phoneHz / plainHz), SystemPitch.range.lowerBound), SystemPitch.range.upperBound)
+        var ownHz = plainHz
+        for _ in 0..<3 {
+            guard let own = apple.render(text, voiceID: voiceID, rate: 0.5, pitch: Float(k), cancelled: never), let f = hz(own) else { return nil }
+            ownHz = f
+            if abs(12 * log2(f / phoneHz)) < 0.2 { break }
+            k = min(max(SystemPitch.kalinlik(ratio: SystemPitch.ratio(k) * phoneHz / f), SystemPitch.range.lowerBound), SystemPitch.range.upperBound)
+        }
+        // speed: iOS sometimes takes the app's rate in that mode and sometimes its own (seen both on iOS 27.0.1).
+        // Read again at a faster rate: the same length means the phone's own rate rules, and it is measured.
+        var speed: Double?
+        if let faster = apple.render(text, voiceID: voiceID, rate: 0.59, assistive: true, cancelled: never) {
+            let a = seconds(phone), b = seconds(faster), p = seconds(plain)
+            if a > 1, b > a * 0.93, p > 1 { speed = min(max(p / a, 0.5), 3.6) }
+        }
+        return PhoneVoice(kalinlik: (k * 100).rounded() / 100, speed: speed, phoneHz: phoneHz, ownHz: ownHz, plainHz: plainHz)
+    }
+
     /// Open the profile's engine ahead of the first sentence (models load in about a second), off the main thread.
     func warmUp(_ profile: VoiceProfile) {
         queue.async { [self] in
@@ -135,11 +172,18 @@ final class ProfileRenderer: @unchecked Sendable {
     /// A system voice exactly as the live path plays it (its own rate step, pitch and volume, no EQ, no level stage),
     /// with only its melody narrowed by `tune.steady`; with `clear` then through VoiceMaster, as the live path.
     func renderSystem(_ text: String, voiceID: String, rate: Float, tune: VoiceTune, assistive: Bool = false, gain: Float = 1,
-                      clear: Bool = false, boost: Float = 0, cancelled: @escaping () -> Bool) -> RenderedSpeech? {
+                      clear: Bool = false, boost: Float = 0, squeeze: (tempo: Double, words: Double)? = nil,
+                      cancelled: @escaping () -> Bool) -> RenderedSpeech? {
         guard var r = apple.render(text, voiceID: voiceID, rate: rate, pitch: Float(tune.pitch), volume: Float(tune.volume),
                                    assistive: assistive, cancelled: cancelled), !cancelled() else { return nil }
         if gain != 1 { r.samples = r.samples.map { $0 * gain } }
         r.samples = PitchShift.flatten(r.samples, keep: 1 - tune.steady)
+        // Yüksek hız: shortened unevenly to the speed asked for, the word times moved with it, the ends closed again
+        if let squeeze, squeeze.tempo > 1.01 {
+            let q = FastSpeech.squeeze(r.samples, tempo: squeeze.tempo)
+            r.words = r.words.map { (q.moved($0.sample), $0.range) }
+            r.samples = FastSpeech.tighten(q.samples, target: FastSpeech.closing(at: squeeze.words))
+        }
         if clear { master.boost = boost; r.samples = master.whole(r.samples) }
         // 3 ms fades: pieces are queued back to back
         let fade = min(144, r.samples.count / 4)
@@ -217,7 +261,7 @@ private final class AppleCapture: NSObject, AVSpeechSynthesizerDelegate, @unchec
         let u = AVSpeechUtterance(string: text)
         u.voice = AVSpeechSynthesisVoice(identifier: voiceID)
         u.rate = rate
-        u.pitchMultiplier = pitch
+        SystemPitch.apply(Double(pitch), to: u)
         u.volume = volume
         u.prefersAssistiveTechnologySettings = assistive
         lock.lock(); frames = 0; marks = []; current = ObjectIdentifier(u); lock.unlock()

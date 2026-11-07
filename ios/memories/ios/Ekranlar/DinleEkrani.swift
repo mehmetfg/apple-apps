@@ -36,7 +36,6 @@ struct DinleEkrani: View {
     private func icerik(_ p: Paket) -> some View {
         let h = depo.hazirlik(p.gun)
         let sure = oynatici.paket?.gun == p.gun ? oynatici.sure : p.sure
-        let zaman = oynatici.paket?.gun == p.gun ? oynatici.zaman : 0
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 18) {
@@ -84,7 +83,7 @@ struct DinleEkrani: View {
                 }
                 .padding(.horizontal, 18).padding(.bottom, 20)
             }
-            kontroller(p, zaman: zaman, sure: sure)
+            kontroller(p, sure: sure)
         }
         .alert("Ses", isPresented: Binding(get: { oynatici.hata != nil }, set: { if !$0 { oynatici.hata = nil } })) {
             Button("Tamam", role: .cancel) {}
@@ -115,17 +114,11 @@ struct DinleEkrani: View {
         .kart(18)
     }
 
-    private func kontroller(_ p: Paket, zaman: Double, sure: Double) -> some View {
+    private func kontroller(_ p: Paket, sure: Double) -> some View {
         VStack(spacing: 14) {
-            BolumCubugu(paket: p, zaman: zaman, sure: max(sure, 1)) { t in
+            PlaybackProgress(clock: oynatici.clock, paket: p, sure: sure, active: oynatici.paket?.gun == p.gun) { t in
                 if oynatici.yukle(p) { oynatici.git(t) }
             }
-            HStack {
-                Text(Tarih.sure(zaman)).font(.caption.monospacedDigit())
-                Spacer()
-                Text("-" + Tarih.sure(max(0, sure - zaman))).font(.caption.monospacedDigit())
-            }
-            .foregroundStyle(.secondary)
             HStack(spacing: 0) {
                 dugme("backward.end.alt", "Bir cümle geri") { if oynatici.yukle(p) { oynatici.oncekiCumle() } }
                 dugme("gobackward.10", "10 sn geri") { if oynatici.yukle(p) { oynatici.atla(-10) } }
@@ -179,6 +172,28 @@ struct DinleEkrani: View {
         }
         .foregroundStyle(.primary)
         .accessibilityLabel(ad)
+    }
+}
+
+/// Progress bar and the two time labels: the only part of the screen that follows the 10 Hz clock.
+private struct PlaybackProgress: View {
+    @ObservedObject var clock: PlaybackClock
+    var paket: Paket
+    var sure: Double
+    var active: Bool            // the player holds this package (otherwise the bar stays at zero)
+    var git: (Double) -> Void
+
+    var body: some View {
+        let zaman = active ? clock.time : 0
+        VStack(spacing: 14) {
+            BolumCubugu(paket: paket, zaman: zaman, sure: max(sure, 1), git: git)
+            HStack {
+                Text(Tarih.sure(zaman)).font(.caption.monospacedDigit())
+                Spacer()
+                Text("-" + Tarih.sure(max(0, sure - zaman))).font(.caption.monospacedDigit())
+            }
+            .foregroundStyle(.secondary)
+        }
     }
 }
 

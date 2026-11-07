@@ -20,36 +20,54 @@ enum WidgetFeed {
         }
     }
 
-    private static func book(_ d: DocumentRecord, _ model: AppModel) -> WidgetSnapshot.Book {
+    nonisolated private static func book(_ d: DocumentRecord, status: String) -> WidgetSnapshot.Book {
         let quotes = d.highlights.sorted { $0.createdAt > $1.createdAt }
             .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.count >= 12 }
             .map { $0.count > 280 ? String($0.prefix(277)) + "…" : $0 }
-        return .init(id: d.id, title: d.title, author: d.author, progress: d.progress, status: model.statusText(d),
+        return .init(id: d.id, title: d.title, author: d.author, progress: d.progress, status: status,
                      finished: d.isFinished, quotes: Array(quotes.prefix(30)))
     }
 
+    /// The main thread only hands over what the snapshot is made from (the document list is a copy-on-write value);
+    /// sorting the library, gathering the quotes, encoding and writing happen off it. A background task keeps the
+    /// app awake until the file is there, since this is also called as the app leaves the screen.
     private static func write(_ model: AppModel) {
         guard let url = WidgetShared.snapshotURL else { return }
         let docs = model.store.documents
-        let byOpened = docs.filter { $0.lastOpenedAt != nil }.sorted { ($0.lastOpenedAt ?? .distantPast) > ($1.lastOpenedAt ?? .distantPast) }
-        let current = model.player.documentID.flatMap { model.store.document($0) } ?? byOpened.first { !$0.isFinished }
-        let reading = byOpened.filter { !$0.isFinished && !$0.isUnread }.prefix(6)
-        let withMarks = byOpened.filter { !$0.highlights.isEmpty }.prefix(40)
+        let playing = model.player.documentID.flatMap { model.store.document($0) }
+        let pace = model.player.charsPerSecond, speed = model.settings.speed
         let today = model.listening.day(.now)
         let week = StatsModel(model: model).buckets(.day).suffix(7).map { WidgetSnapshot.Day(label: String($0.label.prefix(2)), minutes: $0.minutes, today: $0.current) }
-        let snap = WidgetSnapshot(current: current.map { book($0, model) },
-                                  reading: reading.map { book($0, model) },
-                                  books: withMarks.map { book($0, model) },
-                                  todayMinutes: today.seconds / 60,
-                                  todayPages: Double(today.words) / 225,
-                                  week: Array(week),
-                                  updated: .now)
-        if let data = try? JSONEncoder().encode(snap) { try? data.write(to: url, options: .atomic) }
-        var covered = Set<UUID>()
-        for d in ([current].compactMap { $0 } + reading + withMarks) where covered.insert(d.id).inserted { cover(d, model) }
-        WidgetCenter.shared.reloadAllTimelines()
-        QuickActions.install(current: current)
+        let hold = BackgroundHold("widget-snapshot")
+        Task.detached(priority: .utility) {
+            let byOpened = docs.filter { $0.lastOpenedAt != nil }.sorted { ($0.lastOpenedAt ?? .distantPast) > ($1.lastOpenedAt ?? .distantPast) }
+            let current = playing ?? byOpened.first { !$0.isFinished }
+            let reading = byOpened.filter { !$0.isFinished && !$0.isUnread }.prefix(12)
+            let withMarks = byOpened.filter { !$0.highlights.isEmpty }.prefix(40)
+            func made(_ d: DocumentRecord) -> WidgetSnapshot.Book {
+                book(d, status: AppModel.statusText(d, charsPerSecond: pace, speed: speed))
+            }
+            let snap = WidgetSnapshot(current: current.map(made),
+                                      reading: reading.map(made),
+                                      books: withMarks.map(made),
+                                      todayMinutes: today.seconds / 60,
+                                      todayPages: Double(today.words) / 225,
+                                      week: Array(week),
+                                      updated: .now)
+            if let data = try? JSONEncoder().encode(snap) { try? data.write(to: url, options: .atomic) }
+            // covers are written once per book: only a book without one goes back to the main thread to be drawn
+            var seen = Set<UUID>()
+            let coverless = ([current].compactMap { $0 } + reading + withMarks).filter { d in
+                seen.insert(d.id).inserted && WidgetShared.coverURL(d.id).map { !FileManager.default.fileExists(atPath: $0.path) } == true
+            }
+            await MainActor.run {
+                for d in coverless { cover(d, model) }
+                WidgetCenter.shared.reloadAllTimelines()
+                QuickActions.install(current: current)
+                hold.end()
+            }
+        }
     }
 
     /// A 240-pixel cover for the widgets: the book's own picture, else the cover the app draws. Written once.
@@ -74,6 +92,24 @@ enum WidgetFeed {
             image = r.uiImage
         }
         if let data = image?.jpegData(compressionQuality: 0.85) { try? data.write(to: out, options: .atomic) }
+    }
+}
+
+/// Keeps the app running in the background until `end()` (or until iOS says the time is up).
+@MainActor
+private final class BackgroundHold {
+    private var id = UIBackgroundTaskIdentifier.invalid
+
+    init(_ name: String) {
+        id = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
+            MainActor.assumeIsolated { self?.end() }
+        }
+    }
+
+    func end() {
+        guard id != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(id)
+        id = .invalid
     }
 }
 

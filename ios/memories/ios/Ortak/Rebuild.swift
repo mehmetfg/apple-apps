@@ -57,11 +57,22 @@ enum RebuildState {
     static func isRecording(_ day: Int, _ index: Int) -> Bool { active == key(day, index) }
     static var activeStart: Date? { d.object(forKey: activeStartKey) as? Date }
 
-    static func attempt(_ day: Int, _ index: Int) -> RebuildAttempt? {
-        guard let v = d.data(forKey: attemptsKey),
-              let all = try? JSONDecoder().decode([String: RebuildAttempt].self, from: v) else { return nil }
-        return all[key(day, index)]
+    static func attempt(_ day: Int, _ index: Int) -> RebuildAttempt? { attempts()[key(day, index)] }
+
+    /// Every stored attempt, by "day-index". Decoded once per stored value: a list that asks for each row's
+    /// attempt (Oku) does not decode the whole table again for every row and every redraw.
+    static func attempts() -> [String: RebuildAttempt] {
+        guard let v = d.data(forKey: attemptsKey) else { return [:] }
+        attemptsLock.lock(); defer { attemptsLock.unlock() }
+        if v != attemptsData {
+            attemptsCache = (try? JSONDecoder().decode([String: RebuildAttempt].self, from: v)) ?? [:]
+            attemptsData = v
+        }
+        return attemptsCache
     }
+    private static let attemptsLock = NSLock()
+    private static var attemptsData: Data?
+    private static var attemptsCache: [String: RebuildAttempt] = [:]
     static func save(_ a: RebuildAttempt) {
         var all = (d.data(forKey: attemptsKey)).flatMap { try? JSONDecoder().decode([String: RebuildAttempt].self, from: $0) } ?? [:]
         all[key(a.day, a.index)] = a

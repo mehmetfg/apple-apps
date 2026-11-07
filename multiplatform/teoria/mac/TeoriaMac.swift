@@ -37,7 +37,7 @@ final class MacTemsilci: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
 /// Üst sekmeler (pencere araç çubuğunun ortasında). Ayarlar ⌘, ile ayrı pencerede.
 enum MacBolum: String, CaseIterable, Identifiable, Hashable {
-    case sabah, bugun, atolye, kur, akis, kitaplar, mufredat, sozluk, ses, notlar
+    case sabah, bugun, atolye, kur, akis, kitaplar, mufredat, sozluk, ses, notlar, ikinci
     var id: String { rawValue }
     var ad: String {
         switch self {
@@ -51,6 +51,7 @@ enum MacBolum: String, CaseIterable, Identifiable, Hashable {
         case .sozluk: "Sözlük"
         case .ses: "Ses"
         case .notlar: "Notlarım"
+        case .ikinci: "İkinci dikkat"
         }
     }
     var sembol: String {
@@ -65,6 +66,7 @@ enum MacBolum: String, CaseIterable, Identifiable, Hashable {
         case .sozluk: "character.book.closed"
         case .ses: "waveform"
         case .notlar: "square.and.pencil"
+        case .ikinci: "eye"
         }
     }
     var kisayol: KeyEquivalent { KeyEquivalent(Character("\(((MacBolum.allCases.firstIndex(of: self) ?? 0) + 1) % 10)")) }
@@ -139,6 +141,7 @@ struct MacKok: View {
     @State private var kurDakika: Int?
     @State private var sesHedef: String??
     @State private var seciliIsaret: Isaret?
+    @State private var linkedBook: String?      // teoria://kitap/<id>: the library opens this book
     @AppStorage("defterAcik") private var defterAcik = false
     @State private var defterOdak = 0
 
@@ -147,21 +150,20 @@ struct MacKok: View {
             switch bolum {
             case .sabah:
                 MorningView(wide: true)
+            case .ikinci:
+                AfternoonView(wide: true)
             case .bugun:
                 BugunEkrani(kurBaslat: { kurDakika = $0; bolum = .kur }, sesAc: { sesHedef = .some($0) }, genis: true)
             case .atolye:
                 AtolyeEkrani()
             case .kur:
-                if let d = kurDakika {
-                    KurEkrani(dakika: d) { kurDakika = nil; bolum = .bugun }
-                        .id(d)
-                } else {
-                    KurBaslangic { kurDakika = $0 }
-                }
+                // the new Kür (2026-11-03); the old three-line Kür lives on in Atölye
+                DailyQuizView(wide: true) { kurDakika = nil; bolum = .bugun }
+                    .id(kurDakika ?? 0)
             case .akis:
                 MacAkis(secili: $seciliIsaret, sesAc: { sesHedef = .some($0) })
             case .kitaplar:
-                KitaplarEkrani(sesAc: { sesHedef = .some($0) })
+                KitaplarEkrani(sesAc: { sesHedef = .some($0) }, openBook: $linkedBook)
             case .mufredat:
                 MufredatEkrani(genis: true)
             case .sozluk:
@@ -202,12 +204,16 @@ struct MacKok: View {
                 } label: { Image(systemName: depo.tema.sembol) }
                     .menuIndicator(.hidden)
                     .help("Görünüm: Sistem · Açık · Koyu (⌥⌘T)")
-                if depo.esitleniyor && !depo.guncelleniyor { ProgressView().controlSize(.small) }
-                Button { Task { await depo.guncelle() } } label: {
-                    if depo.guncelleniyor { ProgressView().controlSize(.small) }
-                    else { Label("Güncelle", systemImage: "arrow.triangle.2.circlepath").labelStyle(.titleAndIcon) }
+                SyncAware(status: depo.sync) { d in
+                    if d.syncing && !d.updating { ProgressView().controlSize(.small) }
                 }
-                .disabled(depo.guncelleniyor)
+                SyncAware(status: depo.sync) { d in
+                    Button { Task { await depo.guncelle() } } label: {
+                        if d.updating { ProgressView().controlSize(.small) }
+                        else { Label("Güncelle", systemImage: "arrow.triangle.2.circlepath").labelStyle(.titleAndIcon) }
+                    }
+                    .disabled(d.updating)
+                }
                 .help("Voice Reader ve Voice Dream'den güncelle: yeni kitaplar, işaretler, dinleme yüzdesi (⌘R) · 10 dakikada bir kendiliğinden")
                 Button { defterAc() } label: { Label("Defter", systemImage: "note.text") }
                     .help("Defter: her ekrandan hızlı not, ↩ ile kaydet (⇧⌘N)")
@@ -221,6 +227,15 @@ struct MacKok: View {
             SesKayitSayfasi(hedef: s.hedef).environmentObject(depo).frame(minWidth: 520, minHeight: 620)
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("teoria.rota"))) { n in rota(n.object as? String ?? "") }
+        // Links from other apps, the same routes as on the iPhone: teoria://kitap/<id> opens the book,
+        // teoria://isaret/<id> shows the highlight, the rest is the host alone (kur · ses · akis · mufredat · ikinci …).
+        .onOpenURL { u in
+            let h = u.host() ?? ""
+            rota(h == "isaret" || h == "kitap" ? h + ":" + u.lastPathComponent : h)
+        }
+        // the window that is already open takes the link; without this macOS opens a second window for it
+        .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
+        .task { _ = AfternoonStore.shared }   // İkinci dikkat: the list starts refreshing as soon as Teoria opens
         .onReceive(NotificationCenter.default.publisher(for: .init("teoria.kutu"))) { _ in depo.kutuyuAl() }
         .onAppear {
             MacTemsilci.temayiUygula(depo.tema)
@@ -255,6 +270,7 @@ struct MacKok: View {
     private func rota(_ r: String) {
         switch r {
         case "kur", "hatirla": kurDakika = depo.kurDakika; bolum = .kur
+        case "ikinci": bolum = .ikinci
         case "ses": sesHedef = .some(nil)
         case "defter": defterAc()
         case "akis": bolum = .akis
@@ -263,6 +279,10 @@ struct MacKok: View {
         case let x where x.hasPrefix("bolum:"): if let b = MacBolum(rawValue: String(x.dropFirst(6))) { bolum = b }
         case let x where x.hasPrefix("ses:"): let h = String(x.dropFirst(4)); sesHedef = .some(h.isEmpty ? nil : h)
         case let x where x.hasPrefix("isaret:"): bolum = .akis; seciliIsaret = depo.isaret(String(x.dropFirst(7)))
+        case let x where x.hasPrefix("kitap:"):
+            let id = String(x.dropFirst(6))
+            if LibraryStore.shared.entry(id) != nil { linkedBook = id }
+            bolum = .kitaplar
         default: break
         }
     }

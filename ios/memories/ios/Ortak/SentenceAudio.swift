@@ -52,6 +52,30 @@ struct SpeakSentence: AudioPlaybackIntent {
     }
 }
 
+/// A row of the day's list in the largest widget: makes that sentence current and plays it.
+struct PlayDaySentence: AudioPlaybackIntent {
+    static var title: LocalizedStringResource = "Listeden cümle seç"
+    static var description = IntentDescription("Günün listesindeki cümleye geçer ve okur; uygulama açılmaz.")
+
+    @Parameter(title: "Gün") var day: Int
+    @Parameter(title: "Cümle") var index: Int
+    @Parameter(title: "Sıra") var position: Int
+
+    init() {}
+    init(day: Int, index: Int, position: Int) {
+        self.day = day
+        self.index = index
+        self.position = position
+    }
+
+    func perform() async throws -> some IntentResult {
+        Paylasim.selectSentence(position)
+        WidgetCenter.shared.reloadTimelines(ofKind: Paylasim.sentenceKind)
+        await SentencePlayer.shared.play(day: day, index: index)
+        return .result()
+    }
+}
+
 /// Plays one sentence: its range in the package audio, or the device voice as a fallback.
 @MainActor
 final class SentencePlayer: NSObject {

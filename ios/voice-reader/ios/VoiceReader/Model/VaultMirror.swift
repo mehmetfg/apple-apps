@@ -18,8 +18,13 @@ actor VaultMirror {
     private static let bookmarkKey = "vault.bookmark"
     nonisolated static let relative = "_araçlar/voice-reader/durum"
 
-    private var vault: URL?
+    private var vault: URL? { didSet { Self.rootBox.set(vault) } }
     private let fm = FileManager.default
+
+    /// The connected vault root for code that cannot wait for the actor (the PDM bus asks from its own thread).
+    /// Nil until `connect()` has run once.
+    nonisolated static var connectedRoot: URL? { rootBox.get() }
+    private static let rootBox = RootBox()
 
     /// The vault root from the saved bookmark, with access started (kept for the app's lifetime).
     func connect() -> URL? {
@@ -161,6 +166,22 @@ actor VaultMirror {
         return try? Data(contentsOf: lib.appending(path: "insights/\(book.id).json"))
     }
 
+    /// The book's id in Teoria, from Teoria's index in the vault: a book only Wise Path has is `vr-<first eight
+    /// hex digits of its id>`; a book Teoria already had (a Bir Yöne book) is found by its title, as Teoria's own
+    /// library step joins them. Nil when the vault or the book is not there.
+    func teoriaID(document id: UUID, title: String) -> String? {
+        guard let v = connect() else { return nil }
+        let lib = v.appending(path: "00 - Philosophy/_projects/teoria/library")
+        guard let data = try? Data(contentsOf: lib.appending(path: "index.json")),
+              let index = try? JSONDecoder().decode(TeoriaIndex.self, from: data) else { return nil }
+        let own = "vr-" + id.uuidString.prefix(8).lowercased()
+        if index.books.contains(where: { $0.id == own }) { return own }
+        let want = Self.titleKey(title)
+        if let b = index.books.first(where: { Self.titleKey($0.title) == want }) { return b.id }
+        guard want.count >= 12 else { return nil }
+        return index.books.first { let k = Self.titleKey($0.title); return k.count >= 12 && (k.contains(want) || want.contains(k)) }?.id
+    }
+
     private struct TeoriaIndex: Decodable {
         struct Book: Decodable { var id: String; var title: String; var insight: Bool? }
         var books: [Book]
@@ -203,4 +224,12 @@ actor VaultMirror {
         append(events, device: device)
         UserDefaults.standard.set(true, forKey: "vault.seeded")
     }
+}
+
+/// A URL behind a lock (see `VaultMirror.connectedRoot`).
+private final class RootBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var url: URL?
+    func get() -> URL? { lock.lock(); defer { lock.unlock() }; return url }
+    func set(_ u: URL?) { lock.lock(); url = u; lock.unlock() }
 }

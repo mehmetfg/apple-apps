@@ -10,6 +10,7 @@ struct MarksSheet: View {
     var onShow: (UUID, Int) -> Void
     @State private var chapters: [Chapter] = []
     @State private var query = ""
+    @State private var expand: ExpandSource?
 
     private var doc: DocumentRecord? { model.store.document(documentID) }
 
@@ -56,6 +57,10 @@ struct MarksSheet: View {
                                     .font(.caption2).foregroundStyle(.tertiary).padding(.leading, 13)
                             }
                             .padding(.vertical, 4)
+                            .swipeActions(edge: .leading) {
+                                Button { expand = .passage(doc: documentID, range: h.range, text: h.text) } label: { Label("Genişlet", systemImage: "sparkles") }
+                                    .tint(.purple)
+                            }
                             .swipeActions(edge: .trailing) {
                                 Button { dismiss(); onShow(documentID, h.location) } label: { Label("Kitapta göster", systemImage: "book") }
                                     .tint(.blue)
@@ -63,6 +68,9 @@ struct MarksSheet: View {
                             .contextMenu {
                                 Button { dismiss(); onShow(documentID, h.location) } label: { Label("Kitapta göster", systemImage: "book") }
                                 Button { UIPasteboard.general.string = h.text } label: { Label("Kopyala", systemImage: "doc.on.doc") }
+                                Button { expand = .passage(doc: documentID, range: h.range, text: h.text) } label: {
+                                    Label("Bu kısmı genişlet", systemImage: "sparkles")
+                                }
                             }
                         }
                     }
@@ -77,9 +85,14 @@ struct MarksSheet: View {
                     ToolbarItem(placement: .topBarLeading) {
                         ShareLink(item: model.highlightsExport(d)) { Image(systemName: "square.and.arrow.up") }
                     }
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { expand = .marks(doc: documentID) } label: { Image(systemName: "sparkles") }
+                            .accessibilityLabel("İşaretlerimden metin istemi")
+                    }
                 }
             }
             .task { chapters = await model.store.content(for: documentID)?.chapters ?? [] }
+            .sheet(item: $expand) { ExpandPromptView(source: $0) }
         }
     }
 }

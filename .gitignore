@@ -15,6 +15,7 @@ multiplatform/teoria/ios/Teoria/Kaynaklar/mufredat.json
 multiplatform/teoria/ios/Teoria/Kaynaklar/kapak-*.jpg
 ios/vitrin/ios/Vitrin/Veri/vitrin.json
 ios/asina/ios/Asina/Kaynaklar/kelimeler.json
+ios/sbs/ios/SBS/snapshot.json
 
 # large models (kept in the private archive)
 ios/ema/ios/Ortak/Model/*.onnx
@@ -26,3 +27,14 @@ ios/voice-reader/ios/VoiceReader/Speech/Neural/Models/
 # local backups and voice samples (personal books, covers, recordings)
 **/_yedek-*/
 ios/voice-reader/studio/ornek-ses-*/
+
+# signing keys never belong in the public repo
+*.pem
+
+# build outputs and caches
+__pycache__/
+*.pyc
+ios.zip
+*.crx
+ios/voice-reader/studio/steady/steady
+ios/voice-reader/studio/stab.json

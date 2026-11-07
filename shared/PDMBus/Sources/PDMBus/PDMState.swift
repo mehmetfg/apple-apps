@@ -61,6 +61,15 @@ public struct PDMWordSummary: Codable, Sendable {
 }
 
 /// `_bus/state/today.json`.
+/// A grammar topic that Cümle points to today (`today.json` › `focus_grammar`). `id` is a GramerApp topic id.
+public struct PDMFocusGrammar: Codable, Hashable, Sendable, Identifiable {
+    public var id: String
+    public var name: String?
+    public var why: String?
+    /// "struggled" (hard sentences on the last written day) · "errors" (a repeated error type) · "next" (the next day).
+    public var kind: String?
+}
+
 public struct PDMToday: Codable, Sendable {
     public struct Change: Codable, Hashable, Sendable { public var date: String?; public var title: String? }
     public struct Line: Codable, Hashable, Sendable, Identifiable { public var id: String; public var name: String?; public var today: String? }
@@ -80,9 +89,11 @@ public struct PDMToday: Codable, Sendable {
     public var cumle: Cumle?
     public var muhendis: Muhendis?
     public var focusWords: [PDMFocusWord]?
+    public var focusGrammar: [PDMFocusGrammar]?
 
     enum CodingKeys: String, CodingKey {
         case v, generated, date, lines, cumle, muhendis
         case recentChanges = "recent_changes", openDecisions = "open_decisions", focusWords = "focus_words"
+        case focusGrammar = "focus_grammar"
     }
 }

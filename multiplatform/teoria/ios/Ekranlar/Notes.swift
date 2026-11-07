@@ -261,10 +261,21 @@ final class NotesStore: ObservableObject {
                 guard f.hasSuffix(".jsonl"), f != "\(device).jsonl" else { continue }
                 if let v = Kasa.koordineliOku(logs.appendingPathComponent(f)) {
                     try? v.write(to: target.appendingPathComponent("notes-others/\(f)"), options: .atomic)
+                    // Kıvılcım's notes (2026-11-04) keep their sound where it was recorded: `audioPath` is vault-relative.
+                    // Cache it on this device under the note's `audio` name; the vault keeps the one copy.
+                    let vaultRoot = kok.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+                    for line in v.split(separator: 0x0A) {
+                        guard let o = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any],
+                              let name = o["audio"] as? String, let rel = o["audioPath"] as? String,
+                              !fm.fileExists(atPath: audio.appendingPathComponent(name).path) else { continue }
+                        let src = vaultRoot.appendingPathComponent(rel)
+                        if !fm.fileExists(atPath: src.path) { Kasa.indir(src); continue }
+                        if let d = Kasa.koordineliOku(src) { try? d.write(to: audio.appendingPathComponent(name), options: .atomic) }
+                    }
                 }
             }
             // voice files: mine up, the others' down
-            for f in (try? fm.contentsOfDirectory(atPath: audio.path)) ?? [] where f.hasSuffix(".m4a") {
+            for f in (try? fm.contentsOfDirectory(atPath: audio.path)) ?? [] where f.hasSuffix(".m4a") && !f.hasPrefix("kv-") {
                 let dst = sounds.appendingPathComponent(f)
                 if !fm.fileExists(atPath: dst.path), let v = try? Data(contentsOf: audio.appendingPathComponent(f)) { try? Kasa.koordineliYaz(v, dst) }
             }

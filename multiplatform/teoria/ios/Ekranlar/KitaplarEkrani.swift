@@ -35,6 +35,8 @@ struct KitaplarEkrani: View {
     @ObservedObject private var library = LibraryStore.shared
     var sesAc: (String?) -> Void
     var ilkSekme: KitapSekmesi = .suren
+    var openBook: Binding<String?> = .constant(nil)     // a link asks for this book (Mac: teoria://kitap/<id>)
+    @State private var path: [String] = []
     @State private var sekme: KitapSekmesi?
     @State private var istatistik = false
     @State private var vitrinOrta: String?
@@ -55,7 +57,7 @@ struct KitaplarEkrani: View {
     #endif
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if secili.tamEkran {
                     VStack(spacing: 0) {
@@ -116,6 +118,14 @@ struct KitaplarEkrani: View {
                 #endif
             }
         }
+        .onAppear { openLinkedBook() }
+        .onChange(of: openBook.wrappedValue) { _, _ in openLinkedBook() }
+    }
+
+    private func openLinkedBook() {
+        guard let id = openBook.wrappedValue else { return }
+        openBook.wrappedValue = nil
+        path = [id]
     }
 
     private var secici: some View {

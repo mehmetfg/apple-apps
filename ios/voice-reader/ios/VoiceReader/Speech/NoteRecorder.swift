@@ -23,6 +23,8 @@ final class NoteRecorder {
     @ObservationIgnored private var recorder: AVAudioRecorder?
     @ObservationIgnored private var meter: Timer?
     @ObservationIgnored private var file: URL?
+    /// Counts the starts: `start()` waits (permission, the Bluetooth link) and must not go on once `stop()` ended it.
+    @ObservationIgnored private var attempt = 0
 
     var isRecording: Bool { phase == .recording || phase == .starting }
 
@@ -30,7 +32,11 @@ final class NoteRecorder {
     func start(withMusic: Bool) async -> Bool {
         guard phase == .idle else { return false }
         phase = .starting
+        attempt += 1
+        let mine = attempt
         let granted = await AVAudioApplication.requestRecordPermission()
+        // a second press while waiting ended this start (`stop()`): nothing is recorded, the session is left alone
+        guard mine == attempt, phase == .starting else { return false }
         guard granted else {
             error = "Mikrofon izni yok: Ayarlar › Wise Path › Mikrofon."
             phase = .idle
@@ -47,7 +53,8 @@ final class NoteRecorder {
             phase = .idle
             return false
         }
-        await useHeadsetMicrophone(s)
+        await useHeadsetMicrophone(s, attempt: mine)
+        guard mine == attempt, phase == .starting else { return false }
         let url = FileManager.default.temporaryDirectory.appending(path: "note-\(UUID().uuidString).m4a")
         let settings: [String: Any] = [
             AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16000, AVNumberOfChannelsKey: 1,
@@ -84,7 +91,17 @@ final class NoteRecorder {
     func stop() -> (url: URL, seconds: Double)? {
         meter?.invalidate(); meter = nil
         level = 0
-        guard let r = recorder, let url = file else { phase = .idle; return nil }
+        guard let r = recorder, let url = file else {
+            // stopped while still starting: that start is void (it checks `attempt` after each wait) and the
+            // session it may have opened is given back before the reader takes its own again
+            if phase == .starting {
+                attempt += 1
+                try? AVAudioSession.sharedInstance().setPreferredInput(nil)
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            }
+            phase = .idle
+            return nil
+        }
         let seconds = r.currentTime
         r.stop()
         recorder = nil
@@ -111,13 +128,14 @@ final class NoteRecorder {
 
     /// Prefers a Bluetooth headset microphone, then a wired one, then the phone. The hands-free link takes a moment
     /// to come up; the recording starts once it has (at most ~1.5 s), so the first words are not lost.
-    private func useHeadsetMicrophone(_ s: AVAudioSession) async {
+    private func useHeadsetMicrophone(_ s: AVAudioSession, attempt mine: Int) async {
         let inputs = s.availableInputs ?? []
         let headset = inputs.first { $0.portType == .bluetoothHFP } ?? inputs.first { $0.portType == .headsetMic }
         if let headset {
             try? s.setPreferredInput(headset)
             for _ in 0..<15 where s.currentRoute.inputs.first?.portType != headset.portType {
                 try? await Task.sleep(for: .milliseconds(100))
+                guard mine == attempt else { return }
             }
         }
         let now = s.currentRoute.inputs.first
@@ -135,20 +153,48 @@ final class NoteRecorder {
         req.shouldReportPartialResults = false
         req.addsPunctuation = true
         if rec.supportsOnDeviceRecognition { req.requiresOnDeviceRecognition = true }
+        // The recognizer is held until the answer is in: a local one could be released while the task still ran,
+        // and then the callback (and the answer) never came.
+        let hold = RecognitionHold(rec)
         return await withCheckedContinuation { c in
-            var done = false
-            let lock = NSLock()
-            func finish(_ s: String) {
-                lock.lock(); defer { lock.unlock() }
-                if done { return }
-                done = true
-                c.resume(returning: s)
+            let finish: @Sendable (String) -> Void = { s in
+                if hold.finish() { c.resume(returning: s) }
             }
-            let task = rec.recognitionTask(with: req) { result, error in
+            hold.set(rec.recognitionTask(with: req) { result, error in
                 if let result, result.isFinal { finish(result.bestTranscription.formattedString) }
                 else if error != nil { finish(result?.bestTranscription.formattedString ?? "") }
-            }
-            DispatchQueue.global().asyncAfter(deadline: .now() + 90) { task.cancel(); finish("") }
+            })
+            DispatchQueue.global().asyncAfter(deadline: .now() + 90) { hold.cancel(); finish("") }
         }
+    }
+}
+
+/// Keeps a speech recognizer and its task alive until the recognition has answered (or timed out), once.
+private final class RecognitionHold: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recognizer: SFSpeechRecognizer?
+    private var task: SFSpeechRecognitionTask?
+    private var done = false
+
+    init(_ r: SFSpeechRecognizer) { recognizer = r }
+
+    func set(_ t: SFSpeechRecognitionTask) {
+        lock.lock(); defer { lock.unlock() }
+        if !done { task = t }
+    }
+
+    func cancel() {
+        lock.lock(); let t = task; lock.unlock()
+        t?.cancel()
+    }
+
+    /// True the first time only; lets the recognizer and the task go.
+    func finish() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if done { return false }
+        done = true
+        recognizer = nil
+        task = nil
+        return true
     }
 }

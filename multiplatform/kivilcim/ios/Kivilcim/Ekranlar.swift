@@ -2,6 +2,7 @@
 import SwiftUI
 import AVFoundation
 import UniformTypeIdentifiers
+import PDMBus
 
 // MARK: Çalma
 
@@ -17,8 +18,9 @@ final class TelefonOynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
     private var calici: AVAudioPlayer?
     private var zamanlayici: Timer?
 
-    func degistir(_ o: Oge) async {
-        if calan == o.id, let c = calici {
+    func degistir(_ o: Oge, baslangic: Double = 0) async {
+        let anahtar = o.parent.isEmpty ? o.id : o.parent
+        if calan == anahtar, let c = calici, baslangic == 0 {
             if c.isPlaying { c.pause() } else { c.play() }
             caliyor = c.isPlaying; return
         }
@@ -31,7 +33,28 @@ final class TelefonOynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
         calici?.stop()
         c.delegate = self; c.enableRate = true; c.rate = hiz
         c.play()
-        calici = c; calan = o.id; uzunluk = c.duration; konum = 0; caliyor = true
+        if baslangic > 0 { c.currentTime = max(0, baslangic - 2) }
+        calici = c; calan = anahtar; uzunluk = c.duration; konum = c.currentTime; caliyor = true
+        zamanlayici?.invalidate()
+        zamanlayici = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
+            Task { @MainActor in TelefonOynatici.shared.konum = TelefonOynatici.shared.calici?.currentTime ?? 0 }
+        }
+    }
+
+    /// A sound that is not a Kıvılcım record (a Teoria or Wise Path note under Merkez › Konular).
+    func calURL(_ anahtar: String, _ u: URL, baslangic: Double = 0) {
+        if calan == anahtar, let c = calici, baslangic == 0 {
+            if c.isPlaying { c.pause() } else { c.play() }
+            caliyor = c.isPlaying; return
+        }
+        guard let c = try? AVAudioPlayer(contentsOf: u) else { return }
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        calici?.stop()
+        c.delegate = self; c.enableRate = true; c.rate = hiz
+        c.play()
+        if baslangic > 0 { c.currentTime = max(0, baslangic - 2) }
+        calici = c; calan = anahtar; uzunluk = c.duration; konum = c.currentTime; caliyor = true
         zamanlayici?.invalidate()
         zamanlayici = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { _ in
             Task { @MainActor in TelefonOynatici.shared.konum = TelefonOynatici.shared.calici?.currentTime ?? 0 }
@@ -60,17 +83,25 @@ struct KayitEkrani: View {
     @State private var basildigindaKayittaydi = false
     @State private var secili: Oge?
     @State private var nabiz = false
+    @State private var ayarlar = false
 
     var bugun: [Oge] { depo.ogeler.filter { Calendar.current.isDateInToday($0.zaman) } }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if !merkez.kayitta {
+                    Picker("Kayıt türü", selection: $merkez.kind) {
+                        Label("Kıvılcım", systemImage: "sparkles").tag("spark")
+                        Label("Günlük", systemImage: "book.pages").tag("journal")
+                    }
+                    .pickerStyle(.segmented).padding(.horizontal, 40).padding(.top, 8)
+                }
                 Spacer(minLength: 12)
                 ust
                 Spacer(minLength: 12)
                 dugme
-                Text(merkez.kayitta ? "Dokun: bitir" : "Dokun: başlat · basılı tut: bas-konuş")
+                Text(merkez.kayitta ? "Dokun: bitir" : merkez.kind == "journal" ? "Dokun: günlüğe başla · fikirde “kıvılcım” de" : "Dokun: başlat · basılı tut: bas-konuş")
                     .font(.footnote).foregroundStyle(.secondary).padding(.top, 14)
                 if merkez.kayitta {
                     HStack(spacing: 22) {
@@ -87,6 +118,9 @@ struct KayitEkrani: View {
             .background(arkaPlan.ignoresSafeArea())
             .navigationTitle("Kıvılcım")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { ayarlar = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Ayarlar")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if depo.esitleniyor { ProgressView() }
                     else if !kasa.bagli { Image(systemName: "icloud.slash").foregroundStyle(.orange) }
@@ -95,6 +129,10 @@ struct KayitEkrani: View {
                 }
             }
             .sheet(item: $secili) { o in NavigationStack { DetayEkrani(id: o.id) } }
+            .sheet(isPresented: $ayarlar) { AyarlarEkrani() }
+            .sheet(item: Binding(get: { merkez.hizliDuzen.map(KimlikSarici.init) }, set: { merkez.hizliDuzen = $0?.id })) { k in
+                HizliDuzenSayfasi(id: k.id).presentationDetents([.medium, .large])
+            }
         }
     }
 
@@ -107,20 +145,25 @@ struct KayitEkrani: View {
     @ViewBuilder private var ust: some View {
         if merkez.kayitta {
             VStack(spacing: 14) {
-                Text(Zaman.sure(merkez.sure))
+                RecordingClock(meter: merkez.meter)
                     .font(.system(size: 64, weight: .semibold, design: .rounded).monospacedDigit())
                     .contentTransition(.numericText())
-                DuzeyCubuklari(seviyeler: merkez.seviyeler, adet: 34).frame(height: 54).padding(.horizontal, 30)
-                Text("\(merkez.kaliteSecimi.ad) · ≈\(merkez.kaliteSecimi.kbDk) KB/dk").font(.caption).foregroundStyle(.secondary)
+                MeterBars(meter: merkez.meter, adet: 34).frame(height: 54).padding(.horizontal, 30)
+                Text("\(merkez.aktifTur == "journal" ? "Sesli günlük · en çok 60 dk" : "Kıvılcım") · \(merkez.kaliteSecimi.ad)").font(.caption).foregroundStyle(.secondary)
+                if let t = merkez.activeTopic {
+                    // the name comes from a record already linked to the same topic; otherwise the id itself
+                    let ad = t.hasPrefix("k:") ? String(t.dropFirst(2)) : (depo.ogeler.first { $0.topic == t && !$0.topic_name.isEmpty }?.topic_name ?? t)
+                    Label("Konu: \(ad)", systemImage: "book.closed").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
             }
         } else {
             VStack(spacing: 8) {
-                Text("Aklına geleni söyle").font(.title2.weight(.semibold))
+                Text(merkez.kind == "journal" ? "Gününü anlat" : "Aklına geleni söyle").font(.title2.weight(.semibold))
                 Text(bugun.isEmpty ? "Bugün henüz fikir yok" : "Bugün \(bugun.count) fikir · \(Int(bugun.reduce(0) { $0 + $1.sure } / 60)) dk")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if let h = merkez.hata { Text(h).font(.footnote).foregroundStyle(.red).multilineTextAlignment(.center).padding(.horizontal) }
                 if !kasa.bagli {
-                    Button { sekme = 2 } label: { Label("Vault klasörünü bağla", systemImage: "folder.badge.plus") }
+                    Button { ayarlar = true } label: { Label("Vault klasörünü bağla", systemImage: "folder.badge.plus") }
                         .buttonStyle(.bordered).tint(.orange).padding(.top, 6)
                 }
             }
@@ -158,29 +201,32 @@ struct KayitEkrani: View {
     }
 
     @ViewBuilder private var sonKayit: some View {
-        let son = Array(depo.ogeler.prefix(3))
-        if !son.isEmpty && !merkez.kayitta {
+        // newest recordings first (incl. a journal), so what was just said is always in sight
+        let sira = Array(depo.ogeler.filter { $0.kind != "extract" || Calendar.current.isDateInToday($0.zaman) }.prefix(3))
+        if !sira.isEmpty && !merkez.kayitta {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Son fikirler").font(.subheadline.weight(.semibold))
+                    Text("Son kayıtlar · \(depo.acik.count) açık").font(.subheadline.weight(.semibold))
                     Spacer()
                     Button("Tümü") { sekme = 1 }.font(.subheadline)
                 }
-                ForEach(son) { o in
-                    KaydirmaliKart(yildizli: o.yildiz, sil: { depo.duzelt(o, "sil", true) },
-                                   yildiz: { depo.duzelt(o, "yildiz", !o.yildiz) }) {
-                        // Button sürüklemeyi yutuyordu; dokunma hareketi kaydırmayla birlikte çalışır
+                ForEach(sira) { o in
+                    KaydirmaliKart(yildizli: o.yildiz, sil: { depo.duzelt(o, "status", "done") },
+                                   yildiz: { depo.duzelt(o, "priority", o.priority == 3 ? 1 : o.priority + 1) }) {
                         OgeKarti(o: o).contentShape(Rectangle()).onTapGesture { secili = o }
                             .accessibilityAddTraits(.isButton)
                     }
                     .transition(.asymmetric(insertion: .opacity, removal: .move(edge: .trailing).combined(with: .opacity)))
                 }
             }
+            .animation(.snappy, value: sira.map(\.id))
         }
     }
 }
 
-/// Liste dışındaki kart için kaydırma (Kaydet ekranı): sağa çek → çöpe, sola çek → yıldız.
+struct KimlikSarici: Identifiable { let id: String }
+
+/// Liste dışındaki kart için kaydırma (Kaydet ekranı): sağa çek → yapıldı, sola çek → öncelik bir basamak yukarı.
 /// Eşiği geçince dokunsal tık; bırakınca uygulanır, geçmezse yerine yaylanır.
 struct KaydirmaliKart<Icerik: View>: View {
     let yildizli: Bool
@@ -194,15 +240,15 @@ struct KaydirmaliKart<Icerik: View>: View {
     var body: some View {
         icerik.offset(x: x).background {
             HStack {
-                Label("Çöpe", systemImage: "trash.fill").opacity(x > 8 ? 1 : 0).scaleEffect(x > esik ? 1.15 : 1)
+                Label("Yapıldı", systemImage: "checkmark").opacity(x > 8 ? 1 : 0).scaleEffect(x > esik ? 1.15 : 1)
                 Spacer()
-                Label(yildizli ? "Yıldızı kaldır" : "Yıldız", systemImage: yildizli ? "star.slash.fill" : "star.fill")
+                Label("Öncelik", systemImage: "flag.fill")
                     .opacity(x < -8 ? 1 : 0).scaleEffect(x < -esik ? 1.15 : 1)
             }
             .labelStyle(.iconOnly).font(.system(size: 19, weight: .semibold)).foregroundStyle(.white)
             .padding(.horizontal, 24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(x >= 0 ? Color.red : Color.yellow) }
+            .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(x >= 0 ? Color.green : Color.orange) }
             .opacity(x == 0 ? 0 : 1)
             .animation(.snappy(duration: 0.18), value: x > esik || x < -esik)
         }
@@ -235,8 +281,7 @@ struct OgeKarti: View {
     var body: some View {
         let al = depo.siniflar.alan(o.alan)
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: al.simge).font(.system(size: 15, weight: .semibold)).foregroundStyle(al.color)
-                .frame(width: 36, height: 36).background { RoundedRectangle(cornerRadius: 10).fill(al.color.opacity(0.14)) }
+            DoneCheck(o: o, size: 26).frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 4) {
                     if o.yildiz { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
@@ -246,8 +291,8 @@ struct OgeKarti: View {
                     Text(sorgu.isEmpty ? o.ozet : Arama.parca(o, sorgu)).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 }
                 HStack(spacing: 6) {
-                    Text(depo.siniflar.amac(o.amac).ad)
-                    Text("·"); Text(Zaman.goreli(o.zaman)); Text("·"); Text(o.sureMetni)
+                    Text(o.prio.name).foregroundStyle(o.prio.color)
+                    Text("·"); Text(al.ad); Text("·"); Text(Zaman.goreli(o.zaman))
                     if o.durum == "yerel" { Image(systemName: "iphone").foregroundStyle(.orange) }
                     else if !o.islendi { Image(systemName: "hourglass").foregroundStyle(.orange) }
                 }
@@ -257,6 +302,9 @@ struct OgeKarti: View {
         }
         .padding(12)
         .background { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(.secondarySystemGroupedBackground)) }
+        .overlay(alignment: .leading) {
+            if o.priority >= Priority.high.rawValue { UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 16).fill(o.prio.color).frame(width: 5) }
+        }
     }
 }
 
@@ -285,6 +333,7 @@ struct ArsivEkrani: View {
                         ForEach(ogeler) { o in
                             NavigationLink(value: o.id) { ArsivSatiri(o: o, sorgu: sorgu) }
                                 .swipeActions(edge: .leading) {
+                                    Button { depo.duzelt(o, "status", o.isDone ? "open" : "done") } label: { Label(o.isDone ? "Aç" : "Yapıldı", systemImage: "checkmark") }.tint(.green)
                                     Button { depo.duzelt(o, "yildiz", !o.yildiz) } label: { Label("Yıldız", systemImage: o.yildiz ? "star.slash" : "star") }.tint(.yellow)
                                 }
                                 .swipeActions(edge: .trailing) {
@@ -302,9 +351,9 @@ struct ArsivEkrani: View {
                                            description: Text(sorgu.isEmpty ? "Kaydet sekmesinden ya da kilit ekranından ilk fikrini söyle." : "Başlıkta, dökümde ve etiketlerde arandı."))
                 }
             }
-            .navigationTitle("Arşiv")
+            .navigationTitle("Tümü")
             .navigationDestination(for: String.self) { DetayEkrani(id: $0) }
-            .searchable(text: $sorgu, placement: .navigationBarDrawer(displayMode: .always), prompt: "Başlık, döküm, etiket")
+            .searchable(text: $sorgu, prompt: "Başlık, döküm, not, etiket")
             .refreshable { await depo.gonder() }
         }
     }
@@ -427,8 +476,37 @@ struct DetayEkrani: View {
                         if !o.etiketler.isEmpty {
                             Text(o.etiketler.map { "#" + $0 }.joined(separator: "  ")).font(.caption).foregroundStyle(.secondary)
                         }
+                        if !o.isJournal {
+                            PrioritySelector(selected: o.priority) { depo.duzelt(o, "priority", $0.rawValue) }
+                            Button { withAnimation(.snappy) { depo.duzelt(o, "status", o.isDone ? "open" : "done") } } label: {
+                                Label(o.isDone ? "Yapıldı · yeniden aç" : "Yapıldı işaretle",
+                                      systemImage: o.isDone ? "checkmark.circle.fill" : "checkmark.circle")
+                                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 4)
+                            }
+                            .buttonStyle(.glassProminent).tint(o.isDone ? .gray : .green)
+                            .sensoryFeedback(.success, trigger: o.isDone)
+                            if let g = o.daysToArchive {
+                                Text("\(g) gün sonra vault'taki Kıvılcım/Arşiv klasörüne taşınır.").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if o.kind == "extract", let j = depo.oge(o.parent) {
+                            Button { Task { await oy.degistir(o, baslangic: o.offset) } } label: {
+                                Label("Sesli günlükten · \(Zaman.gunBasligi(j.zaman)) \(Zaman.sure(o.offset))'tan dinle", systemImage: "book.pages")
+                                    .font(.subheadline)
+                            }.buttonStyle(.bordered).tint(.indigo)
+                        }
                     }
-                    calar(o, al.color)
+                    if o.kind == "isaret" {
+                        if !o.simdi.isEmpty {
+                            Label(o.simdi, systemImage: "sparkles").font(.subheadline).foregroundStyle(.orange)
+                        }
+                        if let u = URL(string: o.url), !o.url.isEmpty {
+                            Link(destination: u) {
+                                Label(u.host ?? o.url, systemImage: "link").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 4)
+                            }.buttonStyle(.bordered).tint(.orange)
+                        }
+                    }
+                    if !(o.kind == "isaret" && o.ses.isEmpty) { calar(o, al.color) }
                     if !o.ozet.isEmpty {
                         Text(o.ozet).font(.body).padding(12).frame(maxWidth: .infinity, alignment: .leading)
                             .background { RoundedRectangle(cornerRadius: 12).fill(al.color.opacity(0.1)) }
@@ -446,6 +524,8 @@ struct DetayEkrani: View {
                             Text(o.metin).font(.body).lineSpacing(4).textSelection(.enabled)
                         }
                     }
+                    if o.isJournal { cocukBolumu(o) }
+                    notBolumu(o)
                     Text("Başlık: \(o.baslik_kaynak == "claude" ? "Claude" : o.baslik_kaynak == "elle" ? "sen" : "kural") · \(o.kalite.isEmpty ? "" : (Kalite(rawValue: o.kalite)?.ad ?? ""))")
                         .font(.caption2).foregroundStyle(.tertiary)
                 }
@@ -457,6 +537,8 @@ struct DetayEkrani: View {
                     Menu {
                         ShareLink(item: "\(o.baslik)\n\n\(o.metin)") { Label("Metni paylaş", systemImage: "square.and.arrow.up") }
                         Button { UIPasteboard.general.string = o.metin } label: { Label("Dökümü kopyala", systemImage: "doc.on.doc") }
+                        if !o.journal_note.isEmpty, let u = obsidianURL(o.journal_note) { Link(destination: u) { Label("Günlüğü Obsidian'da aç", systemImage: "book") } }
+                        if !o.not.isEmpty, let u = obsidianURL(veriKlasoruYolu + "/" + o.not) { Link(destination: u) { Label("Obsidian'da aç", systemImage: "arrow.up.forward.app") } }
                         Button(role: .destructive) { silSor = true } label: { Label("Çöpe taşı", systemImage: "trash") }
                     } label: { Image(systemName: "ellipsis.circle") }
                 }
@@ -471,13 +553,72 @@ struct DetayEkrani: View {
         }
     }
 
+    @State private var yeniNot = ""
+    @FocusState private var notOdak: Bool
+
+    @ViewBuilder private func notBolumu(_ o: Oge) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Notlarım").font(.headline)
+            ForEach(o.notes, id: \.self) { n in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(n.text).font(.body)
+                    Text(Zaman.coz(n.t).map(Zaman.goreli) ?? "").font(.caption2).foregroundStyle(.secondary)
+                }
+                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+            }
+            HStack(alignment: .bottom) {
+                TextField("Not ekle…", text: $yeniNot, axis: .vertical).lineLimit(1...6).focused($notOdak)
+                Button {
+                    depo.duzelt(o, "note", yeniNot.trimmingCharacters(in: .whitespacesAndNewlines)); yeniNot = ""; notOdak = false
+                } label: { Image(systemName: "arrow.up.circle.fill").font(.title2) }
+                    .disabled(yeniNot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityLabel("Notu ekle")
+            }
+            .padding(10).background(RoundedRectangle(cornerRadius: 12).strokeBorder(.quaternary))
+            Text("Not, Obsidian'daki notun Notlarım bölümüne eklenir.").font(.caption2).foregroundStyle(.tertiary)
+        }
+    }
+
+    @ViewBuilder private func cocukBolumu(_ j: Oge) -> some View {
+        let c = depo.cocuklar(j)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Ayıklanan kıvılcımlar").font(.headline)
+            if c.isEmpty {
+                Text("Konuşmada “kıvılcım” dediğin yerler ve Claude'un önerdikleri Mac işleyince burada görünür.").font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(c) { k in
+                HStack(spacing: 10) {
+                    DoneCheck(o: k)
+                    VStack(alignment: .leading) {
+                        Text(k.baslik).font(.subheadline.weight(.semibold))
+                        Text(Zaman.sure(k.offset)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button { Task { await oy.degistir(k, baslangic: k.offset) } } label: { Image(systemName: "play.circle") }
+                        .accessibilityLabel("Bu yerden dinle")
+                }
+            }
+            if !j.journal_note.isEmpty {
+                Text("Tam metin: \(j.journal_note.split(separator: "/").last.map(String.init)?.replacingOccurrences(of: ".md", with: "") ?? "")")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func obsidianURL(_ yol: String) -> URL? {
+        var c = URLComponents(string: "obsidian://open")
+        c?.queryItems = [URLQueryItem(name: "vault", value: "Personel Data Management"), URLQueryItem(name: "file", value: yol)]
+        return c?.url
+    }
+
     private func kaydet(_ o: Oge) {
         let b = baslik.trimmingCharacters(in: .whitespacesAndNewlines)
         if !b.isEmpty, b != o.baslik { depo.duzelt(o, "baslik", b) }
     }
 
     private func calar(_ o: Oge, _ renk: Color) -> some View {
-        let bu = oy.calan == o.id
+        let bu = oy.calan == (o.parent.isEmpty ? o.id : o.parent)
         return VStack(spacing: 10) {
             HStack(spacing: 16) {
                 Button { Task { await oy.degistir(o) } } label: {
@@ -569,6 +710,8 @@ struct AyarlarEkrani: View {
                     Text("iCloud Drive › Obsidian › Personel Data Management'ı seç. Kayıtlar 05 - Notlar/Fikirler/Kıvılcım altına gider. iCloud takılırsa telefon Mac'e bağlıyken Mac'teki Kıvılcım onları doğrudan alır."
                          + (depo.sonEsitleme.map { " Son eşitleme: \(Zaman.goreli($0))." } ?? ""))
                 }
+                // the bus needs the vault root; with a subfolder connected above it gets its own folder row here
+                PDMSettingsSection(bus: KivilcimBus.shared, selectsVault: kasa.bagli && !Kasa.isVaultRoot(kasa.klasorAdi))
                 Section {
                     Adim(n: 1, metin: "Kilit ekranına uzun bas › Özelleştir › Kilit Ekranı")
                     Adim(n: 2, metin: "Alttaki el feneri ya da kamera düğmesine dokun › − ile kaldır › + › Kıvılcım › Fikir kaydet")

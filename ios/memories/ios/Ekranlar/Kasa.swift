@@ -9,7 +9,17 @@ final class Kasa: ObservableObject {
     @Published private(set) var klasorAdi = ""
     @Published var hata: String?
 
-    private let anahtar = "memories.kasa.yerimi"
+    private let anahtar = Kasa.bookmarkKey
+    nonisolated static let bookmarkKey = "memories.kasa.yerimi"
+
+    /// The folder the user selected (the vault root, if they chose it), for code that runs off the main actor:
+    /// the PDM bus looks for `_bus` in it and does nothing when the folder is not the vault root.
+    nonisolated static func selectedFolder() -> URL? {
+        if let v = ProcessInfo.processInfo.environment["MEMORIES_VAULT"] { return URL(fileURLWithPath: v) }
+        guard let v = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
+        var stale = false
+        return try? URL(resolvingBookmarkData: v, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
+    }
     private var kok: URL?
 
     init() {
@@ -53,16 +63,21 @@ final class Kasa: ObservableObject {
     }
 
     /// Klasöre güvenli erişimle bir iş yaptırır (arka planda).
+    /// Cancelling the calling task cancels the work too: `indir` stops waiting, and the work can call
+    /// `Task.checkCancellation()` between steps (background refresh must stop when its time is up).
     func ile<T: Sendable>(_ is: @escaping @Sendable (URL) throws -> T) async -> T? {
         guard let kok else { return nil }
-        let sonuc: Result<T, Error> = await Task.detached {
+        let work = Task.detached { () -> Result<T, Error> in
             let e = kok.startAccessingSecurityScopedResource()
             defer { if e { kok.stopAccessingSecurityScopedResource() } }
             do { return .success(try `is`(Kasa.oncalisma(kok))) } catch { return .failure(error) }
-        }.value
+        }
+        let sonuc = await withTaskCancellationHandler { await work.value } onCancel: { work.cancel() }
         switch sonuc {
         case .success(let v): hata = nil; return v
-        case .failure(let h): hata = h.localizedDescription; return nil
+        case .failure(let h):
+            if !(h is CancellationError) { hata = h.localizedDescription }     // a cancelled sync is not a vault error
+            return nil
         }
     }
 
@@ -74,6 +89,7 @@ final class Kasa: ObservableObject {
         try? fm.startDownloadingUbiquitousItem(at: u)
         var i = 0.0
         while i < bekle {
+            if Task.isCancelled { return false }        // the caller gave up (background time is over)
             let durum = (try? u.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?.ubiquitousItemDownloadingStatus
             if durum == .current || (durum == nil && fm.fileExists(atPath: u.path)) { return true }
             Thread.sleep(forTimeInterval: 0.25); i += 0.25

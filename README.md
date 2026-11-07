@@ -17,6 +17,7 @@ interface is in Turkish.
 | [ayna](ios/ayna) | iOS | Tell your day in English, then get corrected audio back the next morning. |
 | [disli](ios/disli) | iOS | GramerApp: English grammar topics, laws, quizzes and games. |
 | [memories](ios/memories) | iOS | Prepares the English writing session with audio the day before. |
+| [perde](ios/perde) | iOS | Turkcell TV+ catalog with IMDb scores and fit-based sorting, personal lists, and live IMDb scores over titles seen by the camera. |
 | [saray](ios/saray) | iOS | An on-device object detection camera that labels things at home in English. |
 | [engineering](ios/engineering) | iOS | Software engineering basics: lessons, algorithm visualisations, Python and C snippets. |
 | [orkestra](ios/orkestra) | iOS | A read-only coordinator that shows which study processes are flowing or stuck. |

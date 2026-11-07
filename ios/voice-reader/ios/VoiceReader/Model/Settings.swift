@@ -37,7 +37,7 @@ enum NavigationUnit: String, CaseIterable, Identifiable, Sendable {
 /// still reads as "with music".)
 /// A system voice's own pitch and volume (Voice Dream's Kalınlık and Ses Miktarı).
 struct VoiceTune: Equatable, Sendable {
-    var pitch: Double = 1        // 0.5 … 2.0 (shown as 50 … 200)
+    var pitch: Double = 1        // 0.2 … 2.0 (shown as 20 … 200); under 0.5 only on iOS 27 and later (SystemPitch)
     var volume: Double = 1       // 0 … 1 (shown as 0 … 100)
     var steady: Double = 0       // 0 … 0.5: how much narrower the melody is made (0 = the voice's own)
 }
@@ -212,11 +212,12 @@ enum SortOrder: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
-    case spines, shelf, grid, list, compact
+    case spines, flow, shelf, grid, list, compact
     var id: String { rawValue }
     var name: String {
         switch self {
         case .spines: "Kitaplık"
+        case .flow: "Akış"
         case .shelf: "Vitrin"
         case .grid: "Izgara"
         case .list: "Liste"
@@ -226,6 +227,7 @@ enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
     var symbol: String {
         switch self {
         case .spines: "books.vertical.fill"
+        case .flow: "rectangle.stack.fill"
         case .shelf: "books.vertical"
         case .grid: "square.grid.3x3"
         case .list: "list.bullet"
@@ -278,7 +280,12 @@ final class Settings {
     /// Müzik modu hears the beat through the microphone (music from the speaker); off = the tapped tempo only.
     var musicMic: Bool { didSet { d.set(musicMic, forKey: "v.musicMic") } }
     /// Müzik modu's lettering: true = Kinetik (phrases as compositions), false = Akış (words flowing into lines).
+    /// The road screen's light: night · day · auto (RideLight).
+    var rideLight: String { didSet { d.set(rideLight, forKey: "v.rideLight") } }
     var musicKinetic: Bool { didSet { d.set(musicKinetic, forKey: "v.musicKinetic") } }
+    /// The kinetic lettering's manner, wherever it shows (Müzik modu, Dinle, Yolda › Kinetik): false = Vuruş (the
+    /// words land on the beat), true = Perde (they rise from behind a line, the key word on a marker bar).
+    var kineticMask: Bool { didSet { d.set(kineticMask, forKey: "v.kineticMask") } }
     /// Müzik modu's background: glow · black · circle · dusk (see MusicBackdrop).
     var musicBackdrop: String { didSet { d.set(musicBackdrop, forKey: "v.musicBackdrop") } }
     var bikeStyle: BikeStyle { didSet { d.set(bikeStyle.rawValue, forKey: "v.bikeStyle") } }
@@ -308,10 +315,18 @@ final class Settings {
     var musicLevel: Double { didSet { d.set(musicLevel, forKey: "a.musicLevel") } }
     /// iPhone voices through VoiceMaster (clear, full, louder, no crackle); off = as the synthesiser makes them.
     var clearVoice: Bool { didSet { d.set(clearVoice, forKey: "a.clearVoice") } }
+    /// Yüksek hız: above 385 words a minute the iPhone's voices are shortened unevenly (FastSpeech) instead of being
+    /// asked for a speed at which they blur.
+    var fastClear: Bool { didSet { d.set(fastClear, forKey: "a.fastClear") } }
     /// Turkish system voices read with the phone's own Spoken Content settings (speed, pitch, equalizer), as iOS
-    /// itself reads them. On iOS 27 only this reaches Yelda's old depth: pitchMultiplier 0.5 stops at 181 Hz.
+    /// itself reads them. Wise Path's own Kalınlık reaches the same depth (SystemPitch); "Bu tınıyı Wise Path'e al"
+    /// measures the phone's sound and turns this off.
     var systemSpeech: Bool { didSet { d.set(systemSpeech, forKey: "a.systemSpeech") } }
     /// Music break: every `breakMinutes` of listening (3…15) the voice pauses `breakSeconds` (30…120) for the music.
+    /// Kararlı ölçü for the cloud voices: a narrow melody and even phrase levels, as measured in Yelda (Steady).
+    var steadyCloud: Bool { didSet { d.set(steadyCloud, forKey: "a.steadyCloud") } }
+    /// The pitch (Hz) the reader's own voice was last measured at ("Bu tınıyı Wise Path'e al"); 0 = not measured.
+    var referenceHz: Double { didSet { d.set(referenceHz, forKey: "a.referenceHz") } }
     var musicBreak: Bool { didSet { d.set(musicBreak, forKey: "a.break") } }
     var breakMinutes: Double { didSet { d.set(breakMinutes, forKey: "a.breakMin") } }
     var breakSeconds: Double { didSet { d.set(breakSeconds, forKey: "a.breakSec") } }
@@ -367,7 +382,9 @@ final class Settings {
         moveKind = MoveKind(rawValue: d.string(forKey: "v.moveKind") ?? "") ?? .bike
         bodyWeight = d.double(forKey: "v.weight")
         musicMic = d.object(forKey: "v.musicMic") as? Bool ?? true
+        rideLight = d.string(forKey: "v.rideLight") ?? "night"
         musicKinetic = d.object(forKey: "v.musicKinetic") as? Bool ?? true
+        kineticMask = d.bool(forKey: "v.kineticMask")
         musicBackdrop = d.string(forKey: "v.musicBackdrop") ?? "circle"
         bikeStyle = BikeStyle(rawValue: d.string(forKey: "v.bikeStyle") ?? "") ?? .crystal
         bikeLook = BikeLook(rawValue: d.string(forKey: "v.bikeLook") ?? "") ?? .focus
@@ -386,7 +403,10 @@ final class Settings {
         musicMix = MusicMix(rawValue: d.string(forKey: "a.music") ?? "") ?? .off
         musicLevel = d.object(forKey: "a.musicLevel") as? Double ?? 40
         clearVoice = d.object(forKey: "a.clearVoice") as? Bool ?? true
+        fastClear = d.object(forKey: "a.fastClear") as? Bool ?? true
         systemSpeech = d.object(forKey: "a.systemSpeech") as? Bool ?? true
+        steadyCloud = d.object(forKey: "a.steadyCloud") as? Bool ?? true
+        referenceHz = d.double(forKey: "a.referenceHz")
         musicBreak = d.bool(forKey: "a.break")
         breakMinutes = d.object(forKey: "a.breakMin") as? Double ?? 5
         breakSeconds = d.object(forKey: "a.breakSec") as? Double ?? 30

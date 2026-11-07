@@ -41,6 +41,23 @@ struct Durum: Codable {
     var gununTarihi: String?
     var bugunBitti: [String] = []   // "kart", "quiz", "oyun" — yalnız bugünün işaretleri, ertesi gün silinir
     var ayar = Ayarlar()
+    /// Why today's topic was chosen: "yol" (the path), "cumle" (Cümle pointed to it), "elle" (the user chose it).
+    var gununKaynagi: String?
+    var gununNedeni: String?
+
+    init() {}
+    // Old durum.json files do not have the new fields.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        konular = try c.decodeIfPresent([String: KonuDurum].self, forKey: .konular) ?? [:]
+        oturum = try c.decodeIfPresent(Int.self, forKey: .oturum) ?? 0
+        gununKonusu = try c.decodeIfPresent(String.self, forKey: .gununKonusu)
+        gununTarihi = try c.decodeIfPresent(String.self, forKey: .gununTarihi)
+        bugunBitti = try c.decodeIfPresent([String].self, forKey: .bugunBitti) ?? []
+        ayar = try c.decodeIfPresent(Ayarlar.self, forKey: .ayar) ?? Ayarlar()
+        gununKaynagi = try c.decodeIfPresent(String.self, forKey: .gununKaynagi)
+        gununNedeni = try c.decodeIfPresent(String.self, forKey: .gununNedeni)
+    }
 }
 
 enum SoruKipi: String { case sec, bul, diz, yaz }
@@ -123,10 +140,40 @@ final class Depo {
         guard durum.gununTarihi != bugun || durum.gununKonusu == nil else { return }
         durum.gununTarihi = bugun
         durum.bugunBitti = []
-        // Yoldaki ilk görülmemiş konu; hepsi görüldüyse en düşük kademedeki
-        let siradaki = veri.yol.first { kademe($0) == 0 }
-            ?? veri.yol.min { kademe($0) < kademe($1) }
-        durum.gununKonusu = siradaki
+        if let c = cumleOdagi.first {
+            durum.gununKonusu = c.id
+            durum.gununKaynagi = "cumle"
+            durum.gununNedeni = c.why
+        } else {
+            // Yoldaki ilk görülmemiş konu; hepsi görüldüyse en düşük kademedeki
+            durum.gununKonusu = veri.yol.first { kademe($0) == 0 } ?? veri.yol.min { kademe($0) < kademe($1) }
+            durum.gununKaynagi = "yol"
+            durum.gununNedeni = nil
+        }
+        widgetiYaz()
+    }
+
+    /// The grammar topics that Cümle points to (PDM Ağı › today.json, copied into the App Group at each sync).
+    /// Only a state from today or yesterday counts: an old file must not steer the day.
+    var cumleOdagi: [PDMFocusGrammar] {
+        guard let t = PDMBus.cachedToday(), let gun = t.date,
+              gun == Self.bugunMetni || gun == Self.dunMetni else { return [] }
+        return (t.focusGrammar ?? []).filter { konu($0.id) != nil }
+    }
+
+    private static var dunMetni: String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now)
+    }
+
+    /// After a sync the network state can be newer than this morning's choice. Today's topic follows Cümle
+    /// only when the day has not started yet and the user did not choose a topic.
+    func cumledenGuncelle() {
+        guard durum.gununKaynagi != "elle", durum.bugunBitti.isEmpty,
+              let c = cumleOdagi.first, c.id != durum.gununKonusu || durum.gununNedeni != c.why else { return }
+        durum.gununKonusu = c.id
+        durum.gununKaynagi = "cumle"
+        durum.gununNedeni = c.why
         widgetiYaz()
     }
 
@@ -134,6 +181,8 @@ final class Depo {
 
     func bugunuDegistir(_ id: String) {
         durum.gununKonusu = id
+        durum.gununKaynagi = "elle"
+        durum.gununNedeni = nil
         durum.bugunBitti.removeAll { $0 == "kart" || $0 == "quiz" }
         widgetiYaz()
     }
@@ -255,7 +304,9 @@ final class Depo {
 
     func sifirla() {
         let ayar = durum.ayar
-        durum = Durum(ayar: ayar)
+        var yeni = Durum()
+        yeni.ayar = ayar
+        durum = yeni
         gunuYenile()
     }
 }

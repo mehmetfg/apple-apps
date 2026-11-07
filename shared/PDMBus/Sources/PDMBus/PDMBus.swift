@@ -107,6 +107,10 @@ public final class PDMBus: @unchecked Sendable {
         public enum Status: String, Sendable { case ok, noVault, notVaultRoot, failed }
         public var status: Status
         public var sent = 0
+        /// Events of other apps that this app carried to the vault (relay).
+        public var relayed = 0
+        public var relayedApps: [String] = []
+        public var relayFailed: [String] = []
         public var stateRefreshed = false
         public var message: String?
         public var date = Date()
@@ -114,8 +118,15 @@ public final class PDMBus: @unchecked Sendable {
         /// A Turkish sentence for the settings screen.
         public var text: String {
             switch status {
-            case .ok: return sent > 0 ? "\(sent) olay vault'a gitti" : "Eşit"
-            case .noVault: return "Vault klasörü seçilmedi — olaylar telefonda bekliyor"
+            case .ok:
+                let own = sent > 0 ? "\(sent) olay vault'a gitti" : "Eşit"
+                var t = relayed > 0 ? own + " · \(relayed) olay öteki uygulamalardan taşındı" : own
+                if !relayFailed.isEmpty { t += " · taşınamadı: " + relayFailed.joined(separator: ", ") }
+                return t
+            case .noVault:
+                return PDMBus.hasSharedGroup
+                    ? "Olaylar Kıvılcım, Teoria ya da Memories açılınca vault'a gider"
+                    : "Vault klasörü seçilmedi — olaylar telefonda bekliyor"
             case .notVaultRoot: return "Seçilen klasörde _bus yok — Personel Data Management'ı seç"
             case .failed: return message ?? "Eşitlenemedi"
             }
@@ -151,6 +162,11 @@ public final class PDMBus: @unchecked Sendable {
             r.status = .failed
             r.message = "Olaylar yazılamadı: \(error.localizedDescription)"
         }
+        let relay = relayOthers(into: bus)
+        r.relayed = relay.sent
+        r.relayedApps = relay.apps
+        r.relayFailed = relay.failed
+        Self.defaults.set(Self.outboxInventory(), forKey: "pdm.relay.\(app).seen")
         r.stateRefreshed = refreshState(from: bus)
         return r
     }
@@ -161,10 +177,48 @@ public final class PDMBus: @unchecked Sendable {
 
     /// Moves the whole outbox to `_bus/events/<app>/<device>.jsonl`. The outbox stays when the append fails.
     func flush(into bus: URL) throws -> Int {
+        try Self.flush(outbox: outboxURL, app: app, into: bus)
+    }
+
+    /// Relay: moves the outboxes of the other apps in the same App Group. iOS does not share the
+    /// vault bookmark between apps, so an app without its own vault folder (Ufuk, Gece, GramerApp …)
+    /// waits until an app with a folder (Kıvılcım, Teoria, Memories) opens and carries its events.
+    /// The outbox is a coordinated file, so the owner app and the relay never write it at the same time.
+    func relayOthers(into bus: URL) -> (sent: Int, apps: [String], failed: [String]) {
+        let dir = Self.container.appendingPathComponent("outbox", isDirectory: true)
+        guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else {
+            return (0, [], [])
+        }
+        var sent = 0, apps: [String] = [], failed: [String] = []
+        for f in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) where f.pathExtension == "jsonl" {
+            let other = f.deletingPathExtension().lastPathComponent
+            guard other != app, PDMEvent.isSafeApp(other) else { continue }
+            do {
+                let n = try Self.flush(outbox: f, app: other, into: bus)
+                if n > 0 { sent += n; apps.append(other) }
+            } catch { failed.append(other) }
+        }
+        return (sent, apps, failed)
+    }
+
+    /// What the outbox folder holds now: "ufuk 3 · gece 0". For the diagnosis of the relay.
+    static func outboxInventory() -> String {
+        let dir = container.appendingPathComponent("outbox", isDirectory: true)
+        guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else {
+            return "outbox yok: \(dir.path)"
+        }
+        let parts = files.sorted { $0.lastPathComponent < $1.lastPathComponent }.map { f -> String in
+            let n = (try? Data(contentsOf: f)).map { $0.split(separator: 0x0A).count } ?? -1
+            return "\(f.deletingPathExtension().lastPathComponent) \(n)"
+        }
+        return parts.isEmpty ? "outbox boş" : parts.joined(separator: " · ")
+    }
+
+    static func flush(outbox: URL, app: String, into bus: URL) throws -> Int {
         var sent = 0
         var failure: Error?
         var err: NSError?
-        NSFileCoordinator().coordinate(writingItemAt: outboxURL, options: .forMerging, error: &err) { box in
+        NSFileCoordinator().coordinate(writingItemAt: outbox, options: .forMerging, error: &err) { box in
             guard let data = try? Data(contentsOf: box), !data.isEmpty else { return }
             let dir = bus.appendingPathComponent("events", isDirectory: true).appendingPathComponent(app, isDirectory: true)
             let target = dir.appendingPathComponent("\(Self.device).jsonl")

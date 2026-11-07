@@ -13,6 +13,12 @@ struct WisePathWidgets: WidgetBundle {
         ReadingWidget()
         StatsWidget()
         QuoteWidget()
+        ReadingCardWidget()
+        if #available(iOS 18.0, *) {
+            ToggleReadingControl()
+            MarkSentenceControl()
+            VoiceNoteControl()
+        }
     }
 }
 
@@ -166,16 +172,29 @@ struct ReadingWidget: Widget {
         StaticConfiguration(kind: WidgetShared.kind.reading, provider: SnapshotProvider()) { e in ReadingView(entry: e) }
             .configurationDisplayName("Okuduklarım")
             .description("Süren kitapların; birine dokun, o açılsın.")
-            .supportedFamilies([.systemMedium, .systemLarge])
+            .supportedFamilies(Self.families)
+    }
+
+    /// iOS 27 adds the tall extra-large size on the iPhone: the whole shelf of what is being read.
+    private static var families: [WidgetFamily] {
+        if #available(iOS 27.0, *) { return [.systemMedium, .systemLarge, .systemExtraLargePortrait] }
+        return [.systemMedium, .systemLarge]
     }
 }
 
 struct ReadingView: View {
-    @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetFamily) private var widgetFamily
     let entry: SnapshotEntry
 
+    private var tall: Bool {
+        if #available(iOS 27.0, *) { return widgetFamily == .systemExtraLargePortrait }
+        return false
+    }
+    /// The tall size is laid out as the large one, with more rows.
+    private var family: WidgetFamily { tall ? .systemLarge : widgetFamily }
+
     var body: some View {
-        let books = Array((entry.snap?.reading ?? []).prefix(family == .systemLarge ? 6 : 3))
+        let books = Array((entry.snap?.reading ?? []).prefix(tall ? 12 : (family == .systemLarge ? 6 : 3)))
         Group {
             if books.isEmpty {
                 Empty(text: "Süren kitap yok.")

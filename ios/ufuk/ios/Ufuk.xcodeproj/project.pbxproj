@@ -1,0 +1,448 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D70000000000000000000020 /* UfukWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D70000000000000000000005; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PDFB13893956CA779B6BED42 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD792AF69F5DE0D7A89EA8EE /* PDMBus */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D7000000000000000000001D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D70000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D7000000000000000000002B;
+			remoteInfo = UfukWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D7000000000000000000001F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D70000000000000000000020,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D70000000000000000000004 /* Ufuk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ufuk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D70000000000000000000005 /* UfukWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UfukWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D7000000000000000000000B /* Exceptions for "Ufuk folder in Ufuk target" */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Ufuk.entitlements,
+				Info.plist,
+			);
+			target = D7000000000000000000002A;
+		};
+		D7000000000000000000000C /* Exceptions for "UfukWidget folder in UfukWidgetExtension target" */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				UfukWidget.entitlements,
+				Info.plist,
+			);
+			target = D7000000000000000000002B;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D70000000000000000000007 /* Ufuk */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (D7000000000000000000000B, ); path = Ufuk; sourceTree = "<group>"; };
+		D70000000000000000000008 /* UfukWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (D7000000000000000000000C, ); path = UfukWidget; sourceTree = "<group>"; };
+		D7000000000000000000000A /* Ortak */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Ortak; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D70000000000000000000015 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				PDFB13893956CA779B6BED42 /* PDMBus in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000000000000000000016 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D70000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				D70000000000000000000007,
+				D70000000000000000000008,
+				D7000000000000000000000A,
+				D70000000000000000000003,
+			);
+			sourceTree = "<group>";
+		};
+		D70000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D70000000000000000000004,
+				D70000000000000000000005,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D7000000000000000000002A /* Ufuk */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7000000000000000000000F;
+			buildPhases = (
+				D70000000000000000000012,
+				D70000000000000000000015,
+				D70000000000000000000018,
+				D7000000000000000000001F,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D7000000000000000000001B,
+			);
+			fileSystemSynchronizedGroups = (
+				D70000000000000000000007,
+				D7000000000000000000000A,
+			);
+			name = Ufuk;
+			packageProductDependencies = (
+				PD792AF69F5DE0D7A89EA8EE /* PDMBus */,
+			);
+			productName = Ufuk;
+			productReference = D70000000000000000000004;
+			productType = "com.apple.product-type.application";
+		};
+		D7000000000000000000002B /* UfukWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D70000000000000000000010;
+			buildPhases = (
+				D70000000000000000000013,
+				D70000000000000000000016,
+				D70000000000000000000019,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D70000000000000000000008,
+				D7000000000000000000000A,
+			);
+			name = UfukWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = UfukWidgetExtension;
+			productReference = D70000000000000000000005;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D70000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					D7000000000000000000002A = {CreatedOnToolsVersion = 26.3;};
+					D7000000000000000000002B = {CreatedOnToolsVersion = 26.3;};
+				};
+			};
+			buildConfigurationList = D7000000000000000000000E /* Build configuration list for PBXProject "Ufuk" */;
+			developmentRegion = tr;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				tr,
+				en,
+				Base,
+			);
+			mainGroup = D70000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PD29C848C5C049357B1E1738 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D70000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D7000000000000000000002A,
+				D7000000000000000000002B,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D70000000000000000000018 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000000000000000000019 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D70000000000000000000012 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D70000000000000000000013 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D7000000000000000000001B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D7000000000000000000002B /* UfukWidgetExtension */;
+			targetProxy = D7000000000000000000001D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D70000000000000000000022 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D70000000000000000000023 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D70000000000000000000024 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Ufuk/Ufuk.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ufuk/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Ufuk;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.ufuk;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Haritada ev ve işini seçerken seni bulmak, kendi yerlerine vardığını anlamak ve başlattığın rotayı (ekran kilitliyken de) kaydetmek için.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Havanın adımına, yürüyüşüne, bisikletine ve uykuna etkisini göstermek için. Veri telefonda kalır.";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+			};
+			name = Debug;
+		};
+		D70000000000000000000025 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Ufuk/Ufuk.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Ufuk/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Ufuk;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.ufuk;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Haritada ev ve işini seçerken seni bulmak, kendi yerlerine vardığını anlamak ve başlattığın rotayı (ekran kilitliyken de) kaydetmek için.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Havanın adımına, yürüyüşüne, bisikletine ve uykuna etkisini göstermek için. Veri telefonda kalır.";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+			};
+			name = Release;
+		};
+		D70000000000000000000026 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = UfukWidget/UfukWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = UfukWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Ufuk;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.ufuk.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET $(inherited)";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			};
+			name = Debug;
+		};
+		D70000000000000000000027 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = UfukWidget/UfukWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = UfukWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Ufuk;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.ufuk.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "WIDGET $(inherited)";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D7000000000000000000000E /* Build configuration list for PBXProject "Ufuk" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D70000000000000000000022 /* Debug */,
+				D70000000000000000000023 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D7000000000000000000000F /* Build configuration list for PBXNativeTarget "Ufuk" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D70000000000000000000024 /* Debug */,
+				D70000000000000000000025 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D70000000000000000000010 /* Build configuration list for PBXNativeTarget "UfukWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D70000000000000000000026 /* Debug */,
+				D70000000000000000000027 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PD29C848C5C049357B1E1738 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PD792AF69F5DE0D7A89EA8EE /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PD29C848C5C049357B1E1738 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = D70000000000000000000001 /* Project object */;
+}

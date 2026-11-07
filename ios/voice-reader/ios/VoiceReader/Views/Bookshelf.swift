@@ -45,7 +45,7 @@ struct BookshelfView: View {
         var rows: [[DocumentRecord]] = [[]]
         var used: CGFloat = 0
         for d in docs {
-            let w = Spine.width(d) + 2
+            let w = Spine.width(d) + 3
             if used + w > inner, !rows[rows.count - 1].isEmpty { rows.append([]); used = 0 }
             rows[rows.count - 1].append(d)
             used += w
@@ -53,7 +53,7 @@ struct BookshelfView: View {
         return VStack(spacing: 0) {
             ForEach(rows.indices, id: \.self) { r in
                 VStack(spacing: 0) {
-                    HStack(alignment: .bottom, spacing: 2) {
+                    HStack(alignment: .bottom, spacing: 3) {
                         ForEach(rows[r]) { d in
                             Spine(doc: d)
                                 .onTapGesture { picked = d }
@@ -112,21 +112,22 @@ private struct Plank: View {
 
 // MARK: - a spine
 
+/// 2026-11-04: every spine the same height and thickness (the row reads as a row, not a skyline). The title runs down
+/// the spine on two lines in a type large enough to read; a series book shows its subject, not the long series title.
+/// A plate at the top carries a short key (F 04, B 03, or the title's initials) in the series colour, so a book is
+/// found even before its title is read; at the foot its state in words: %42, Yeni or ✓.
 struct Spine: View {
     let doc: DocumentRecord
 
-    /// 20 pt for a short text, up to 54 for a long book.
-    static func width(_ d: DocumentRecord) -> CGFloat {
-        CGFloat(20 + min(34, sqrt(Double(max(0, d.wordCount))) / 9))
-    }
+    static let thickness: CGFloat = 46
+    static let height: CGFloat = 172
+    static func width(_ d: DocumentRecord) -> CGFloat { thickness }
 
-    /// A stable small difference in height and tone for each book, so the row looks like a real one.
     private var stableSeed: Int { doc.id.uuidString.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF } }
-    private var height: CGFloat { 150 + CGFloat(stableSeed % 25) - 12 }
+    private var series: SeriesBook? { SeriesBook(title: doc.title) }
 
     private var color: Color {
-        // the series as on their covers: Felsefe navy, Bilimler green, Mühendislik graphite
-        if let s = SeriesBook(title: doc.title) {
+        if let s = series {
             switch s.series {
             case .felsefe: return Color(red: 0.11, green: 0.16, blue: 0.33)
             case .bilimler: return Color(red: 0.12, green: 0.32, blue: 0.24)
@@ -136,88 +137,89 @@ struct Spine: View {
         if let f = doc.folder, FolderScope.named(f).tint != Color(white: 0.75) {
             return FolderScope.named(f).tint.blend(.black, 0.45)
         }
-        // leather and cloth tones
         let tones: [Color] = [Color(red: 0.42, green: 0.12, blue: 0.12), Color(red: 0.12, green: 0.24, blue: 0.36),
                               Color(red: 0.16, green: 0.30, blue: 0.20), Color(red: 0.36, green: 0.26, blue: 0.14),
                               Color(red: 0.26, green: 0.18, blue: 0.32), Color(red: 0.20, green: 0.20, blue: 0.22)]
         return tones[stableSeed % tones.count]
     }
 
+    /// The plate's key: the series letter and number, or the first letters of the title's first two words.
+    var key: String {
+        if let s = series { return "\(s.series.rawValue.prefix(1)) \(String(format: "%02d", s.number))" }
+        let words = doc.title.split { !$0.isLetter && !$0.isNumber }.filter { $0.count > 1 || $0.first?.isNumber == true }
+        let k = words.prefix(2).compactMap { $0.first }.map { String($0).uppercased(with: Locale(identifier: "tr")) }.joined()
+        return k.isEmpty ? "•" : k
+    }
+
+    private var spineTitle: String {
+        if let s = series { return s.issue }
+        // "Genişletme · X": the expansion's own subject on the spine
+        return doc.title.hasPrefix("Genişletme · ") ? String(doc.title.dropFirst(13)) : doc.title
+    }
+
+    private var ink: Color { Color(red: 0.97, green: 0.93, blue: 0.84) }
+
     var body: some View {
-        let w = Self.width(doc)
-        ZStack {
-            // the cloth: a curve of light across the spine, as on a rounded back
+        let w = Self.thickness, h = Self.height
+        let titleLength = h - 64
+        ZStack(alignment: .top) {
             LinearGradient(stops: [.init(color: color.blend(.black, 0.35), location: 0),
                                    .init(color: color.blend(.white, 0.12), location: 0.35),
                                    .init(color: color, location: 0.6),
                                    .init(color: color.blend(.black, 0.4), location: 1)],
                            startPoint: .leading, endPoint: .trailing)
-            // binding bands top and bottom; gold on a finished book
-            VStack {
-                band.padding(.top, 10)
-                Spacer()
-                band.padding(.bottom, 12)
-            }
-            // title down the spine, the author small near the foot
-            VStack(spacing: 6) {
-                Text(doc.title)
-                    .font(.system(size: min(13, w * 0.42), weight: .semibold, design: .serif))
-                    .foregroundStyle(Color(red: 0.96, green: 0.91, blue: 0.80))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(width: height - 58)
+            VStack(spacing: 0) {
+                // the plate
+                Text(key)
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(color.blend(.black, 0.5))
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                    .frame(width: w - 10, height: 20)
+                    .background(ink.opacity(0.92), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                    .padding(.top, 8)
+                band.padding(.horizontal, 3).padding(.top, 5)
+                // the title: two lines down the spine
+                Text(spineTitle)
+                    .font(.system(size: 12.5, weight: .semibold, design: .serif))
+                    .foregroundStyle(ink)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.72)
+                    .lineSpacing(-1)
+                    .frame(width: titleLength, height: w - 10, alignment: .leading)
                     .rotationEffect(.degrees(90))
-                    .frame(width: w, height: height - 58)
-                if let a = doc.author, w > 28 {
-                    Text(a.split(separator: " ").last.map(String.init) ?? a)
-                        .font(.system(size: 7.5, weight: .medium))
-                        .foregroundStyle(Color(red: 0.96, green: 0.91, blue: 0.80).opacity(0.7))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .frame(width: w - 4)
-                }
-            }
-            .padding(.vertical, 22)
-            // how far: a thin strip of light up the spine's edge
-            if !doc.isFinished, doc.progress > 0.005 {
-                HStack {
-                    VStack {
-                        Spacer(minLength: 0)
-                        Capsule().fill(Color(red: 1, green: 0.78, blue: 0.35)).frame(width: 2.5, height: (height - 8) * doc.progress)
-                    }
-                    Spacer()
-                }
-                .padding(.leading, 2).padding(.vertical, 4)
+                    .frame(width: w, height: titleLength)
+                Spacer(minLength: 0)
+                band.padding(.horizontal, 3).padding(.bottom, 3)
+                Text(state)
+                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(doc.isFinished ? Color(red: 0.95, green: 0.80, blue: 0.40) : ink.opacity(0.85))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .padding(.bottom, 6)
             }
         }
-        .frame(width: w, height: height)
+        .frame(width: w, height: h)
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 3))
         .overlay(alignment: .top) {
-            // a book being read: its ribbon marker hangs over the top
             if !doc.isFinished, !doc.isUnread {
                 Ribbon().fill(Color(red: 0.75, green: 0.12, blue: 0.16))
-                    .frame(width: 7, height: 22)
-                    .offset(x: w * 0.18, y: -10)
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if doc.finishes.count >= 2 {
-                Text("\(doc.finishes.count)")
-                    .font(.system(size: 8, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.75))
-                    .frame(width: 13, height: 13)
-                    .background(Color(red: 0.95, green: 0.78, blue: 0.35), in: Circle())
-                    .padding(.bottom, 26)
+                    .frame(width: 7, height: 18)
+                    .offset(x: w * 0.30, y: -8)
             }
         }
         .contentShape(Rectangle())
     }
 
+    private var state: String {
+        if doc.isFinished { return doc.finishes.count >= 2 ? "✓ \(doc.finishes.count)" : "✓" }
+        if doc.isUnread { return "Yeni" }
+        return "%\(Int((doc.progress * 100).rounded()))"
+    }
+
     private var band: some View {
         let gold = Color(red: 0.88, green: 0.72, blue: 0.38)
         return VStack(spacing: 2) {
-            Rectangle().fill(doc.isFinished ? gold : .black.opacity(0.35)).frame(height: doc.isFinished ? 3 : 1.5)
+            Rectangle().fill(doc.isFinished ? gold : .black.opacity(0.35)).frame(height: doc.isFinished ? 2.5 : 1.5)
             Rectangle().fill(doc.isFinished ? gold.opacity(0.8) : .white.opacity(0.18)).frame(height: 1)
         }
     }
@@ -280,7 +282,7 @@ private struct PulledBook: View {
     }
 }
 
-private extension Color {
+extension Color {
     /// Part of the way towards another colour (iOS 17 has no `mix`).
     func blend(_ other: Color, _ t: Double) -> Color {
         var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0

@@ -3,14 +3,34 @@
 import SwiftUI
 import UserNotifications
 import AppIntents
+import BackgroundTasks
+import PDMBus
 
 final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     static var bekleyenRota: ((String) -> Void)?
     static var birikenRota: String?
+    static let syncTask = "com.fatihgocgun.teoria.sync"
+
+    /// The system runs it when it sees fit, at the earliest in an hour: new books and the morning plan are there before the app opens.
+    static func scheduleSync() {
+        let r = BGAppRefreshTaskRequest(identifier: syncTask)
+        r.earliestBeginDate = Date(timeIntervalSinceNow: 3600)
+        try? BGTaskScheduler.shared.submit(r)
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions o: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         Bildirim.kategorileriKaydet()
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.syncTask, using: nil) { task in
+            guard let refresh = task as? BGAppRefreshTask else { task.setTaskCompleted(success: false); return }
+            Self.scheduleSync()
+            let work = Task { @MainActor in
+                await Depo.current?.esitleSimdi()
+                Depo.current?.widgetYaz()
+                refresh.setTaskCompleted(success: !Task.isCancelled)
+            }
+            refresh.expirationHandler = { work.cancel() }
+        }
         return true
     }
 
@@ -56,7 +76,7 @@ struct TeoriaApp: App {
                 .tint(Tema.vurgu)
                 .environment(\.locale, Dil.tr)
                 .fullScreenCover(item: Binding(get: { kurDakika.map { KurAcilis(dakika: $0) } }, set: { kurDakika = $0?.dakika })) { k in
-                    KurEkrani(dakika: k.dakika) {
+                    DailyQuizView {
                         kurDakika = nil
                         Task { await Bildirim.planla(depo) }
                     }
@@ -89,7 +109,15 @@ struct TeoriaApp: App {
                     UygulamaTemsilcisi.bekleyenRota = { rota($0) }
                     if let r = UygulamaTemsilcisi.birikenRota { UygulamaTemsilcisi.birikenRota = nil; rota(r) }
                 }
+                // a Spotlight result: kitap:<id>
+                .onContinueUserActivity(PDMSpotlight.activityType) { a in
+                    if let id = PDMSpotlight.identifier(from: a) { rota(id.components(separatedBy: "|")[0]) }
+                }
                 .onChange(of: faz) { _, yeni in
+                    if yeni == .background {
+                        UygulamaTemsilcisi.scheduleSync()
+                        TeoriaSpotlight.refresh()
+                    }
                     guard yeni == .active else { return }
                     depo.kutuyuAl()
                     depo.yenidenHesapla()
@@ -100,6 +128,7 @@ struct TeoriaApp: App {
                     Task {
                         await depo.esitleSimdi()
                         await Bildirim.planla(depo)
+                        await Network.becameActive()      // PDM Ağı: opened today + sync, after the app's own sync
                     }
                 }
         }
@@ -129,6 +158,9 @@ struct TeoriaApp: App {
         case "kur", "hatirla": let d = depo.kurDakika; present { kurDakika = d }
         case "ses": present { ses = SesHedefi(hedef: nil) }
         case "akis": sekme = .akis
+        case "ikinci":
+            sekme = .bugun
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NotificationCenter.default.post(name: .init("teoria.ikinci"), object: nil) }
         case "kitaplar": sekme = .kitaplar
         case "mufredat": sekme = .mufredat
         case let x where x.hasPrefix("ses:"):
@@ -176,5 +208,9 @@ struct TeoriaKestirmeleri: AppShortcutsProvider {
                     shortTitle: "Kür başlat", systemImageName: "circle.dashed.inset.filled")
         AppShortcut(intent: TeoriaAc(.ses), phrases: ["\(.applicationName) sesli not"],
                     shortTitle: "Sesli not", systemImageName: "waveform")
+        AppShortcut(intent: TeoriaAc(.akis), phrases: ["\(.applicationName) akışı aç"],
+                    shortTitle: "Akış", systemImageName: "text.quote")
+        AppShortcut(intent: OpenTeoriaBookIntent(), phrases: ["\(.applicationName) kitap aç", "\(.applicationName) \(\.$book) aç"],
+                    shortTitle: "Kitabı aç", systemImageName: "book")
     }
 }

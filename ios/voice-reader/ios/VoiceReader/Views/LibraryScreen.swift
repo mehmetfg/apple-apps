@@ -2,6 +2,7 @@
 // every book: as a bookcase of spines (Kitaplık), a shop window, a grid or a list, by shelf (süren, okunacak,
 // bitenler) or folder; a thin line with today's listening and the automation; the folders. Statistics, the moving
 // modes and the notes are keys at the top. Adding from Files or the clipboard; a mini player while reading.
+import PDMBus
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -60,6 +61,9 @@ struct LibraryScreen: View {
     @State private var statsTab: StatsTab?
     @State private var settingsShown = false
     @State private var automationShown = false
+    @State private var scanShown = false
+    @State private var photosShown = false
+    @State private var expandTest: ExpandSource?
 
     static let importTypes: [UTType] = [
         .pdf, .epub, .plainText, .text, .html, .rtf, .rtfd,
@@ -120,6 +124,8 @@ struct LibraryScreen: View {
             .overlay { if model.importing { ProgressView("Ekleniyor…").padding().modifier(GlassPanel(cornerRadius: 16)) } }
         }
         .sheet(isPresented: $promptShown) { PromptBuilderView() }
+        .modifier(ScanImportModifier(scan: $scanShown, photos: $photosShown, folder: nil))
+        .sheet(item: $expandTest) { ExpandPromptView(source: $0) }
         .sheet(isPresented: $elevenShown) { NavigationStack { ElevenSettingsPage() } }
         .sheet(isPresented: $cloudShown) { NavigationStack { CloudSettingsPage() } }
         .fileImporter(isPresented: $importerShown, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
@@ -149,13 +155,16 @@ struct LibraryScreen: View {
         .task {                                   // test hook: -musictest opens the music mode on the last book
             let args = CommandLine.arguments
             guard args.contains("-musictest") || args.contains("-statstest") || args.contains("-markssheet") || args.contains("-prompttest")
-                    || args.contains("-eleventest") || args.contains("-cloudtest") else { return }
+                    || args.contains("-eleventest") || args.contains("-cloudtest") || args.contains("-expandtest") else { return }
             try? await Task.sleep(for: .seconds(2))
             if args.contains("-musictest") { model.musicModeShown = true }
             if args.contains("-statstest") { statsTab = args.contains("road") ? .road : .reading }
             if args.contains("-prompttest") { promptShown = true }
             if args.contains("-eleventest") { elevenShown = true }
             if args.contains("-cloudtest") { cloudShown = true }
+            if args.contains("-expandtest"), let d = model.store.documents.first(where: { !$0.highlights.isEmpty }), let h = d.highlights.first {
+                expandTest = args.contains("marks") ? .marks(doc: d.id) : .passage(doc: d.id, range: h.range, text: h.text)
+            }
             if args.contains("-markssheet") { model.marksSheetDoc = model.store.documents.first { !$0.highlights.isEmpty }?.id }
         }
         .task {                                   // test hook: -openreader shows the last book's reader
@@ -164,7 +173,12 @@ struct LibraryScreen: View {
             if let id = model.player.documentID ?? model.store.documents.first?.id { path = [.reader(id)] }
         }
         .onOpenURL { url in
-            if url.scheme == "wisepath" { perform(([url.host ?? ""] + url.pathComponents.filter { $0 != "/" }).joined(separator: "/")); return }
+            if url.scheme == "wisepath" {
+                // book/<id>?at=<offset>: that place is shown, the reading place stays
+                let at = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "at" }?.value.flatMap(Int.init)
+                perform(([url.host ?? ""] + url.pathComponents.filter { $0 != "/" }).joined(separator: "/"), at: at)
+                return
+            }
             Task { await model.handleOpen(url); if let id = model.openDocumentID { path = [.reader(id)] } }
         }
         // a quick action from the app icon (also at a cold start, once the library is there)
@@ -173,8 +187,14 @@ struct LibraryScreen: View {
             QuickActions.shared.pending = nil
             Task { try? await Task.sleep(for: .milliseconds(400)); perform(a) }
         }
-        .onChange(of: model.player.isPlaying) { _, _ in WidgetFeed.publish(model) }
-        .onChange(of: model.store.documents.count) { _, _ in WidgetFeed.publish(model) }
+        .onChange(of: model.player.isPlaying) { _, _ in WidgetFeed.publish(model); model.publishLive() }
+        .onChange(of: model.store.documents.count) { _, _ in WidgetFeed.publish(model); model.indexForSpotlight() }
+        // a Spotlight result: book/<id> or book/<id>?at=<offset>. The place is shown, the reading place stays.
+        .onContinueUserActivity(PDMSpotlight.activityType) { activity in
+            guard let id = PDMSpotlight.identifier(from: activity) else { return }
+            let parts = id.split(separator: "?at=", maxSplits: 1).map(String.init)
+            perform(parts[0], at: parts.count > 1 ? Int(parts[1]) : nil)
+        }
         .task { await model.store.backfillCovers() }
     }
 
@@ -184,7 +204,7 @@ struct LibraryScreen: View {
     }
 
     /// A quick action or a wisepath:// link: resume · book/<id> · bike · walk · music · stats · road.
-    private func perform(_ action: String) {
+    private func perform(_ action: String, at offset: Int? = nil) {
         let parts = action.split(separator: "/").map(String.init)
         let book = continueBook
         switch parts.first ?? "" {
@@ -199,7 +219,16 @@ struct LibraryScreen: View {
                 }
             }
         case "book":
-            if parts.count > 1, let id = UUID(uuidString: parts[1]), model.store.document(id) != nil { path = [.reader(id)] }
+            guard parts.count > 1 else { return }
+            // the app's own id, or Teoria's name for the book (vr-<first eight hex digits of the id>)
+            var id = UUID(uuidString: parts[1])
+            if id == nil, parts[1].lowercased().hasPrefix("vr-") {
+                let head = parts[1].dropFirst(3).lowercased()
+                if head.count >= 8 { id = model.store.documents.first { $0.id.uuidString.lowercased().hasPrefix(head) }?.id }
+            }
+            guard let id, model.store.document(id) != nil else { return }
+            if let offset { model.revealRequest = (id, max(0, offset)) }
+            if path.last == .reader(id) { if offset != nil { model.revealTick += 1 } } else { path = [.reader(id)] }
         case "bike", "walk":
             guard let d = book else { return }
             path = [.reader(d.id)]
@@ -224,7 +253,8 @@ struct LibraryScreen: View {
 
     private var home: some View {
         VStack(alignment: .leading, spacing: 22) {
-            if let d = continueBook { ContinueCard(doc: d) { open(d.id) } }
+            RecentBooks(open: open)
+            if !model.store.isEmpty { InventoryStrip() }
             if !model.store.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -287,6 +317,8 @@ struct LibraryScreen: View {
             Text("Bu rafta kitap yok.").font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 20)
         } else if model.settings.homeStyle == .spines {
             BookshelfView(sections: sections, onOpen: open)
+        } else if model.settings.homeStyle == .flow {
+            CoverFlowView(docs: sections.flatMap(\.docs), onOpen: open)
         } else {
             DocumentCollection(docs: sections.flatMap(\.docs), style: model.settings.homeStyle, onOpen: open)
         }
@@ -383,6 +415,11 @@ struct LibraryScreen: View {
                 Button { model.folder = nil; importerShown = true } label: { Label("Dosyalardan ekle", systemImage: "folder") }
                 Button { model.folder = nil; model.importClipboard() } label: { Label("Panodan ekle", systemImage: "doc.on.clipboard") }
                 Button { model.folder = nil; promptShown = true } label: { Label("İstem oluşturucu", systemImage: "wand.and.sparkles") }
+                Section("Kâğıttan") {
+                    Button { scanShown = true } label: { Label("Tara (kamera)", systemImage: "doc.viewfinder") }
+                        .disabled(!DocumentScanner.isAvailable)
+                    Button { photosShown = true } label: { Label("Fotoğraftan metin", systemImage: "text.viewfinder") }
+                }
                 Divider()
                 Button { newFolderShown = true } label: { Label("Yeni klasör", systemImage: "folder.badge.plus") }
             } label: { Image(systemName: "plus") }
@@ -410,7 +447,7 @@ struct ContinueCard: View {
                         Text("Okumaya devam").font(.caption.weight(.semibold)).foregroundStyle(.secondary).textCase(.uppercase)
                         Text(doc.title).font(.system(size: 17, weight: .semibold, design: .serif)).lineLimit(2)
                         if let a = doc.author { Text(a).font(.footnote).foregroundStyle(.secondary).lineLimit(1) }
-                        ProgressBar(value: doc.progress).frame(height: 4).padding(.top, 2)
+                        StateLabel(doc: doc).padding(.top, 2)
                         Text(model.statusText(doc)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer(minLength: 0)
@@ -581,6 +618,8 @@ struct FolderScreen: View {
     @State private var promptShown = false
     @State private var renameShown = false
     @State private var renameText = ""
+    @State private var scanShown = false
+    @State private var photosShown = false
 
     var body: some View {
         let docs = model.documents(in: scope, applyFilter: true)
@@ -622,6 +661,9 @@ struct FolderScreen: View {
                     Button { model.folder = scope.folderName; importerShown = true } label: { Label("Dosyalardan ekle", systemImage: "folder") }
                     Button { model.folder = scope.folderName; model.importClipboard() } label: { Label("Panodan ekle", systemImage: "doc.on.clipboard") }
                     Button { model.folder = scope.folderName; promptShown = true } label: { Label("İstem oluşturucu", systemImage: "wand.and.sparkles") }
+                    Button { scanShown = true } label: { Label("Tara (kamera)", systemImage: "doc.viewfinder") }
+                        .disabled(!DocumentScanner.isAvailable)
+                    Button { photosShown = true } label: { Label("Fotoğraftan metin", systemImage: "text.viewfinder") }
                     if let name = scope.folderName {
                         Divider()
                         Button { renameText = name; renameShown = true } label: { Label("Klasörü yeniden adlandır", systemImage: "pencil") }
@@ -631,6 +673,7 @@ struct FolderScreen: View {
             }
         }
         .sheet(isPresented: $promptShown) { PromptBuilderView() }
+        .modifier(ScanImportModifier(scan: $scanShown, photos: $photosShown, folder: scope.folderName))
         .fileImporter(isPresented: $importerShown, allowedContentTypes: LibraryScreen.importTypes, allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { Task { await model.importFiles(urls) } }
         }
@@ -657,6 +700,7 @@ struct DocumentCollection: View {
         Group {
             switch style {
             case .spines: BookshelfView(sections: [BookshelfSection(title: "", docs: docs)], onOpen: onOpen)
+            case .flow: CoverFlowView(docs: docs, onOpen: onOpen)
             case .shelf: shelf
             case .grid: grid
             case .list: list
@@ -710,8 +754,8 @@ struct DocumentCollection: View {
                     HStack(alignment: .top, spacing: 18) {
                         ForEach(rows[r]) { d in
                             VStack(spacing: 3) {
-                                ProgressBar(value: d.progress).frame(height: 3)
                                 Text(d.title).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                StateLabel(doc: d, compact: true)
                             }
                             .frame(width: 96)
                         }
@@ -732,8 +776,7 @@ struct DocumentCollection: View {
                     VStack(alignment: .leading, spacing: 6) {
                         CoverView(doc: d, width: 100)
                         Text(d.title).font(.caption.weight(.semibold)).lineLimit(2).frame(width: 100, alignment: .leading)
-                        ProgressBar(value: d.progress).frame(width: 100, height: 3)
-                        Text(model.statusText(d)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).frame(width: 100, alignment: .leading)
+                        StateLabel(doc: d).frame(width: 100, alignment: .leading)
                     }
                 }
                 .buttonStyle(.plain)
@@ -814,8 +857,11 @@ struct LibraryRow: View {
                 Text([doc.author, doc.folder ?? doc.format.badge].compactMap { $0 }.joined(separator: " · "))
                     .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 HStack(spacing: 8) {
-                    ProgressBar(value: doc.progress).frame(width: 70, height: 3)
-                    Text(model.statusText(doc)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    StateLabel(doc: doc)
+                    if !doc.isFinished {
+                        Text(Format.duration(model.duration(characters: doc.length - doc.position, speed: doc.speed)) + (doc.isUnread ? "" : " kaldı"))
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    }
                 }
             }
             Spacer(minLength: 0)
@@ -844,18 +890,14 @@ struct CompactRow: View {
     var body: some View {
         HStack(spacing: 10) {
             CoverView(doc: doc, width: 20, showsPlaying: false)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    if let f = doc.flag { Circle().fill(f.color).frame(width: 6, height: 6) }
-                    Text(doc.title).font(.subheadline.weight(.medium)).lineLimit(1).layoutPriority(1)
-                    if let a = doc.author { Text(a).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
-                }
-                ProgressBar(value: doc.progress).frame(height: 2)
+            HStack(spacing: 6) {
+                if let f = doc.flag { Circle().fill(f.color).frame(width: 6, height: 6) }
+                Text(doc.title).font(.subheadline.weight(.medium)).lineLimit(1).layoutPriority(1)
+                if let a = doc.author { Text(a).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
             }
+            Spacer(minLength: 0)
             if playing { PlayingBars(height: 12) }
-            Text(doc.isFinished ? "✓" : "%\(Int((doc.progress * 100).rounded()))")
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                .frame(minWidth: 34, alignment: .trailing)
+            StateLabel(doc: doc, compact: true).frame(minWidth: 34, alignment: .trailing)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)

@@ -62,13 +62,14 @@ struct MorningCard: Codable, Identifiable, Hashable {
     var id: String
     var book: String
     var ch: Int
-    var kind: String          // cloze · who · edge · recall
+    var kind: String          // quiz · cross · mark · cloze · who · edge · recall
     var prompt: String
     var answer: String
     var options: [String]
     var full: String
     var why: String?
     var weight: Int?
+    var lane: String?         // "cross": asked to tie today's reading to an earlier one
 }
 
 /// One book of the focus days, its chapters merged across those days.
@@ -144,17 +145,33 @@ final class MorningStore: ObservableObject {
 
     init() { load() }
 
-    func load() {
-        var candidates = [local]
+    private var candidates: [URL] {
+        var c = [local]
         #if os(macOS)
-        candidates.insert(Kasa.macYolu.appendingPathComponent("library/sabah.json"), at: 0)
+        c.insert(Kasa.macYolu.appendingPathComponent("library/sabah.json"), at: 0)
         #endif
+        return c
+    }
+
+    func load() {
         for u in candidates {
             if let v = try? Data(contentsOf: u), let p = try? JSONDecoder().decode(MorningPlan.self, from: v) {
                 plan = p
                 return
             }
         }
+    }
+
+    /// After a sync brought a new plan: read and decoded off the main actor (the file is about 0.6 MB).
+    func reload() async {
+        let files = candidates
+        let fresh = await Task.detached { () -> MorningPlan? in
+            for u in files {
+                if let v = try? Data(contentsOf: u), let p = try? JSONDecoder().decode(MorningPlan.self, from: v) { return p }
+            }
+            return nil
+        }.value
+        if let fresh { plan = fresh }
     }
 
     /// Mac: rebuilds the plan from Voice Reader (phone over devicectl when paired) unless it was built in the last hour.
@@ -246,6 +263,50 @@ final class MorningStore: ObservableObject {
         return Array(due.prefix(12)) + fresh
     }
 
+    /// The day the Kür is about: today's listening, else the newest day that has listening.
+    func quizDay() -> MorningDay? { plan.days.last { !$0.items.isEmpty } }
+
+    /// The Kür (2026-11-03): short and about today. At most 6 questions from the chapters of the quiz day (the questions
+    /// written with the text first, books taking turns), 2 of your own marks there, 2 that tie it to earlier readings.
+    /// A card answered today is not asked again; one seen before comes back only when FSRS says it is due.
+    func quizQueue(_ d: Durum) -> [MorningCard] {
+        let now = Date(), today = now.gunBasi
+        func open(_ c: MorningCard) -> Bool {
+            guard let s = d.morningCards[c.id] else { return true }
+            return s.son.gunBasi != today && s.vade <= now
+        }
+        guard let day = quizDay() else {
+            return Array(plan.cards.filter { d.morningCards[$0.id] != nil && open($0) }.prefix(10))
+        }
+        let books = books(for: [day])
+        let focus = Set(books.flatMap { b in b.chapters.map { "\(b.id)#\($0.ch)" } })
+        let here = plan.cards.filter { focus.contains("\($0.book)#\($0.ch)") && open($0) }
+        let rank = ["quiz": 0, "cloze": 1, "edge": 2, "who": 3, "recall": 4]
+        var perBook: [String: [MorningCard]] = [:]
+        for c in here where rank[c.kind] != nil { perBook[c.book, default: []].append(c) }
+        for k in perBook.keys {
+            perBook[k]!.sort { (rank[$0.kind]!, -($0.weight ?? 2)) < (rank[$1.kind]!, -($1.weight ?? 2)) }
+        }
+        var main: [MorningCard] = []
+        var i = 0
+        while main.count < 6, perBook.values.contains(where: { $0.count > i }) {
+            for b in books.map(\.id) where main.count < 6 { if let l = perBook[b], l.count > i { main.append(l[i]) } }
+            i += 1
+        }
+        let marks = Array(here.filter { $0.kind == "mark" }.prefix(2))
+        var cross = Array(here.filter { $0.kind == "cross" }.prefix(2))
+        if cross.count < 2 {
+            // earlier readings: cards already met and due first, then the heaviest of the days before
+            let earlier = plan.cards.filter { !focus.contains("\($0.book)#\($0.ch)") && $0.kind != "mark" && open($0) }
+                .sorted { (d.morningCards[$0.id] == nil ? 1 : 0, -($0.weight ?? 2)) < (d.morningCards[$1.id] == nil ? 1 : 0, -($1.weight ?? 2)) }
+            for var c in earlier where cross.count < 2 && !cross.contains(where: { $0.book == c.book }) {
+                c.lane = "cross"
+                cross.append(c)
+            }
+        }
+        return Array((main + marks + cross).prefix(10))
+    }
+
     func nextReview(_ d: Durum) -> Date? {
         d.morningCards.values.map(\.vade).filter { $0 > Date() }.min()
     }
@@ -271,9 +332,53 @@ struct MorningView: View {
     private var doneSteps: Set<String> { d.morningSteps[today] ?? [] }
     private var dayDone: Bool { d.morningDone[today] != nil }
 
+    // The clock ticks once a second; only the bar and the cards watch it. The room itself follows `glance`.
+    private var box: TimeBoxClock { MorningBox.clock }
+    @State private var glance = TimeBoxGlance(MorningBox.clock)
+
     var body: some View {
+        VStack(spacing: 0) {
+            if !store.plan.days.allSatisfy({ $0.items.isEmpty }) && !glance.done { TimeBoxBar(clock: box) }
+            content
+        }
+        .timeBoxGlance(box, $glance)
+        .overlay {
+            if glance.over && !dayDone {
+                ZStack {
+                    Color.black.opacity(0.18).ignoresSafeArea()
+                    TimeBoxOverCard(clock: box, finishLabel: "Günü kapat") { closeDay() }
+                }
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: glance.over)
+        .onAppear {
+            MorningBox.connect(depo)
+            syncBox()
+        }
+        // The box starts on the first real touch inside Sabah, not when the screen appears: the Mac opens
+        // on this tab every morning, so starting on appear would run the clock during the English block.
+        .simultaneousGesture(TapGesture().onEnded { startBox() })
+        .onChange(of: doneSteps) { _, _ in startBox() }
+        .onChange(of: depo.durum.zamanKutusu[today]) { _, _ in syncBox() }
+        .onChange(of: dayDone) { _, _ in syncBox() }
+    }
+
+    private func startBox() {
+        if !dayDone && !store.plan.days.allSatisfy({ $0.items.isEmpty }) { box.touch() }
+    }
+
+    /// Adopts what the other device wrote (start, extension) and the day's close as the finish.
+    private func syncBox() {
+        var s = d.zamanKutusu[today] ?? TimeBoxState()
+        if let done = d.morningDone[today] { s.finished = done.t; if s.started == nil { s.started = done.t } }
+        box.adopt(s)
+        MorningBox.mirror(box.state)
+    }
+
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                if glance.done { TimeBoxDoneCard(clock: box) }
                 header
                 MorningStrip(days: store.plan.days, covered: store.covered(d), focus: Set(days.map(\.date)), chosen: $chosenDay)
                 if store.plan.days.allSatisfy({ $0.items.isEmpty }) {
@@ -300,6 +405,9 @@ struct MorningView: View {
         }
         .background(Tema.arka)
         .task { await store.prepare() }
+        .onChange(of: store.plan.built) { _, _ in
+            if !dayDone && !store.plan.days.allSatisfy({ $0.items.isEmpty }) { box.touch() }
+        }
         .onAppear { queue = store.reviewQueue(d, books: books) }
         .onChange(of: chosenDay) { _, _ in queue = store.reviewQueue(d, books: books); step = .contact }
         .onChange(of: store.plan.built) { _, _ in queue = store.reviewQueue(d, books: books) }
@@ -404,6 +512,7 @@ struct MorningView: View {
         let answered = d.morningCards.values.filter { $0.son.gunBasi == Date().gunBasi }.count
         depo.ekle(Olay(tur: .morningDone, hedef: today, puan: Double(answered), metin: covered,
                        sure: days.reduce(0) { $0 + $1.minutes }))
+        box.finish()
         withAnimation(.spring) { finished = true }
     }
 
@@ -778,6 +887,8 @@ struct MorningReview: View {
     @EnvironmentObject var depo: Depo
     var queue: [MorningCard]
     var today: String
+    var openBook: ((MorningCard) -> Void)? = nil
+    var finish: ((Int) -> Void)? = nil
 
     @State private var index = 0
     @State private var shown = false
@@ -797,6 +908,7 @@ struct MorningReview: View {
                     .font(.headline).foregroundStyle(Tema.basari)
                 Text("Unuttukların yarın yeniden gelir, hatırladıkların daha uzun aralıkla.").font(.callout).foregroundStyle(Tema.ikincil)
             }
+            .onAppear { finish?(right) }
         } else {
             card(queue[index])
         }
@@ -805,7 +917,8 @@ struct MorningReview: View {
     private func card(_ c: MorningCard) -> some View {
         MorningCardBox {
             HStack {
-                Text(kindName(c.kind)).font(.caption.weight(.semibold)).foregroundStyle(Tema.vurgu)
+                Text(c.lane == "cross" ? "Önceki okumadan · " + kindName(c.kind) : kindName(c.kind))
+                    .font(.caption.weight(.semibold)).foregroundStyle(c.lane == "cross" ? Tema.altin : Tema.vurgu)
                 Spacer()
                 Text("\(index + 1) / \(queue.count)").font(.caption).foregroundStyle(Tema.soluk).monospacedDigit()
             }
@@ -841,6 +954,10 @@ struct MorningReview: View {
                     }
                     Text(c.full).font(Tema.serif(.callout)).foregroundStyle(Tema.metin).fixedSize(horizontal: false, vertical: true)
                     if let w = c.why { Text(w).font(.caption).foregroundStyle(Tema.ikincil) }
+                    if let openBook {
+                        Button { openBook(c) } label: { Label("Kitapta aç", systemImage: "book") }
+                            .font(.caption.weight(.semibold)).buttonStyle(.plain).foregroundStyle(Tema.vurgu)
+                    }
                 }
                 .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Tema.yuzey2))
@@ -880,7 +997,8 @@ struct MorningReview: View {
     }
 
     private func grade(_ n: Not, _ c: MorningCard) {
-        depo.ekle(Olay(tur: .morningCard, hedef: c.id, not: n.rawValue, rol: c.kind))
+        // metin "book#ch": veri/feedback.py lists the chapters that did not stay (Unuttum · Zor) for Claude
+        depo.ekle(Olay(tur: .morningCard, hedef: c.id, not: n.rawValue, metin: "\(c.book)#\(c.ch)", rol: c.kind))
         if n != .unuttum { right += 1 }
         withAnimation(.snappy) {
             index += 1
@@ -891,6 +1009,9 @@ struct MorningReview: View {
 
     private func kindName(_ k: String) -> String {
         switch k {
+        case "quiz": "Bölümden soru"
+        case "cross": "Çapraz bağ"
+        case "mark": "İşaretin"
         case "cloze": "Boşluğu hatırla"
         case "who": "Kim söyledi?"
         case "edge": "Kavramlar arası bağ"
@@ -1006,6 +1127,242 @@ struct MorningEntryCard: View {
     }
 }
 
+// MARK: - Kür (2026-11-03)
+
+/// The Kür: the morning room's last step on its own, every day, ~4 minutes. Questions come from what you heard today
+/// (written with the text), two of your marks, two ties to earlier readings. Every answer can open the book at its
+/// chapter. The old Kür (three lines × six levels) lives on only in the Mac's Atölye.
+struct DailyQuizView: View {
+    @EnvironmentObject var depo: Depo
+    @ObservedObject private var store = MorningStore.shared
+    var wide = false
+    var close: (() -> Void)?
+
+    @State private var queue: [MorningCard] = []
+    @State private var built = false
+    @State private var place: BookPlace?
+    @State private var done = false
+
+    private var today: String { MorningStore.todayKey }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                header
+                if queue.isEmpty {
+                    MorningCardBox {
+                        Text(built ? "Bugün sorulacak kart yok." : "Hazırlanıyor…").font(.headline).foregroundStyle(Tema.metin)
+                        Text("Kür, Voice Reader'da dinlediğin bölümlerden kurulur: metinle birlikte yazılan sorular, senin işaretlerin ve önceki okumalara bağlar.")
+                            .font(.callout).foregroundStyle(Tema.ikincil)
+                    }
+                } else if done {
+                    finished
+                } else {
+                    MorningReview(queue: queue, today: today,
+                                  openBook: { c in place = BookPlace(book: c.book, ch: c.ch) },
+                                  finish: { _ in complete() })
+                }
+            }
+            .padding(.horizontal, wide ? 32 : 18).padding(.vertical, wide ? 24 : 12)
+            .frame(maxWidth: wide ? 820 : .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Tema.arka)
+        .onAppear { rebuild() }
+        .task { await store.prepare(); if queue.isEmpty { rebuild() } }
+        .bookPlaceOpener($place)
+    }
+
+    private func rebuild() {
+        queue = store.quizQueue(depo.durum)
+        built = true
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Günün kürü").font(Tema.serif(wide ? .largeTitle : .title, .semibold)).foregroundStyle(Tema.metin)
+                Text(DailyQuizView.subtitle(store, queue)).font(.subheadline).foregroundStyle(Tema.ikincil)
+            }
+            Spacer()
+            if store.preparing { ProgressView().controlSize(.small) }
+            if let close {
+                Button(action: close) { Image(systemName: "xmark.circle.fill").font(.title2).foregroundStyle(Tema.soluk) }
+                    .buttonStyle(.plain).accessibilityLabel("Kapat").keyboardShortcut(.cancelAction)
+            }
+        }
+    }
+
+    static func subtitle(_ store: MorningStore, _ queue: [MorningCard]) -> String {
+        guard let day = store.quizDay() else { return "Dinlediğin bölümlerden kısa bir quiz" }
+        let when = day.date == MorningStore.todayKey ? "Bugün" : (day.date == Tarih.gun(Date().gun(-1)) ? "Dün" : day.weekday)
+        let mins = max(1, Int((Double(queue.count) * 25 / 60).rounded()))
+        return "\(when) dinlediğin bölümler · \(queue.count) kart · ~\(mins) dk"
+    }
+
+    private func complete() {
+        if !(depo.durum.morningSteps[today] ?? []).contains(MorningStep.review.rawValue) {
+            depo.ekle(Olay(tur: .morningStep, hedef: today, rol: MorningStep.review.rawValue))
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { withAnimation(.spring) { done = true } }
+    }
+
+    private var finished: some View {
+        MorningCardBox {
+            VStack(spacing: 12) {
+                Image(systemName: "checkmark.seal.fill").font(.system(size: 50)).foregroundStyle(Tema.basari)
+                Text("Günü tamamladın").font(Tema.serif(.largeTitle, .semibold)).foregroundStyle(Tema.metin)
+                Text("Unuttukların yarın yeniden gelir; tutmayan bölümler sıradaki metinde başka bir açıdan kurulur.")
+                    .font(.callout).foregroundStyle(Tema.ikincil).multilineTextAlignment(.center)
+                if let close { Button("Kapat", action: close).buttonStyle(IkinciDugme()).frame(maxWidth: 240) }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+/// Bugün's card for the Kür.
+struct DailyQuizCard: View {
+    @EnvironmentObject var depo: Depo
+    @ObservedObject private var store = MorningStore.shared
+    var start: () -> Void
+
+    var body: some View {
+        let q = store.quizQueue(depo.durum)
+        let done = (depo.durum.morningSteps[MorningStore.todayKey] ?? []).contains(MorningStep.review.rawValue)
+        Button(action: start) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Kür", systemImage: done ? "checkmark.seal.fill" : "rectangle.stack.fill")
+                        .font(.caption.weight(.semibold)).foregroundStyle(done ? Tema.basari : Tema.vurgu)
+                    Spacer()
+                    Text(done ? "bugün yapıldı" : "\(q.count) kart").font(.caption).foregroundStyle(Tema.soluk)
+                }
+                Text(done && q.isEmpty ? "Bugünün kürü tamam" : "Günün kürü").font(Tema.serif(.title3, .semibold)).foregroundStyle(Tema.metin)
+                Text(DailyQuizView.subtitle(store, q)).font(.callout).foregroundStyle(Tema.ikincil)
+                Label(done ? "Bir daha bak" : "Kürü başlat", systemImage: "play.fill")
+                    .font(.callout.weight(.semibold)).foregroundStyle(Tema.vurgu)
+            }
+            .padding(18).frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 18).fill(Tema.yuzey))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(done ? Tema.basari.opacity(0.4) : Tema.vurgu.opacity(0.3)))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - A chapter of a book, opened in the reader
+
+struct BookPlace: Identifiable {
+    let book: String
+    let ch: Int
+    var b = 0
+    var id: String { "\(book).\(ch).\(b)" }
+}
+
+struct BookPlaceOpener: ViewModifier {
+    @EnvironmentObject var depo: Depo
+    @Binding var place: BookPlace?
+    @State private var konum: KitapKonumu?
+
+    func body(content: Content) -> some View {
+        content
+            .task(id: place?.id) {
+                guard let p = place else { return }
+                let lib = LibraryStore.shared
+                let raw = await lib.book(p.book, kasa: depo.kasa)
+                place = nil
+                guard let raw else { depo.bildirim = "Bu kitap kütüphanede yok"; return }
+                konum = KitapKonumu(book: lib.withMarks(raw), yer: (p.ch, p.b))
+            }
+            #if os(iOS)
+            .fullScreenCover(item: $konum) { reader($0) }
+            #else
+            .sheet(item: $konum) { reader($0).frame(minWidth: 900, minHeight: 700) }
+            #endif
+    }
+
+    private func reader(_ k: KitapKonumu) -> some View {
+        ReaderView(book: k.book, mode: .full, jump: k.yer.map { ($0.ch, $0.b) }).environmentObject(depo)
+    }
+}
+
+extension View {
+    func bookPlaceOpener(_ place: Binding<BookPlace?>) -> some View { modifier(BookPlaceOpener(place: place)) }
+}
+
 private extension String {
     var capitalizedFirst: String { prefix(1).uppercased(with: Locale(identifier: "tr_TR")) + dropFirst() }
+}
+
+
+// MARK: - Sabah time box (Kurultay decision 2026-11-05)
+
+/// What a screen needs from a time box without rebuilding itself every second: is the block done, is the limit card
+/// up. The clock publishes its time once a second; `timeBoxGlance` turns that into a value that changes only when
+/// one of the two does.
+struct TimeBoxGlance: Equatable {
+    var done = false
+    var over = false
+    @MainActor init(_ clock: TimeBoxClock) { done = clock.phase == .done; over = clock.showOver }
+}
+
+extension View {
+    func timeBoxGlance(_ clock: TimeBoxClock, _ glance: Binding<TimeBoxGlance>) -> some View {
+        func refresh() {
+            let g = TimeBoxGlance(clock)
+            if g != glance.wrappedValue { glance.wrappedValue = g }
+        }
+        return onReceive(clock.objectWillChange.receive(on: DispatchQueue.main)) { _ in refresh() }
+            .onAppear { refresh() }
+    }
+}
+
+/// One 60-minute "Mütalaa" clock for the day, shared by the Mac and the iPhone through the event log
+/// (zamanBasla · zamanUzat; the finish is the day's morningDone). On the Mac it is also mirrored to
+/// vault/_bus/plan/durum/<day>.json and the PDM bus, where Tekne draws it on the day strip.
+@MainActor
+enum MorningBox {
+    static let plan: TimeBoxPlan = {
+        #if os(macOS)
+        return TimeBoxPlan.load(vault: vault)
+        #else
+        return .standard
+        #endif
+    }()
+    static let clock = TimeBoxClock(block: plan.block("review") ?? TimeBoxPlan.standard.blocks[1], plan: plan)
+    private static weak var depo: Depo?
+
+    static var vault: URL? {
+        #if os(macOS)
+        let u = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Mobile Documents/iCloud~md~obsidian/Documents/Personel Data Management")
+        return FileManager.default.fileExists(atPath: u.path) ? u : nil
+        #else
+        return nil
+        #endif
+    }
+
+    static func connect(_ d: Depo) {
+        guard depo == nil else { return }
+        depo = d
+        clock.onChange = { s, type in
+            let day = MorningStore.todayKey
+            switch type {
+            case "timebox.started": depo?.ekle(Olay(tur: .zamanBasla, hedef: day))
+            case "timebox.extended": depo?.ekle(Olay(tur: .zamanUzat, hedef: day, sure: Double(s.extendedMinutes)))
+            default: break   // finish = morningDone, already in the log
+            }
+            mirror(s)
+            if let v = vault {
+                TimeBoxBus.emit(vault: v, app: "teoria", device: Cihaz.ad, type: type, block: clock.block, state: s)
+            }
+        }
+    }
+
+    /// Mac only: keep the shared day file in step (also with what the iPhone did).
+    static func mirror(_ s: TimeBoxState) {
+        guard let v = vault, s.started != nil else { return }
+        TimeBoxDay.write(vault: v, id: clock.block.id, s)
+    }
 }

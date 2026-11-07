@@ -127,18 +127,30 @@ final class Kaydedici: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAu
         istek.shouldReportPartialResults = true
         if tanici.supportsOnDeviceRecognition { istek.requiresOnDeviceRecognition = true }
         istek.taskHint = .dictation
+        // The recogniser can go silent (no final result, no error): without a limit the caller waits for ever
+        // and the screen stays on "çözülüyor". The limit follows the length of the recording.
+        let uzunluk = (try? AVAudioPlayer(contentsOf: u))?.duration ?? 60
+        let sinir = max(15, uzunluk + 15)
         return await withCheckedContinuation { (c: CheckedContinuation<String?, Never>) in
             let b = Biriktirici()
-            tanici.recognitionTask(with: istek) { sonuc, hata in
-                _ = tanici   // the recognizer must stay alive until the task ends, or the callback never fires
+            let run = RecognitionRun(tanici)
+            // Callbacks arrive on the main queue (SFSpeechRecognizer.queue), the timeout too: `b` is touched from one queue.
+            run.task = tanici.recognitionTask(with: istek) { sonuc, hata in
                 if b.bitti { return }
                 if let sonuc {
                     b.ekle(sonuc.bestTranscription.formattedString, parcaSonu: sonuc.speechRecognitionMetadata != nil)
-                    if sonuc.isFinal { b.bitti = true; c.resume(returning: b.metin) }
-                } else if hata != nil {
+                    if sonuc.isFinal, run.finish() { b.bitti = true; c.resume(returning: b.metin) }
+                } else if hata != nil, run.finish() {
                     b.bitti = true
                     c.resume(returning: b.metin.isEmpty ? nil : b.metin)
                 }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + sinir) {
+                let task = run.task
+                guard run.finish() else { return }
+                b.bitti = true
+                task?.cancel()
+                c.resume(returning: b.metin.isEmpty ? nil : b.metin)     // what was recognised so far, if anything
             }
         }
     }
@@ -159,6 +171,27 @@ final class Kaydedici: NSObject, ObservableObject, AVAudioRecorderDelegate, AVAu
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in self.calan = nil }
+    }
+}
+
+/// One recognition in flight. It holds the recogniser and its task (the task's callback holds this object in turn),
+/// so neither is released before the result, an error or the timeout; `finish` then lets them go.
+final class RecognitionRun: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+    private var recognizer: SFSpeechRecognizer?
+    private var held: SFSpeechRecognitionTask?
+    init(_ r: SFSpeechRecognizer) { recognizer = r }
+    var task: SFSpeechRecognitionTask? {
+        get { lock.lock(); defer { lock.unlock() }; return held }
+        set { lock.lock(); if !done { held = newValue }; lock.unlock() }
+    }
+    /// True for the first caller only: the continuation is resumed exactly once.
+    func finish() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if done { return false }
+        done = true; recognizer = nil; held = nil
+        return true
     }
 }
 

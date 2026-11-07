@@ -112,7 +112,7 @@ struct BikeBar: View {
             GeometryReader { g in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color(uiColor: theme.hairline).opacity(0.35))
-                    Capsule().fill(accent.fill).frame(width: max(4, g.size.width * Double(p.cursor) / Double(max(1, p.length))))
+                    Capsule().fill(accent.fill).frame(width: max(4, g.size.width * Double(p.shownCursor) / Double(max(1, p.length))))
                 }
             }
             .frame(height: 4)

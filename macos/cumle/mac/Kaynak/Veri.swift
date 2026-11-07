@@ -77,6 +77,12 @@ struct GunCumle: Codable, Hashable {
     }
 }
 
+/// Biçim v2 (2026-11-05): uzun dinleme metninin bir parçası; `cumle` varsa çalışma cümlesidir.
+struct GunParca: Codable, Hashable {
+    var en: String?
+    var cumle: Int?
+}
+
 struct GunVeri: Codable, Hashable {
     var gun: Int?
     var mod: String?
@@ -89,6 +95,7 @@ struct GunVeri: Codable, Hashable {
     var yeni: [String]?
     var yanki: [String]?
     var tanidik: [String]?
+    var dinleme: [GunParca]?
 
     var no: Int { gun ?? 0 }
     var sahne: [String] { sahne_konulari ?? [] }

@@ -128,7 +128,7 @@ struct NavigationSheet: View {
             if chapters.isEmpty {
                 ContentUnavailableView("Başlık yok", systemImage: "list.bullet.indent", description: Text("Bu belgede içindekiler bulunamadı."))
             } else {
-                let current = chapters.lastIndex { $0.offset <= player.cursor }
+                let current = chapters.lastIndex { $0.offset <= player.shownCursor }
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
@@ -648,6 +648,10 @@ private struct VoiceTuningSection: View {
     @State private var volume = 100.0
     @State private var pitch = 100.0
     @State private var steady = 0.0
+    @State private var measuring = false
+    @State private var measured: String?
+    @State private var adopting = false
+    @State private var adopted: String?
 
     var body: some View {
         Group {
@@ -656,20 +660,46 @@ private struct VoiceTuningSection: View {
             Section {
                 Toggle("iPhone'un seslendirme ayarlarıyla oku", isOn: $s.systemSpeech)
                     .onChange(of: s.systemSpeech) { model.applyAudioSettingsSoon() }
+                if s.systemSpeech {
+                    Button {
+                        adopting = true
+                        Task { adopted = await model.adoptPhoneVoice(); adopting = false; load() }
+                    } label: {
+                        HStack {
+                            Text("Bu tınıyı Wise Path'e al")
+                            Spacer()
+                            if adopting { ProgressView() }
+                        }
+                    }
+                    .disabled(adopting)
+                }
             } footer: {
-                Text(s.systemSpeech
-                     ? "Türkçe ses, iPhone'un kendi Ekranı Seslendir'i gibi okur: ses, hız, perde ve ekolayzer Ayarlar › Erişilebilirlik › Seslendirilen İçerik'teki Türkçe ses ayarlarından gelir. Ses tınısı değişmeden yaklaşık 5 dB güçlendirilir, hiçbir yerde kırpılmaz. Bu kipte Wise Path'in hız düğmesi sesi değiştirmez. iOS 27'de Yelda'yı Voice Dream'deki kalınlığa yalnız bu ayar indirebiliyor."
-                     : "Hız, ses miktarı ve kalınlık Wise Path'ten gelir. iOS 27'de kalınlık 50 bile Yelda'yı eskisi kadar kalınlaştırmaz.")
+                VStack(alignment: .leading, spacing: 6) {
+                    if let adopted { Text(adopted).foregroundStyle(.primary) }
+                    Text(s.systemSpeech
+                         ? "Türkçe ses, iPhone'un kendi Ekranı Seslendir'i gibi okur: hız ve perde Ayarlar › Erişilebilirlik › Seslendirilen İçerik'ten gelir, Wise Path'in hız düğmesi sesi değiştirmez. “Bu tınıyı Wise Path'e al” şu an duyduğun sesi iki saniyede ölçer, aynı kalınlığı ve hızı Wise Path'in kendi ayarına yazar ve bu anahtarı kapatır: ses aynı kalır, hız düğmesi ve Kalınlık uygulamada çalışır."
+                         : "Hız, ses miktarı ve kalınlık Wise Path'ten gelir; iPhone'un ayarları sesi değiştirmez.")
+                }
             }
         }
         if system && !model.settings.systemSpeech {
+            @Bindable var st = model.settings
+            Section {
+                Toggle("Yüksek hızda net okuma", isOn: $st.fastClear)
+                    .onChange(of: st.fastClear) { model.applyAudioSettingsSoon() }
+            } footer: {
+                Text("385 kelime/dk'nın üstünde ses, temiz olduğu 330'da üretilip eşit olmayan biçimde kısaltılır: boşluklar ve düz sesli harfler çok, ünsüzler ve ses geçişleri az. Kelime sonları yeniden kesin kapanır. Sesin rengi ve kalınlığı değişmez; hız 500'e kadar çıkar. Kapalıyken hız motorun kendisinden istenir (en çok yaklaşık 470).")
+            }
             Section {
                 TuneCard(title: "Ses Miktarı", value: $volume, range: 0...100, step: 1, caption: "\(Int(volume))", commit: save)
             }
             Section {
-                TuneCard(title: "Kalınlık", value: $pitch, range: 50...200, step: 5, caption: "\(Int(pitch))", commit: save)
+                TuneCard(title: "Kalınlık", value: $pitch, range: (SystemPitch.reachesDeep ? 20 : 50)...200, step: 1,
+                         caption: "\(Int(pitch)) · ≈ \(Int((SystemPitch.ratio(pitch / 100) * 100).rounded())) %", commit: save)
             } footer: {
-                Text("100 sesin kendisidir; 50 en kalın, 200 en ince. Bu ayarlar seçili sese aittir.")
+                Text(SystemPitch.reachesDeep
+                     ? "100 sesin kendisidir; 50 Voice Dream'in en kalını (Yelda ≈ 156 Hz). 50'nin altı Wise Path'in açtığı ek derinliktir: 40 ≈ 147 Hz, 30 ≈ 135 Hz. Ses rengi ve hız değişmez. Bu ayarlar seçili sese aittir."
+                     : "100 sesin kendisidir; 50 en kalın, 200 en ince. Bu ayarlar seçili sese aittir.")
             }
             Section {
                 Button("Voice Dream ayarı: 330 · 100 · 50") { model.applyVoiceDreamSetting(); load() }
@@ -679,11 +709,38 @@ private struct VoiceTuningSection: View {
         } else if let p = VoiceProfile.with(id: voiceID) {
             Section { DepthSlider(profile: p) } footer: { Text("Ses aynı kişi kalır, yalnız daha kalın ya da ince olur.") }
         }
+        if voiceID == ElevenLabs.readerVoiceID || voiceID == CloudVoice.readerVoiceID {
+            @Bindable var s = model.settings
+            Section {
+                Toggle("Kararlı ölçü", isOn: $s.steadyCloud)
+                    .onChange(of: s.steadyCloud) { model.applyAudioSettingsSoon() }
+            } footer: {
+                Text("Bu sesi Yelda'da ölçülen kararlılığa yaklaştırır: melodi en çok %55 daraltılır (hedef 3,7 yarım ton), cümlelerin düzeyi eşitlenir; ElevenLabs'tan ayrıca düz ve kararlı okuma istenir. Hız ve ses rengi değişmez. Kapalıyken ses servisin ürettiği gibi çalar.")
+            }
+        } else {
         Section {
             TuneCard(title: "Düzlük", value: $steady, range: 0...70, step: 5,
                      caption: steady < 1 ? "Sesin kendisi" : "Tonlama %\(Int(steady)) daha düz", commit: save)
+            if system, !model.settings.systemSpeech {
+                Button {
+                    measuring = true
+                    Task { measured = await model.steadyVoice(); measuring = false; load() }
+                } label: {
+                    HStack { Text("Kararlı ölçüye getir"); Spacer(); if measuring { ProgressView() } }
+                }
+                .disabled(measuring)
+                Button {
+                    measuring = true
+                    Task { measured = await model.steadyOtherVoices(); measuring = false; load() }
+                } label: { Text("Öteki Türkçe sesleri de getir") }
+                .disabled(measuring)
+            }
         } footer: {
-            Text("Cümlenin iniş çıkışlarını daraltır: vurgular yönünü korur, boyu kısalır; ses rengi ve hız değişmez.")
+            VStack(alignment: .leading, spacing: 6) {
+                if let measured { Text(measured).foregroundStyle(.primary) }
+                Text("Cümlenin iniş çıkışlarını daraltır: vurgular yönünü korur, boyu kısalır; ses rengi ve hız değişmez. “Kararlı ölçüye getir” seçili sesin melodisini ölçer ve Düzlük'ü Yelda'nın kararlılığına (3,7 yarım ton) göre kendisi ayarlar. “Öteki Türkçe sesleri de getir” aynısını kurulu öteki iPhone seslerine (Cem, Gelişmiş sesler) yapar; kendi ayarını verdiğin sese dokunmaz.")
+            }
+        }
         }
         }
         .onAppear(perform: load)

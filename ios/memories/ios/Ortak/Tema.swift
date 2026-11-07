@@ -19,11 +19,13 @@ enum Tema {
     /// Dolu düğme üstündeki yazı: vurgunun karşıtı.
     static let dolguYazi = cift(0xFFFFFF, 0x000000)
     /// Memories'in rengi (ikondaki nokta): ışıma ve dolu düğme.
-    static let kehribar = cift(0xE39A2D, 0xFFB547)
+    static let kehribar = cift(0xC4863A, 0xD9A25E)
     /// Zemin üstünde yazı için kehribar: açıkta koyu (okunurluk), koyuda parlak.
-    static let kehribarYazi = cift(0xB8650F, 0xFFAD47)
+    static let kehribarYazi = cift(0x9C5F1C, 0xD1A064)
+    /// Koyu mavi dolu düğme (widget Kur): beyaz yazı taşır.
+    static let koyuMavi = cift(0x1E4FA3, 0x2A5FC0)
     static let yesil = cift(0x23915E, 0x39D98A)
-    static let sari = Color(red: 0.98, green: 0.80, blue: 0.25)
+    static let sari = cift(0xC9A24E, 0xA8873F)
     /// Canlı Etkinlik zemini (kilit ekranı her zaman koyu).
     static let gece = Color(red: 0.07, green: 0.07, blue: 0.08)
 
@@ -35,6 +37,7 @@ enum Tema {
         case "aciklama": vurgu
         case "metin": kehribarYazi
         case "kelimeler": yesil
+        case "dinleme": cift(0x7A5AC8, 0xA98BFF)
         default: .secondary
         }
     }

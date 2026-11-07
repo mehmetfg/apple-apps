@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		F0A000000000000000005201 /* onnxruntime in Frameworks */ = {isa = PBXBuildFile; productRef = F0A000000000000000005101 /* onnxruntime */; };
 		F0A00000000000000000B021 /* WisePathWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A00000000000000000B004 /* WisePathWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PDA48307A1E71C9E0ECD1AD7 /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD371297D6455B0E70DF28CB /* PDMBus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDA48307A1E71C9E0ECD1AD7 /* PDMBus in Frameworks */,
 				F0A000000000000000005201 /* onnxruntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -124,6 +126,7 @@
 			);
 			name = VoiceReader;
 			packageProductDependencies = (
+				PD371297D6455B0E70DF28CB /* PDMBus */,
 				F0A000000000000000005101 /* onnxruntime */,
 			);
 			productName = VoiceReader;
@@ -181,6 +184,7 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			packageReferences = (
+				PDCC0DB12F6E27FDA9665E8C /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
 				F0A000000000000000005001 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */,
 			);
 			productRefGroup = F0A000000000000000001D02 /* Products */;
@@ -442,6 +446,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		PDCC0DB12F6E27FDA9665E8C /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		F0A000000000000000005001 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -458,6 +469,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F0A000000000000000005001 /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
 			productName = onnxruntime;
+		};
+		PD371297D6455B0E70DF28CB /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDCC0DB12F6E27FDA9665E8C /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

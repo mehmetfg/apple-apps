@@ -11,6 +11,9 @@ final class AppModel: ObservableObject {
     @Published var days: [DaySummary] = []
     @Published var todaySessions: [Session] = []
     @Published var selected: AreaID?
+    /// Morning time boxes (Kurultay decision 2026-11-05): plan + today's state, written by Cümle and Teoria.
+    @Published var morningPlan: TimeBoxPlan = .standard
+    @Published var morningState: [String: TimeBoxState] = [:]
     @Published var windowStart: Int { didSet { UserDefaults.standard.set(windowStart, forKey: "tekne.start"); recompute() } }
     @Published var windowEnd: Int { didSet { UserDefaults.standard.set(windowEnd, forKey: "tekne.end"); recompute() } }
 
@@ -38,6 +41,8 @@ final class AppModel: ObservableObject {
     }
 
     func refreshAll() {
+        morningPlan = TimeBoxPlan.load(vault: Vault.root)
+        morningState = TimeBoxDay.read(vault: Vault.root)
         store.reload()
         reloadDisk()
     }

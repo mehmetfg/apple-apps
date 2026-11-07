@@ -87,6 +87,23 @@ struct MoveModeMenu: View {
                         }
                     }
                 }
+                if model.settings.bikeLook == .kinetic {
+                    Section("Kinetik yazı") {
+                        Button { model.settings.kineticMask = false } label: {
+                            Label("Vuruş", systemImage: model.settings.kineticMask ? "textformat.size.larger" : "checkmark")
+                        }
+                        Button { model.settings.kineticMask = true } label: {
+                            Label("Perde", systemImage: model.settings.kineticMask ? "checkmark" : "arrow.up.to.line")
+                        }
+                    }
+                }
+                Section("Işık") {
+                    ForEach(RideLight.allCases) { l in
+                        Button { withAnimation(.smooth(duration: 0.35)) { model.settings.rideLight = l.rawValue } } label: {
+                            Label(l.name, systemImage: model.settings.rideLight == l.rawValue ? "checkmark" : l.symbol)
+                        }
+                    }
+                }
                 if kind == .bike {
                     Button { model.startMove(.walk) } label: { Label("Yürüyüşe geç", systemImage: "figure.walk") }
                 } else {
@@ -381,6 +398,6 @@ struct BookSwitchSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(Ride.day ? .light : .dark)
     }
 }

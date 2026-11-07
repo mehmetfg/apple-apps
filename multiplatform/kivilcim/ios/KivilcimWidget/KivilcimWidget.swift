@@ -12,7 +12,9 @@ struct KivilcimWidgetleri: WidgetBundle {
     var body: some Widget {
         KayitDenetimi()
         AcVeKaydetDenetimi()
+        GunlukDenetimi()
         KivilcimWidget()
+        OpenSparksWidget()
         KayitCanliEtkinligi()
     }
 }
@@ -44,6 +46,108 @@ struct AcVeKaydetDenetimi: ControlWidget {
         }
         .displayName("Aç ve kaydet")
         .description("Kıvılcım'ı açar ve kaydı başlatır (kilit açılır).")
+    }
+}
+
+/// Long spoken diary from the lock screen, Control Center or the Action Button.
+struct GunlukDenetimi: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "com.fatihgocgun.kivilcim.gunluk") {
+            ControlWidgetButton(action: StartJournalIntent()) {
+                Label(WidgetDurumu.kayitta ? "Kaydı bitir" : "Sesli günlük", systemImage: WidgetDurumu.kayitta ? "stop.circle.fill" : "book.pages.fill")
+            }
+            .tint(.indigo)
+        }
+        .displayName("Sesli günlük")
+        .description("Kıvılcım: uzun sesli günlük; o günün günlüğüne yazılır.")
+    }
+}
+
+// MARK: Open items widget — urgent first; ✓ marks done without opening the app
+
+struct OpenEntry: TimelineEntry {
+    let date: Date
+    let items: [ItemSnapshot]
+    let total: Int
+}
+
+struct OpenProvider: TimelineProvider {
+    func entry() -> OpenEntry {
+        let all = SharedStore.openItems()
+        return OpenEntry(date: Date(), items: Array(all.prefix(12)), total: all.count)
+    }
+    func placeholder(in context: Context) -> OpenEntry {
+        OpenEntry(date: Date(), items: [
+            ItemSnapshot(id: "a", title: "Kan testi randevusu al", priority: 3, status: "open", kind: "spark", area: "Sağlık", color: "#E0565B", date: "", noteCount: 0),
+            ItemSnapshot(id: "b", title: "Wise Path'e okuma yedeği", priority: 2, status: "open", kind: "extract", area: "Yazılım", color: "#2BB673", date: "", noteCount: 1),
+            ItemSnapshot(id: "c", title: "Kant ve zaman üzerine deneme", priority: 1, status: "open", kind: "spark", area: "Felsefe", color: "#8E6FD8", date: "", noteCount: 0),
+        ], total: 3)
+    }
+    func getSnapshot(in context: Context, completion: @escaping (OpenEntry) -> Void) {
+        let e = entry(); completion(context.isPreview && e.items.isEmpty ? placeholder(in: context) : e)
+    }
+    func getTimeline(in context: Context, completion: @escaping (Timeline<OpenEntry>) -> Void) {
+        completion(Timeline(entries: [entry()], policy: .after(Date().addingTimeInterval(1800))))
+    }
+}
+
+struct OpenSparksWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "com.fatihgocgun.kivilcim.acik", provider: OpenProvider()) { e in
+            OpenSparksView(e: e).containerBackground(.fill.tertiary, for: .widget)
+        }
+        .configurationDisplayName("Açık işler")
+        .description("Öncelik sırasıyla açık kıvılcımlar; ✓ ile uygulamayı açmadan bitir.")
+        .supportedFamilies(tallFamilies([.systemMedium, .systemLarge, .accessoryRectangular]))
+    }
+}
+
+struct OpenSparksView: View {
+    @Environment(\.widgetFamily) var family
+    /// The tall size of iOS 27 counts as large, with room for twice as many.
+    private var isTall: Bool {
+        if #available(iOS 27.0, *) { return family == .systemExtraLargePortrait }
+        return false
+    }
+    private var isBig: Bool { family == .systemLarge || isTall }
+    let e: OpenEntry
+    var body: some View {
+        if family == .accessoryRectangular {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(e.total) açık").font(.headline).widgetAccentable()
+                ForEach(e.items.prefix(2)) { s in
+                    Text((s.priority == 3 ? "‼︎ " : "") + s.title).font(.caption).lineLimit(1)
+                }
+            }
+        } else {
+            let n = isTall ? 12 : isBig ? 6 : 3
+            VStack(alignment: .leading, spacing: isBig ? 10 : 6) {
+                HStack {
+                    Label("Açık · \(e.total)", systemImage: "flame.fill").font(.subheadline.weight(.bold)).foregroundStyle(Color.kivilcim)
+                    Spacer()
+                    Button(intent: KaydiDegistirNiyeti()) { Image(systemName: "mic.fill").font(.subheadline.weight(.semibold)) }
+                        .buttonStyle(.plain).foregroundStyle(Color.kivilcim)
+                }
+                if e.items.isEmpty {
+                    Spacer(); Text("Açık iş yok 🎉").font(.subheadline).foregroundStyle(.secondary); Spacer()
+                }
+                ForEach(e.items.prefix(n)) { s in
+                    HStack(spacing: 8) {
+                        Button(intent: MarkDoneIntent(id: s.id)) {
+                            Image(systemName: "circle").font(.system(size: 18)).foregroundStyle(Color(hex: s.prio.hex))
+                        }.buttonStyle(.plain)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(s.title).font(.footnote.weight(.semibold)).lineLimit(1)
+                            if isBig { Text(s.area).font(.caption2).foregroundStyle(Color(hex: s.color)) }
+                        }
+                        Spacer(minLength: 0)
+                        if s.priority >= 2 { Image(systemName: s.prio.symbol).font(.caption2.weight(.heavy)).foregroundStyle(Color(hex: s.prio.hex)) }
+                    }
+                    .widgetURL(URL(string: "kivilcim://isler"))
+                }
+                Spacer(minLength: 0)
+            }
+        }
     }
 }
 
@@ -192,8 +296,11 @@ struct KayitCanliEtkinligi: Widget {
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     if d.bitti {
-                        Text(d.baslik).font(.subheadline.weight(.medium)).lineLimit(2)
-                            .foregroundStyle(.white.opacity(0.85)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6)
+                        VStack(spacing: 8) {
+                            Text(d.baslik).font(.subheadline.weight(.medium)).lineLimit(2)
+                                .foregroundStyle(.white.opacity(0.85)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6)
+                            if let id = d.kimlik { BitisDugmeleri(id: id) }
+                        }
                     } else {
                         VStack(spacing: 8) {
                             Dalga(seviyeler: d.seviyeler, duraklatildi: d.duraklatildi, adet: 24).frame(height: 18)
@@ -253,8 +360,28 @@ struct KilitEkraniEtkinligi: View {
                 }
             }
             if !d.bitti { DenetimSirasi(d: d, boy: 46) }
+            else if let id = d.kimlik { BitisDugmeleri(id: id) }
         }
         .padding(16)
+    }
+}
+
+/// After a spark ends: set its priority or mark it done right on the lock screen (runs in the app process).
+struct BitisDugmeleri: View {
+    let id: String
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach([Priority.urgent, .high, .low]) { p in
+                Button(intent: SetPriorityIntent(id: id, priority: p)) {
+                    Text(p.name).font(.caption.weight(.bold)).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).frame(height: 34).background { DugmeZemini(renk: Color(hex: p.hex)) }
+                }.buttonStyle(.plain)
+            }
+            Button(intent: MarkDoneIntent(id: id)) {
+                Image(systemName: "checkmark").font(.subheadline.weight(.bold)).foregroundStyle(.white)
+                    .frame(width: 44, height: 34).background { DugmeZemini(renk: .green) }
+            }.buttonStyle(.plain).accessibilityLabel("Yapıldı")
+        }
     }
 }
 
@@ -283,4 +410,10 @@ struct DenetimSirasi: View {
             .buttonStyle(.plain)
         }
     }
+}
+
+/// Adds the tall size of iOS 27 (the largest one on an iPhone) where the system has it.
+func tallFamilies(_ base: [WidgetFamily]) -> [WidgetFamily] {
+    if #available(iOS 27.0, *) { return base + [.systemExtraLargePortrait] }
+    return base
 }

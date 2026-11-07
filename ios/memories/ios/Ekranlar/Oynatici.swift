@@ -11,11 +11,26 @@ import Foundation
 import AVFoundation
 import MediaPlayer
 
+/// The player's time for progress bars and time labels (10 Hz while playing).
+@MainActor
+final class PlaybackClock: ObservableObject {
+    @Published fileprivate(set) var time: Double = 0
+}
+
 @MainActor
 final class Oynatici: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published private(set) var paket: Paket?
-    @Published private(set) var caliyor = false { didSet { ScreenAwake.set("listen", caliyor) } }
-    @Published private(set) var zaman: Double = 0
+    @Published private(set) var caliyor = false {
+        didSet {
+            ScreenAwake.set("listen", caliyor)
+            if caliyor != oldValue { depo?.playbackChanged(playing: caliyor, package: paket) }
+        }
+    }
+    /// Playback time. Not published here: it moves ten times a second while playing, and this object is in the
+    /// environment of every screen. The views that draw progress observe `clock`; everything else redraws only
+    /// on coarse changes (package, playing, current line, section, single sentence).
+    private(set) var zaman: Double = 0 { didSet { if clock.time != zaman { clock.time = zaman } } }
+    let clock = PlaybackClock()
     @Published private(set) var sure: Double = 0
     @Published private(set) var satir: Satir?
     @Published private(set) var bolum: Bolum?

@@ -25,9 +25,9 @@ struct KivilcimApp: App {
         Window("Kıvılcım", id: "arsiv") {
             ArsivPenceresi()
                 .environmentObject(depo).environmentObject(kaydedici).environmentObject(Oynatici.shared)
-                .frame(minWidth: 860, minHeight: 520)
+                .frame(minWidth: 980, minHeight: 600)
         }
-        .defaultSize(width: 1080, height: 680)
+        .defaultSize(width: 1280, height: 800)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button(kaydedici.kayitta ? "Kaydı bitir" : "Yeni sesli fikir") { kaydedici.degistir() }
@@ -35,6 +35,8 @@ struct KivilcimApp: App {
             }
             CommandGroup(after: .newItem) {
                 Button("Şimdi işle") { depo.isle() }.keyboardShortcut("r")
+                Button(kaydedici.kayitta ? "Kaydı bitir" : "Uzun konuşma başlat") { kaydedici.toggle(.journal) }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
             }
         }
 
@@ -45,12 +47,22 @@ struct KivilcimApp: App {
 }
 
 final class Uygulama: NSObject, NSApplicationDelegate {
+    /// Opens the main window from AppKit (Dock click). Set by the menu bar label, which always exists.
+    @MainActor static var openMain: (() -> Void)?
+
+    /// Dock icon clicked with no window on screen → bring the Kıvılcım window back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { MainActor.assumeIsolated { Uygulama.openMain?(); NSApp.activate(ignoringOtherApps: true) } }
+        return true
+    }
+
     private var hud: HUDPaneli?
     private var gozlem: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppUpdater.start()
         UserDefaults.standard.register(defaults: ["kalite": "dengeli", "dil": "tr", "claudeBaslik": true, "hud": true])
+        MainActor.assumeIsolated { ThemeChoice.apply() }
         if let o = Onizleme.klasor { MainActor.assumeIsolated { Onizleme.calistir(o) }; return }
         MainActor.assumeIsolated {
             Kisayol.shared.kur()
@@ -77,6 +89,7 @@ final class Uygulama: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             switch u.host {
             case "kaydet", "baslat": if !Kaydedici.shared.kayitta { Kaydedici.shared.baslat() }
+            case "konusma", "gunluk": if !Kaydedici.shared.kayitta { Kaydedici.shared.baslat(.journal) }
             case "bitir": Kaydedici.shared.bitir()
             default: Kaydedici.shared.degistir()
             }
@@ -87,7 +100,11 @@ final class Uygulama: NSObject, NSApplicationDelegate {
 /// Menü çubuğundaki simge: boşta dalga, kayıtta kor renkli nokta + süre.
 struct MenuEtiketi: View {
     @EnvironmentObject var k: Kaydedici
+    @Environment(\.openWindow) private var openWindow
     var body: some View {
+        label.onAppear { Uygulama.openMain = { openWindow(id: "arsiv") } }
+    }
+    @ViewBuilder private var label: some View {
         if k.kayitta {
             HStack(spacing: 3) {
                 Image(systemName: "record.circle.fill").symbolRenderingMode(.palette).foregroundStyle(.red, .primary)

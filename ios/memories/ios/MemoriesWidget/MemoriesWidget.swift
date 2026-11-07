@@ -3,6 +3,8 @@
 //   · Dünün cümlen : önce Türkçesi; İngilizcesi gizli, "Göster" ile açılır (önce hatırla).
 //   · Cümle cümle  : günün metni tek tek; ‹ › ile geç, cümleye ya da 🔊'e dokun → uygulama açılmadan çalar.
 //                    Büyükte: 🎙 kendin kur (kayıt) · YZ istemi · gizleme merdiveni · günün ve dünün kelimeleri.
+//                    En büyükte (iOS 27 dikey dahil): yanında ya da altında günün bütün cümleleri, dokun → geç ve çal.
+//   iOS 27: renklendirilmiş ve şeffaf Ana Ekran'da zemin kalkar; dolgular saydamlaşır, yazı dolgunun üstünde kaybolmaz (WidgetPill).
 //   Zemin Teoria gibi: gündüz kâğıt beyazı, gece saf siyah, köşede kehribar ışıma (TemaZemin); uzun cümlede yazı küçülür.
 import WidgetKit
 import SwiftUI
@@ -25,9 +27,43 @@ struct Saglayici: TimelineProvider {
     }
 }
 
+// MARK: - Tinted and clear Home Screen
+
+extension WidgetFamily {
+    var isLargest: Bool {
+        if self == .systemExtraLarge { return true }
+        if #available(iOS 27.0, *), self == .systemExtraLargePortrait { return true }
+        return false
+    }
+    var isLargestPortrait: Bool {
+        if #available(iOS 27.0, *), self == .systemExtraLargePortrait { return true }
+        return false
+    }
+}
+
+/// Outside full colour the system keeps only alpha: an opaque fill would swallow the text on it.
+struct WidgetPill: View {
+    @Environment(\.widgetRenderingMode) private var mode
+    var color: Color
+    var strong = false
+    var body: some View {
+        Capsule().fill(mode == .fullColor ? color : Color.primary.opacity(strong ? 0.3 : 0.14))
+    }
+}
+
+/// Text and icons on a filled pill: dark on amber, white on red; plain primary outside full colour.
+struct OnFill: ViewModifier {
+    @Environment(\.widgetRenderingMode) private var mode
+    var alert = false
+    func body(content: Content) -> some View {
+        content.foregroundStyle(mode == .fullColor ? (alert ? Color.white : Color.black.opacity(0.85)) : Color.primary)
+    }
+}
+
 // MARK: - Ön çalışma
 
 struct AdimNoktalari: View {
+    @Environment(\.widgetRenderingMode) private var mode
     var adim: WidgetAnlik.Adim?
     var body: some View {
         HStack(spacing: 6) {
@@ -39,9 +75,9 @@ struct AdimNoktalari: View {
     private func nokta(_ s: String, _ dolu: Bool, _ r: Color) -> some View {
         Image(systemName: dolu ? "checkmark" : s)
             .font(.system(size: 10, weight: .bold))
-            .foregroundStyle(dolu ? .white : r)
+            .foregroundStyle(mode != .fullColor ? Color.primary : (dolu ? Color.white : r))
             .frame(width: 22, height: 22)
-            .background { Circle().fill(dolu ? r : r.opacity(0.15)) }
+            .background { Circle().fill(mode != .fullColor ? Color.primary.opacity(dolu ? 0.3 : 0.1) : (dolu ? r : r.opacity(0.15))) }
     }
 }
 
@@ -97,7 +133,7 @@ struct OnCalismaGorunum: View {
                     Spacer()
                     Label("Dinle", systemImage: "play.fill").font(.caption.weight(.bold))
                         .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background { Capsule().fill(Tema.kehribar) }.foregroundStyle(.black.opacity(0.85))
+                        .background { WidgetPill(color: Tema.kehribar, strong: true) }.modifier(OnFill())
                 }
                 .foregroundStyle(Tema.metin)
             }
@@ -186,7 +222,7 @@ struct DunWidget: Widget {
         StaticConfiguration(kind: "MemoriesDun", provider: Saglayici()) { g in
             DunGorunum(a: g.a, acik: Paylasim.ayar.bool(forKey: Paylasim.dunAcik))
                 .widgetURL(URL(string: "memories://cozum"))
-                .containerBackground(for: .widget) { Color(.systemBackground) }
+                .containerBackground(for: .widget) { TemaZemin() }
         }
         .configurationDisplayName("Dünün cümlen")
         .description("Önce Türkçesi; İngilizcesini kafanda kur, sonra aç.")
@@ -233,6 +269,8 @@ struct SentenceView: View {
                 .buttonStyle(.plain)
             case .systemLarge:
                 LargeSentence(a: a, gun: gun, s: s, index: index, count: list.count)
+            case _ where family.isLargest:
+                LargestSentence(a: a, gun: gun, s: s, index: index, list: list, portrait: family.isLargestPortrait)
             default:
                 let recording = RebuildState.isRecording(gun, s.i)
                 let text = recording ? (s.tr ?? "Söyle…") : s.en
@@ -283,6 +321,7 @@ struct LargeSentence: View {
     var s: WidgetAnlik.WidgetSentence
     var index: Int
     var count: Int
+    var showsWords = true
 
     private var recording: Bool { RebuildState.isRecording(gun, s.i) }
     private var rung: Int { RebuildState.rung(gun, s.i) }
@@ -292,7 +331,7 @@ struct LargeSentence: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Text("GÜN \(gun) · CÜMLE \(index + 1)/\(count)")
-                    .font(.caption2.weight(.bold)).tracking(0.6).foregroundStyle(Tema.ikincil)
+                    .font(.caption2.weight(.bold)).tracking(0.6).foregroundStyle(Tema.ikincil).widgetAccentable()
                 Spacer()
                 Button(intent: StepRung(day: gun, index: s.i)) { RungDots(rung: rung) }
                     .buttonStyle(.plain)
@@ -303,12 +342,14 @@ struct LargeSentence: View {
             sentence.layoutPriority(2)
             actions
             statusLine
-            Spacer(minLength: 0)
-            // Kelimeler kalan yere sığdığı kadar: önce tam ızgara, sığmazsa tek satır, o da sığmazsa hiç.
-            ViewThatFits(in: .vertical) {
-                words(grid: true)
-                words(grid: false)
-                Color.clear.frame(height: 0)
+            if showsWords {
+                Spacer(minLength: 0)
+                // Kelimeler kalan yere sığdığı kadar: önce tam ızgara, sığmazsa tek satır, o da sığmazsa hiç.
+                ViewThatFits(in: .vertical) {
+                    WordsPanel(a: a, grid: true)
+                    WordsPanel(a: a, grid: false)
+                    Color.clear.frame(height: 0)
+                }
             }
         }
     }
@@ -346,7 +387,7 @@ struct LargeSentence: View {
                     Button(intent: RevealSentence(day: gun, index: s.i)) {
                         Image(systemName: shown == nil || (shown != s.en && !revealed) ? "eye" : "eye.slash")
                             .font(.caption.weight(.bold)).foregroundStyle(Tema.metin)
-                            .frame(width: 34, height: 30).background { Capsule().fill(Tema.yuzey2) }
+                            .frame(width: 34, height: 30).background { WidgetPill(color: Tema.yuzey2) }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(shown == s.en ? "Cümleyi gizle" : "Cümleyi göster")
@@ -363,7 +404,7 @@ struct LargeSentence: View {
                 Label(RebuildState.recentCopy ? "Panoda" : "YZ istemi", systemImage: RebuildState.recentCopy ? "checkmark" : "sparkles")
                     .font(.subheadline.weight(.semibold)).foregroundStyle(Tema.metin).lineLimit(1)
                     .padding(.horizontal, 14).frame(height: 44)
-                    .background { Capsule().fill(Tema.yuzey2) }
+                    .background { WidgetPill(color: Tema.yuzey2) }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("YZ istemini kopyala (uygulamayı açar)")
@@ -389,8 +430,14 @@ struct LargeSentence: View {
                 .minimumScaleFactor(0.85)
         }
     }
+}
 
-    @ViewBuilder private func words(grid: Bool) -> some View {
+/// The words of today and yesterday, a tap speaks one.
+struct WordsPanel: View {
+    var a: WidgetAnlik?
+    var grid: Bool
+
+    var body: some View {
         let today = a?.todayWords ?? []
         let y = a?.yesterdayWords ?? []
         if !today.isEmpty || !y.isEmpty {
@@ -430,6 +477,85 @@ struct LargeSentence: View {
     }
 }
 
+/// The largest size: the working sentence with all its tools, and beside it (below it when portrait) the whole day.
+struct LargestSentence: View {
+    var a: WidgetAnlik?
+    var gun: Int
+    var s: WidgetAnlik.WidgetSentence
+    var index: Int
+    var list: [WidgetAnlik.WidgetSentence]
+    var portrait: Bool
+
+    var body: some View {
+        let day = DayList(gun: gun, list: list, current: index)
+        if portrait {
+            // The sentence and the words keep their height; the day takes what is left.
+            VStack(alignment: .leading, spacing: 10) {
+                LargeSentence(a: a, gun: gun, s: s, index: index, count: list.count, showsWords: false)
+                    .fixedSize(horizontal: false, vertical: true)
+                Divider().overlay(Tema.cizgi)
+                day
+                WordsPanel(a: a, grid: true).fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            HStack(alignment: .top, spacing: 16) {
+                LargeSentence(a: a, gun: gun, s: s, index: index, count: list.count).frame(maxWidth: .infinity)
+                Divider().overlay(Tema.cizgi)
+                day.frame(maxWidth: .infinity)
+            }
+        }
+    }
+}
+
+/// The day's sentences, as many as fit, kept around the current one. A tap selects and plays without opening the app.
+struct DayList: View {
+    @Environment(\.widgetRenderingMode) private var mode
+    var gun: Int
+    var list: [WidgetAnlik.WidgetSentence]
+    var current: Int
+
+    private static let rowHeight: CGFloat = 40
+    private static let headerHeight: CGFloat = 20
+
+    var body: some View {
+        GeometryReader { g in
+            let rows = min(list.count, max(1, Int((g.size.height - Self.headerHeight) / Self.rowHeight)))
+            let start = min(max(0, current - rows / 2), list.count - rows)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("BÜTÜN METİN · \(list.count) CÜMLE")
+                    .font(.caption2.weight(.bold)).tracking(0.5).foregroundStyle(Tema.kehribarYazi).widgetAccentable()
+                    .frame(height: Self.headerHeight, alignment: .topLeading)
+                ForEach(start..<(start + rows), id: \.self) { p in row(p) }
+            }
+        }
+    }
+
+    private func row(_ p: Int) -> some View {
+        let on = p == current
+        return Button(intent: PlayDaySentence(day: gun, index: list[p].i, position: p)) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(p + 1)").font(.caption2.weight(.bold).monospacedDigit()).foregroundStyle(on ? Tema.kehribarYazi : Tema.soluk)
+                    .frame(width: 18, alignment: .trailing)
+                Text(list[p].en)
+                    .font(.system(.footnote, design: .serif).weight(on ? .semibold : .regular))
+                    .foregroundStyle(on ? Tema.metin : Tema.ikincil).lineLimit(2).minimumScaleFactor(0.85)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 6)
+            .frame(height: Self.rowHeight - 2)
+            .background {
+                if on {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(mode == .fullColor ? Tema.kehribar.opacity(0.14) : Color.primary.opacity(0.14))
+                }
+            }
+            .frame(height: Self.rowHeight)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Cümle \(p + 1): \(list[p].en)")
+    }
+}
+
 struct RungDots: View {
     var rung: Int
     var body: some View {
@@ -439,7 +565,7 @@ struct RungDots: View {
             }
         }
         .padding(.horizontal, 8).frame(height: 30)
-        .background { Capsule().fill(Tema.yuzey2) }
+        .background { WidgetPill(color: Tema.yuzey2) }
     }
 }
 
@@ -463,9 +589,9 @@ struct MicButton: View {
             if compact {
                 Label(on ? "Bitir" : "Kur", systemImage: on ? "stop.fill" : "mic.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(on ? .white : .black.opacity(0.85))
+                    .modifier(OnFill(alert: true))
                     .padding(.horizontal, 10).frame(height: 30)
-                    .background { Capsule().fill(on ? Color.red : Tema.kehribar) }
+                    .background { WidgetPill(color: on ? Color.red : Tema.koyuMavi, strong: true) }
             } else {
                 HStack(spacing: 8) {
                     Image(systemName: on ? "stop.fill" : "mic.fill").font(.headline)
@@ -478,9 +604,9 @@ struct MicButton: View {
                         Text("kendin söyle").font(.caption.weight(.medium)).opacity(0.7).lineLimit(1)
                     }
                 }
-                .foregroundStyle(on ? .white : .black.opacity(0.85))
+                .modifier(OnFill(alert: true))
                 .frame(maxWidth: .infinity).frame(height: 44)
-                .background { Capsule().fill(on ? Color.red : Tema.kehribar) }
+                .background { WidgetPill(color: on ? Color.red : Tema.koyuMavi, strong: true) }
             }
         }
         .buttonStyle(.plain)
@@ -489,6 +615,7 @@ struct MicButton: View {
 }
 
 struct WordChip: View {
+    @Environment(\.widgetRenderingMode) private var mode
     var word: WidgetAnlik.WidgetWord
     var body: some View {
         Button(intent: SpeakWord(word: word.w)) {
@@ -500,7 +627,7 @@ struct WordChip: View {
             }
             .padding(.horizontal, 7).padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background { RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Tema.yuzey2) }
+            .background { RoundedRectangle(cornerRadius: 8, style: .continuous).fill(mode == .fullColor ? Tema.yuzey2 : Color.primary.opacity(0.1)) }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(word.w), seslendir")
@@ -515,7 +642,7 @@ struct WidgetControl<I: AppIntent>: View {
         Button(intent: intent) {
             Image(systemName: icon).font(.subheadline.weight(.bold)).foregroundStyle(Tema.metin)
                 .frame(width: 34, height: 30)
-                .background { Capsule().fill(Tema.yuzey2) }
+                .background { WidgetPill(color: Tema.yuzey2) }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -547,8 +674,14 @@ struct SentenceWidget: Widget {
                 .containerBackground(for: .widget) { TemaZemin() }
         }
         .configurationDisplayName("Cümle cümle")
-        .description("Günün metni tek tek: dinle, kendin kur (🎙), YZ istemi al. Büyükte günün ve dünün kelimeleri.")
-        .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular])
+        .description("Günün metni tek tek: dinle, kendin kur (🎙), YZ istemi al. Büyükte kelimeler, en büyükte bütün metin.")
+        .supportedFamilies(families)
+    }
+
+    private var families: [WidgetFamily] {
+        var f: [WidgetFamily] = [.systemMedium, .systemLarge, .systemExtraLarge, .accessoryRectangular]
+        if #available(iOS 27.0, *) { f.append(.systemExtraLargePortrait) }
+        return f
     }
 }
 
@@ -584,7 +717,7 @@ struct RebuildLiveActivity: Widget {
             } compactLeading: {
                 Image(systemName: c.state.done ? "checkmark" : "mic.fill").foregroundStyle(Tema.kehribar)
             } compactTrailing: {
-                RebuildTimer(d: c.state).monospacedDigit().frame(width: 44).foregroundStyle(Tema.kehribar)
+                RebuildCompactTimer(d: c.state)
             } minimal: {
                 Image(systemName: "mic.fill").foregroundStyle(Tema.kehribar)
             }
@@ -606,6 +739,30 @@ struct RebuildTimer: View {
     var body: some View {
         if d.done { Image(systemName: (d.ratio ?? 0) >= 0.85 ? "checkmark.seal.fill" : "checkmark") }
         else { Text(timerInterval: d.start...d.start.addingTimeInterval(RebuildState.tavan), countsDown: false) }
+    }
+}
+
+/// iOS 27 can narrow the island: the timer then drops, the leading mic still says it is recording.
+struct RebuildCompactTimer: View {
+    var d: RebuildActivity.ContentState
+    var body: some View {
+        if #available(iOS 27.0, *) { WidthAwareTimer(d: d) } else { timer }
+    }
+    private var timer: some View {
+        RebuildTimer(d: d).monospacedDigit().frame(width: 44).foregroundStyle(Tema.kehribar)
+    }
+}
+
+@available(iOS 27.0, *)
+struct WidthAwareTimer: View {
+    @Environment(\.isDynamicIslandLimitedInWidth) private var limited
+    var d: RebuildActivity.ContentState
+    var body: some View {
+        if limited {
+            Image(systemName: d.done ? "checkmark" : "waveform").foregroundStyle(Tema.kehribar)
+        } else {
+            RebuildTimer(d: d).monospacedDigit().frame(width: 44).foregroundStyle(Tema.kehribar)
+        }
     }
 }
 
@@ -641,5 +798,17 @@ struct MemoriesWidgetBundle: WidgetBundle {
         SentenceWidget()
         DunWidget()
         RebuildLiveActivity()
+        if #available(iOS 18.0, *) { ListenTodayControl() }
+    }
+}
+
+@available(iOS 18.0, *)
+struct ListenTodayControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "com.fatihgocgun.memories.control.listen") {
+            ControlWidgetButton(action: OpenMemoriesIntent(.dinle)) { Label("Bugünü dinle", systemImage: "headphones") }
+        }
+        .displayName("Bugünü dinle")
+        .description("Memories'i açar ve bugünün sesini başlatır.")
     }
 }

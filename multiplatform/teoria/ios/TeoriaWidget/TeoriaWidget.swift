@@ -83,8 +83,8 @@ struct AforizmaWidget: Widget {
         }
         .configurationDisplayName("Aforizma")
         .description("Dönen aforizmalar ve kendi işaretlerin, kaynağıyla.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge,
-                            .accessoryRectangular, .accessoryInline, .accessoryCircular])
+        .supportedFamilies(tallFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge,
+                            .accessoryRectangular, .accessoryInline, .accessoryCircular]))
     }
 }
 
@@ -96,7 +96,7 @@ struct HatirlaWidget: Widget {
         }
         .configurationDisplayName("Hatırla")
         .description("Önce hatırla, sonra bak. Cevabın aralıklı tekrara işlenir.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline, .accessoryCircular])
+        .supportedFamilies(tallFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline, .accessoryCircular]))
     }
 }
 
@@ -109,8 +109,8 @@ struct OkumaWidget: Widget {
         }
         .configurationDisplayName("Okuma")
         .description("Süren kitapların ilerlemesi ve haftalık işaretlerin.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge,
-                            .accessoryCircular, .accessoryRectangular, .accessoryInline])
+        .supportedFamilies(tallFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge,
+                            .accessoryCircular, .accessoryRectangular, .accessoryInline]))
     }
 }
 
@@ -166,4 +166,10 @@ struct TeoriaWidgetPaketi: WidgetBundle {
             SesKontrol()
         }
     }
+}
+
+/// Adds the tall size of iOS 27 (the largest one on an iPhone) where the system has it. The large layout fills it.
+func tallFamilies(_ base: [WidgetFamily]) -> [WidgetFamily] {
+    if #available(iOS 27.0, *) { return base + [.systemExtraLargePortrait] }
+    return base
 }

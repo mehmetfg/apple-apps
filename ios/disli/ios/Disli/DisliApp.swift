@@ -15,7 +15,10 @@ struct DisliApp: App {
                     if yeni == .active {
                         depo.gunuYenile()
                         depo.bus.emitOpenedToday()
-                        Task { await depo.bus.sync() }
+                        Task {
+                            await depo.bus.sync()
+                            depo.cumledenGuncelle()
+                        }
                     }
                 }
                 .task {

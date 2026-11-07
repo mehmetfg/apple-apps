@@ -10,6 +10,33 @@ import UIKit
 
 enum ReaderMode: String { case full, marked }
 
+/// One page that follows the voice by itself. It is the only view that observes the word being heard, so a new word
+/// rebuilds this small view and repaints the page's mark layer; the reader and the page's text stay as they are.
+struct SpokenPage: View {
+    @ObservedObject var cursor: VoiceCursor
+    let voice: ReaderVoice
+    let layout: BookLayout
+    let index: Int
+    let listening: Bool
+    let fallback: LiveMark?
+    let revision: Int
+
+    var body: some View {
+        PageCanvas(layout: layout, index: index, inset: .zero, live: mark, revision: revision)
+    }
+
+    /// The sentence being read aloud (faint) with the word being spoken (strong); otherwise the search hit.
+    private var mark: LiveMark? {
+        guard listening, let s = voice.currentSentence(),
+              let r = layout.range(chapter: s.ch, block: s.b, s: s.s, e: s.e) else { return fallback }
+        var m = LiveMark(chapter: s.ch, range: r, kind: .speech)
+        if let l = cursor.live, l.ch == s.ch, l.b == s.b {
+            m.word = layout.range(chapter: l.ch, block: l.b, s: l.range.location, e: NSMaxRange(l.range))
+        }
+        return m
+    }
+}
+
 struct SearchHit: Identifiable, Hashable {
     let ch: Int; let b: Int; let range: NSRange; let before: String; let match: String; let after: String
     var id: String { "\(ch).\(b).\(range.location)" }
@@ -110,8 +137,13 @@ struct ReaderView: View {
             .environmentObject(depo)
         }
         .onChange(of: mode) { _, _ in refreshVisible() }
-        .onChange(of: voice.live?.range.location) { _, _ in followVoice() }
+        // the word being heard: only the page turn is decided here; the highlight repaints itself (SpokenPage)
+        .onReceive(voice.cursor.$live) { l in followVoice(l) }
         .onDisappear { if listeningHere { voice.stop() }; save() }
+        // PDM Ağı (iPhone): the book in the reader, and whether it is being read aloud
+        .onAppear { publishLive() }
+        .onChange(of: voice.speaking) { _, _ in publishLive() }
+        .onChange(of: voice.paused) { _, _ in publishLive() }
         #if os(macOS)
         .frame(minWidth: 720, minHeight: 620)
         .onKeyPress(.rightArrow) { guard !sheetOpen else { return .ignored }; turn(+1); return .handled }
@@ -182,16 +214,10 @@ struct ReaderView: View {
         save()
     }
 
-    /// Transient mark for the page: the sentence being read aloud wins over a search hit.
+    /// Transient mark for the page when nothing is read aloud: the search hit. While listening, the sentence being
+    /// read wins (SpokenPage draws it and follows the voice without rebuilding the reader).
     private var live: LiveMark? {
         guard let layout else { return nil }
-        if listeningHere, let s = voice.currentSentence(), let r = layout.range(chapter: s.ch, block: s.b, s: s.s, e: s.e) {
-            var mark = LiveMark(chapter: s.ch, range: r, kind: .speech)
-            if let l = voice.live, l.ch == s.ch, l.b == s.b {
-                mark.word = layout.range(chapter: l.ch, block: l.b, s: l.range.location, e: NSMaxRange(l.range))
-            }
-            return mark
-        }
         if let i = hitIndex, let h = hits[safe: i], let r = layout.range(chapter: h.ch, block: h.b, s: h.range.location, e: NSMaxRange(h.range)) {
             return LiveMark(chapter: h.ch, range: r, kind: .search)
         }
@@ -267,7 +293,8 @@ struct ReaderView: View {
 
     private func page(_ layout: BookLayout, _ i: Int, _ size: CGSize, live: LiveMark?) -> some View {
         let pg = layout.pages[safe: i]
-        return PageCanvas(layout: layout, index: i, inset: .zero, live: live, revision: redraw)
+        return SpokenPage(cursor: voice.cursor, voice: voice, layout: layout, index: i, listening: listeningHere,
+                          fallback: live, revision: redraw)
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .overlay(alignment: .top) {
                 if mode == .marked, let pg {
@@ -372,6 +399,11 @@ struct ReaderView: View {
         return out
     }
 
+    private func publishLive() {
+        Network.publish(book: book.id, title: book.title, percent: library.entry(book.id)?.percent ?? book.percent,
+                        playing: listeningHere && !voice.paused)
+    }
+
     // MARK: listening
 
     private func listenFromHere() {
@@ -394,8 +426,8 @@ struct ReaderView: View {
         voice.play(book: book.id, title: book.title, blocks: blocks, from: startIndex, offset: off)
     }
 
-    private func followVoice() {
-        guard listeningHere, let layout, let l = voice.live, let r = layout.range(chapter: l.ch, block: l.b, s: l.range.location, e: l.range.location) else { return }
+    private func followVoice(_ word: (ch: Int, b: Int, range: NSRange)?) {
+        guard listeningHere, let layout, let l = word, let r = layout.range(chapter: l.ch, block: l.b, s: l.range.location, e: l.range.location) else { return }
         let p = layout.page(chapter: l.ch, local: r.location)
         if mode == .marked { mode = .full; refreshVisible(keepPage: p) }
         if visible[safe: current] != p, let i = visible.firstIndex(of: p) { current = i; save() }
@@ -846,6 +878,7 @@ struct ReaderView: View {
                             Text(s.summary).font(.callout).foregroundStyle(.secondary)
                         }
                     }
+                    ExpandToggle(book: book.id, highlight: h)
                     Divider()
                     Button {
                         let i = akis ?? Isaret(id: "kitap:\(book.id):\(h.id)", kitap: book.id, baslik: book.title, metin: h.quote,

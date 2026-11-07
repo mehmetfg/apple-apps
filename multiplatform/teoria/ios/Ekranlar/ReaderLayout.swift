@@ -230,10 +230,24 @@ final class BookLayout: @unchecked Sendable {
     }
 
     func draw(page p: Int, origin: CGPoint, live: LiveMark? = nil) {
+        drawLive(page: p, origin: origin, live: live)
+        drawText(page: p, origin: origin)
+    }
+
+    /// The page's text and its highlights (the expensive part: TextKit lays the glyphs out again).
+    func drawText(page p: Int, origin: CGPoint) {
+        guard let pg = pages[safe: p] else { return }
+        let lm = managers[pg.chapter]
+        let gr = lm.glyphRange(for: lm.textContainers[pg.container])
+        lm.drawBackground(forGlyphRange: gr, at: origin)
+        lm.drawGlyphs(forGlyphRange: gr, at: origin)
+    }
+
+    /// Only the transient mark under the text (a few rounded rectangles).
+    func drawLive(page p: Int, origin: CGPoint, live: LiveMark?) {
         guard let pg = pages[safe: p] else { return }
         let lm = managers[pg.chapter]
         let tc = lm.textContainers[pg.container]
-        let gr = lm.glyphRange(for: tc)
         if let live, live.chapter == pg.chapter {
             func fill(_ range: NSRange, _ color: PColor, radius: CGFloat) {
                 guard let r = NSIntersectionRange(range, pg.range).nonEmpty else { return }
@@ -260,8 +274,6 @@ final class BookLayout: @unchecked Sendable {
                 fill(live.range, PColor(hex: 0xFF9F0A, alpha: 0.45), radius: 4)
             }
         }
-        lm.drawBackground(forGlyphRange: gr, at: origin)
-        lm.drawGlyphs(forGlyphRange: gr, at: origin)
     }
 
     // MARK: attributed text
@@ -349,15 +361,53 @@ final class BookLayout: @unchecked Sendable {
 
 // MARK: - Page view
 
+// The page is two layers: the canvas itself draws only the transient mark (the sentence and word being read aloud,
+// a search hit), and a transparent child above it draws the text. A new word repaints a few rectangles; the text
+// layer keeps its pixels until the page, the layout or a highlight (revision) changes.
 #if canImport(UIKit)
+final class PageTextView: UIView {
+    weak var canvas: PageCanvasView?
+    override func draw(_ rect: CGRect) {
+        guard let c = canvas, let layout = c.layout, c.index < layout.pages.count else { return }
+        layout.drawText(page: c.index, origin: c.inset)
+    }
+}
+
 final class PageCanvasView: UIView {
-    var layout: BookLayout?
-    var index = 0
-    var inset = CGPoint.zero
-    var live: LiveMark?
+    private(set) var layout: BookLayout?
+    private(set) var index = 0
+    private(set) var inset = CGPoint.zero
+    private var live: LiveMark?
+    private var revision = -1
+    private let text = PageTextView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear; isOpaque = false; contentMode = .redraw
+        text.canvas = self
+        text.backgroundColor = .clear; text.isOpaque = false; text.contentMode = .redraw
+        text.isUserInteractionEnabled = false
+        text.frame = bounds
+        text.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(text)
+        // light ↔ dark: colours resolve again
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (v: PageCanvasView, _: UITraitCollection) in
+            v.text.setNeedsDisplay(); v.setNeedsDisplay()
+        }
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func show(layout: BookLayout, index: Int, inset: CGPoint, live: LiveMark?, revision: Int) {
+        let textChanged = self.layout !== layout || self.index != index || self.inset != inset || self.revision != revision
+        let liveChanged = self.live != live
+        self.layout = layout; self.index = index; self.inset = inset; self.live = live; self.revision = revision
+        if textChanged { text.setNeedsDisplay() }
+        if textChanged || liveChanged { setNeedsDisplay() }
+    }
+
     override func draw(_ rect: CGRect) {
         guard let layout, index < layout.pages.count else { return }
-        layout.draw(page: index, origin: inset, live: live)
+        layout.drawLive(page: index, origin: inset, live: live)
     }
 }
 
@@ -367,24 +417,64 @@ struct PageCanvas: UIViewRepresentable {
     let inset: CGPoint
     var live: LiveMark? = nil
     var revision = 0
-    func makeUIView(context: Context) -> PageCanvasView {
-        let v = PageCanvasView(); v.backgroundColor = .clear; v.isOpaque = false; v.contentMode = .redraw
-        return v
-    }
+    func makeUIView(context: Context) -> PageCanvasView { PageCanvasView() }
     func updateUIView(_ v: PageCanvasView, context: Context) {
-        v.layout = layout; v.index = index; v.inset = inset; v.live = live; v.setNeedsDisplay()
+        v.show(layout: layout, index: index, inset: inset, live: live, revision: revision)
     }
 }
 #else
-final class PageCanvasView: NSView {
-    var layout: BookLayout?
-    var index = 0
-    var inset = CGPoint.zero
-    var live: LiveMark?
+final class PageTextView: NSView {
+    weak var canvas: PageCanvasView?
     override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }      // clicks belong to the page, as before
+    override func draw(_ dirtyRect: NSRect) {
+        guard let c = canvas, let layout = c.layout, c.index < layout.pages.count else { return }
+        layout.drawText(page: c.index, origin: c.inset)
+    }
+}
+
+final class PageCanvasView: NSView {
+    private(set) var layout: BookLayout?
+    private(set) var index = 0
+    private(set) var inset = CGPoint.zero
+    private var live: LiveMark?
+    private var revision = -1
+    private let text = PageTextView()
+    override var isFlipped: Bool { true }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        text.canvas = self
+        text.wantsLayer = true
+        text.layerContentsRedrawPolicy = .onSetNeedsDisplay
+        text.frame = bounds
+        text.autoresizingMask = [.width, .height]
+        addSubview(text)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func show(layout: BookLayout, index: Int, inset: CGPoint, live: LiveMark?, revision: Int) {
+        let textChanged = self.layout !== layout || self.index != index || self.inset != inset || self.revision != revision
+        let liveChanged = self.live != live
+        self.layout = layout; self.index = index; self.inset = inset; self.live = live; self.revision = revision
+        if textChanged { text.needsDisplay = true }
+        if textChanged || liveChanged { needsDisplay = true }
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        text.needsDisplay = true; needsDisplay = true
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        text.needsDisplay = true; needsDisplay = true    // light ↔ dark: colours resolve again
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard let layout, index < layout.pages.count else { return }
-        layout.draw(page: index, origin: inset, live: live)
+        layout.drawLive(page: index, origin: inset, live: live)
     }
 }
 
@@ -396,7 +486,7 @@ struct PageCanvas: NSViewRepresentable {
     var revision = 0
     func makeNSView(context: Context) -> PageCanvasView { PageCanvasView() }
     func updateNSView(_ v: PageCanvasView, context: Context) {
-        v.layout = layout; v.index = index; v.inset = inset; v.live = live; v.needsDisplay = true
+        v.show(layout: layout, index: index, inset: inset, live: live, revision: revision)
     }
 }
 #endif

@@ -17,6 +17,7 @@ struct OkuEkrani: View {
     @State private var kopyalanan: String?
     @State private var izinYok = false
     @ObservedObject private var kurucu = SentenceRecorder.shared
+    @State private var marked = MarkedTextCache()
     /// Widget'ın YZ düğmesi uygulamayı açınca o cümleye kaydırılır.
     @Binding var hedef: Int?
 
@@ -49,6 +50,7 @@ struct OkuEkrani: View {
 
     private func metin(_ p: Paket) -> some View {
         let h = depo.hazirlik(p.gun)
+        let attempts = RebuildState.attempts()      // once per redraw, not once per row
         return ScrollViewReader { kaydir in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
@@ -61,7 +63,7 @@ struct OkuEkrani: View {
                     Text(p.ad).font(.system(.title, design: .serif).weight(.semibold))
 
                     ForEach(p.cumleler) { c in
-                        satir(p, c).id(c.i)
+                        satir(p, c, attempt: attempts[RebuildState.key(p.gun, c.i)]).id(c.i)
                     }
 
                     if !(p.sozluk ?? []).isEmpty {
@@ -93,7 +95,7 @@ struct OkuEkrani: View {
         }
     }
 
-    private func satir(_ p: Paket, _ c: Cumle) -> some View {
+    private func satir(_ p: Paket, _ c: Cumle, attempt: RebuildAttempt?) -> some View {
         let kuruyor = kurucu.activeKey == RebuildState.key(p.gun, c.i)
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -123,7 +125,7 @@ struct OkuEkrani: View {
                 if let k = c.konu {
                     Cip(metin: k, renk: Tema.vurgu.opacity(0.85), simge: "textformat")
                 }
-                if !kuruyor, let t = RebuildState.attempt(p.gun, c.i) { deneme(t) }
+                if !kuruyor, let t = attempt { deneme(t) }
                 araclar(p, c, kuruyor: kuruyor)
             }
             .padding(.leading, 28)
@@ -196,6 +198,10 @@ struct OkuEkrani: View {
 
     /// Hedef kelimeleri bağlantıya çevirir (memories-kelime://<kelime>).
     private func isaretli(_ en: String, _ p: Paket) -> AttributedString {
+        marked.text(en, in: p) { buildMarked(en, p) }
+    }
+
+    private func buildMarked(_ en: String, _ p: Paket) -> AttributedString {
         var a = AttributedString(en)
         let kelimeler = en.split(whereSeparator: { !$0.isLetter && $0 != "'" && $0 != "’" })
         var arama = a.startIndex
@@ -214,9 +220,17 @@ struct OkuEkrani: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Kelimeler").font(.headline)
             ForEach(p.sozluk ?? []) { s in
+                // Known or dropped in another app (PDM bus): still listed, only dimmed and tagged.
+                let known = depo.closedWords.contains(s.w.lowercased())
                 Button { secili = s } label: {
                     HStack {
                         Text(s.w).font(Tema.ingilizce(.body).weight(.semibold)).foregroundStyle(s.tur == "yeni" ? Tema.kehribarYazi : Tema.vurgu)
+                            .opacity(known ? 0.45 : 1)
+                        if known {
+                            Text("biliyorsun").font(.caption2.weight(.medium)).foregroundStyle(.secondary)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background { Capsule().fill(Color.secondary.opacity(0.12)) }
+                        }
                         if let i = s.ipa { Text(i).font(.caption).foregroundStyle(.secondary) }
                         Spacer()
                         Text(s.tr ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -230,6 +244,21 @@ struct OkuEkrani: View {
         }
         .kart()
         .padding(.top, 10)
+    }
+}
+
+/// Memo for the sentences with their target words marked: built once per package version, not on every redraw.
+/// Not observed: filling it never invalidates the view.
+private final class MarkedTextCache {
+    private var package = ""
+    private var texts: [String: AttributedString] = [:]
+    func text(_ en: String, in p: Paket, _ build: () -> AttributedString) -> AttributedString {
+        let key = "\(p.gun)|\(p.surum ?? "")|\(p.uretildi ?? "")|\(p.sozluk?.count ?? 0)"
+        if key != package { package = key; texts = [:] }
+        if let t = texts[en] { return t }
+        let t = build()
+        texts[en] = t
+        return t
     }
 }
 

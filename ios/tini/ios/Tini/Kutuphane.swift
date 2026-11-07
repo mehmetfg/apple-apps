@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 struct KutuphaneEkrani: View {
     @EnvironmentObject var calar: Calar
     @Environment(\.dismiss) private var kapat
-    enum Sekme: String, CaseIterable { case albumler = "Albümler", sanatcilar = "Sanatçılar", parcalar = "Parçalar", sira = "Sıra" }
+    enum Sekme: String, CaseIterable { case albumler = "Albümler", sanatcilar = "Sanatçılar", parcalar = "Parçalar", sira = "Sıra", radyo = "Radyo" }
     @AppStorage("kutuphaneSekme") private var sekme: Sekme = .albumler
     @State private var arama = ""
     @State private var dosyaSec = false
@@ -29,7 +29,9 @@ struct KutuphaneEkrani: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal).padding(.bottom, 8)
                 Group {
-                    if calar.parcalar.isEmpty && !calar.taraniyor {
+                    if sekme == .radyo {
+                        RadyoListesi()
+                    } else if calar.parcalar.isEmpty && !calar.taraniyor {
                         bos
                     } else {
                         switch sekme {
@@ -37,6 +39,7 @@ struct KutuphaneEkrani: View {
                         case .sanatcilar: SanatciListesi(parcalar: suzulmus)
                         case .parcalar: ParcaListesi(parcalar: suzulmus, numara: false)
                         case .sira: SiraListesi()
+                        case .radyo: RadyoListesi()
                         }
                     }
                 }
@@ -279,5 +282,39 @@ struct BicimRozeti: View {
             .padding(.horizontal, kucuk ? 4 : 6).padding(.vertical, kucuk ? 1 : 2)
             .overlay { RoundedRectangle(cornerRadius: 3).stroke(lineWidth: 1) }
             .foregroundStyle(bicim.hasPrefix("FLAC") || bicim.hasPrefix("ALAC") || bicim.hasPrefix("WAV") || bicim == "Hi-Res" ? Color.orange : .secondary)
+    }
+}
+
+/// Ücretsiz klasik müzik akışları. Dokun: çal; çalana yeniden dokun: dur.
+struct RadyoListesi: View {
+    @ObservedObject private var radyo = Radyo.shared
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(Radyo.istasyonlar) { i in
+                    let bu = radyo.istasyon == i && radyo.caliyor
+                    Button { radyo.cal(i) } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: bu ? "stop.circle.fill" : "play.circle")
+                                .font(.title2).foregroundStyle(bu ? Color.accentColor : .secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(i.ad).font(.body.weight(bu ? .semibold : .regular))
+                                Text(bu ? (radyo.simdiCalan ?? (radyo.yukleniyor ? "Bağlanıyor…" : i.aciklama)) : i.aciklama)
+                                    .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                            }
+                            Spacer()
+                            if bu && radyo.yukleniyor { ProgressView() }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel(bu ? "\(i.ad), çalıyor; durdur" : "\(i.ad) çal")
+                }
+            } footer: {
+                Text("Canlı akış internet ister (saatte ≈ 60 MB). Ses düzeyi ve kitapla birlikte kipi geçerlidir; Ses Lab efektleri yalnız kitaplıktaki dosyalara uygulanır.")
+            }
+            if let h = radyo.hata { Section { Text(h).font(.footnote).foregroundStyle(.orange) } }
+        }
+        .listStyle(.insetGrouped)
     }
 }

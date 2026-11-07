@@ -68,6 +68,7 @@ struct ProductionBand: View {
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     DayStrip()
+                    MorningLine()
                     HStack(spacing: 12) {
                         ForEach(AreaID.allCases) { a in
                             HStack(spacing: 4) {
@@ -111,6 +112,24 @@ struct DayStrip: View {
                         .frame(width: w, height: s.build ? 6 : 26)
                         .offset(x: x(s.start), y: s.build ? 30 : 0)
                         .help("\(s.app) · \(Int(s.seconds / 60)) dk · \(s.source)")
+                }
+                // planned morning blocks: dashed frame at the planned time, the real box as a line above it
+                ForEach(model.morningPlan.blocks, id: \.id) { b in
+                    if let ps = MorningMath.plannedStart(b) {
+                        let pe = ps.addingTimeInterval(Double(b.minutes) * 60)
+                        RoundedRectangle(cornerRadius: 3)
+                            .strokeBorder(Theme.muted.opacity(0.7), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                            .frame(width: max(2, x(pe) - x(ps)), height: 26)
+                            .offset(x: x(ps))
+                            .help("Plan: \(b.title) \(b.start) · \(b.minutes) dk")
+                        if let st = model.morningState[b.id], let s = st.started {
+                            let e = st.finished ?? Date()
+                            Capsule().fill(MorningMath.color(b, st))
+                                .frame(width: max(3, x(e) - x(s)), height: 4)
+                                .offset(x: x(s), y: -7)
+                                .help(MorningMath.summary(b, st))
+                        }
+                    }
                 }
                 Rectangle().fill(Theme.ink).frame(width: 1.5, height: 38).offset(x: x(.now), y: -2)
                 HStack {
@@ -390,5 +409,55 @@ struct SettingsView: View {
             Text("Yüzde bu pencereye göre hesaplanır (\(model.windowMinutes) dk).").foregroundStyle(.secondary)
         }
         .padding(20).frame(width: 380)
+    }
+}
+
+
+// MARK: - Morning time boxes (Kurultay decision 2026-11-05)
+
+enum MorningMath {
+    static func plannedStart(_ b: TimeBoxBlock) -> Date? {
+        let p = b.start.split(separator: ":").compactMap { Int($0) }
+        guard p.count == 2 else { return nil }
+        return Day.cal.date(bySettingHour: p[0], minute: p[1], second: 0, of: .now)
+    }
+
+    static func minutes(_ st: TimeBoxState) -> Int {
+        guard let s = st.started else { return 0 }
+        return Int(((st.finished ?? Date()).timeIntervalSince(s) / 60).rounded())
+    }
+
+    static func color(_ b: TimeBoxBlock, _ st: TimeBoxState) -> Color {
+        if st.finished == nil { return minutes(st) > b.minutes ? .red : .accentColor }
+        return st.extendedMinutes > 0 ? .orange : .green
+    }
+
+    static func summary(_ b: TimeBoxBlock, _ st: TimeBoxState) -> String {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        var t = "\(b.title): \(st.started.map(f.string) ?? "—")"
+        if let e = st.finished { t += "–\(f.string(from: e)) · \(minutes(st)) dk ✓" } else { t += " · sürüyor \(minutes(st)) dk" }
+        if st.extendedMinutes > 0 { t += " · +\(st.extendedMinutes) dk uzatıldı" }
+        return t
+    }
+}
+
+/// One line under the day strip: how the morning blocks went today.
+struct MorningLine: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Label("Sabah", systemImage: "sunrise").font(.caption.weight(.semibold)).foregroundStyle(Theme.muted)
+            ForEach(model.morningPlan.blocks, id: \.id) { b in
+                let st = model.morningState[b.id]
+                HStack(spacing: 4) {
+                    Image(systemName: st?.finished != nil ? "checkmark.circle.fill" : st?.started != nil ? "timer" : "circle")
+                        .foregroundStyle(st.map { MorningMath.color(b, $0) } ?? Theme.muted)
+                    Text(st.map { MorningMath.summary(b, $0) } ?? "\(b.title) \(b.start) · başlamadı")
+                        .font(.caption).monospacedDigit()
+                }
+            }
+            Spacer()
+        }
     }
 }

@@ -1,6 +1,6 @@
-// Bugün — tek bakışta: halka, kür, son okuduğun gün, üç hattın merdiveni, günün aforizması, geçmişte bugün.
+// Bugün — tek bakışta: Sabah odası, günün kürü (2026-11-03: Sabah tekrarının kendisi), günün aforizması, geçmişte bugün.
 // Kavram gökyüzü kalktı: kavramlar Kitaplar › Sözlük'te. Kartlar tembel kurulur (aşağı indikçe).
-// Mac'te (genis) iki sütun: solda kür ve son gün, sağda merdiven, aforizma, hafta.
+// Mac'te (genis) iki sütun: solda kür ve geçmişte bugün, sağda aforizma, hafta. Kademe merdiveni yalnız Mac Atölye'de.
 // Burada borç yok: kaçırılan gün sayılmaz, "bekleyen" sayısı yok, kırmızı yok.
 import SwiftUI
 
@@ -24,16 +24,15 @@ struct BugunEkrani: View {
                 VStack(alignment: .leading, spacing: 22) {
                     baslik
                     morningCard
+                    afternoonCard
                     HStack(alignment: .top, spacing: 22) {
                         VStack(spacing: 18) {
                             kurKarti
-                            sonGunKarti
                             if let (i, ad) = gecmis { gecmisKarti(i, ad) }
                         }
                         .frame(maxWidth: .infinity)
                         VStack(spacing: 18) {
                             aforizmaKarti
-                            hatlarKarti
                             haftaKarti
                             if !d.kendiCumleler.isEmpty { kendiSesinKarti }
                         }
@@ -46,10 +45,11 @@ struct BugunEkrani: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 18) {
                     baslik
+                    #if os(iOS)
+                    ElsewhereRow()
+                    #endif
                     morningCard
                     kurKarti
-                    sonGunKarti
-                    hatlarKarti
                     aforizmaKarti
                     if let (i, ad) = gecmis { gecmisKarti(i, ad) }
                     haftaKarti
@@ -66,7 +66,20 @@ struct BugunEkrani: View {
         .fullScreenCover(isPresented: $morningOpen) {
             MorningView(close: { morningOpen = false }).environmentObject(depo)
         }
+        .fullScreenCover(isPresented: $afternoonOpen) {
+            AfternoonView(close: { afternoonOpen = false }).environmentObject(depo)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .init("teoria.ikinci"))) { _ in afternoonOpen = true }
         #endif
+    }
+
+    @State private var afternoonOpen = false
+
+    /// İkinci dikkat: same as Sabah — Mac tab, iPhone room.
+    private var afternoonCard: some View {
+        AfternoonEntryCard {
+            if genis { NotificationCenter.default.post(name: .init("teoria.rota"), object: "bolum:ikinci") } else { afternoonOpen = true }
+        }
     }
 
     /// Sabah: on the Mac it switches to the Sabah tab, on the iPhone it opens the room over everything.
@@ -149,54 +162,11 @@ struct BugunEkrani: View {
 
     // MARK: Kür
 
+    /// The Kür is the morning room's review step on its own (2026-11-03); the old minute ring went with the old Kür.
     private var kurKarti: some View {
-        Yuzey(dolgu: 20) {
-            VStack(spacing: 18) {
-                HStack(spacing: 20) {
-                    ZStack {
-                        Halka(oran: oran, renk: bitti ? Tema.basari : Tema.vurgu, kalinlik: 12)
-                        VStack(spacing: 0) {
-                            if bitti {
-                                Image(systemName: "checkmark").font(.system(size: 30, weight: .bold)).foregroundStyle(Tema.basari)
-                            } else {
-                                Text("\(Int(d.bugunDakika.rounded()))").font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(Tema.metin)
-                                Text("/ \(depo.kurDakika) dk").font(.caption.weight(.medium)).foregroundStyle(Tema.ikincil)
-                            }
-                        }
-                    }
-                    .frame(width: 112, height: 112)
-                    .animation(.spring(response: 0.8), value: oran)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(bitti ? "Bugünün işi tamam." : (d.bugunKur > 0 ? "Bir kür daha?" : "Bugünün kürü"))
-                            .font(Tema.serif(.title2, .semibold)).foregroundStyle(Tema.metin)
-                        Text(bitti ? "İstersen bir kür daha; istemezsen yarın." : altYazi)
-                            .font(.subheadline).foregroundStyle(Tema.ikincil)
-                    }
-                    Spacer(minLength: 0)
-                }
-                SimgeSecici(secenekler: [5, 10, 15].map { .init(deger: $0, ad: "\($0) dk", sembol: "\($0).circle") },
-                            secili: $depo.kurDakika)
-                Button { Dokunus.kurBasla(); kurBaslat(depo.kurDakika) } label: {
-                    Label(bitti ? "Bir kür daha" : "Kürü başlat", systemImage: "play.fill")
-                }
-                .buttonStyle(AnaDugme())
-                if oneri10 {
-                    Text("İki haftadır 5 dakikadasın. 10 dakikayı denemek istersen yukarıdan seç; istemezsen 5 dakika da yeter.")
-                        .font(.footnote).foregroundStyle(Tema.ikincil)
-                }
-            }
-        }
+        DailyQuizCard { Dokunus.kurBasla(); kurBaslat(depo.kurDakika) }
     }
 
-    private var altYazi: String {
-        if d.uzunAra { return "Hoş geldin. Bugün bir kademe hafif başlarız." }
-        return "\(depo.kurDakika) dakika. Önce son okuduğun, sonra tekrar, sonra kademende iş."
-    }
-
-    private var oneri10: Bool {
-        guard depo.kurDakika == 5, let ilk = Tarih.coz(depo.ilkGun) else { return false }
-        return Date().timeIntervalSince(ilk) > 14 * 86_400 && d.kurlar.count >= 10
-    }
 
     // MARK: Hatlar
 

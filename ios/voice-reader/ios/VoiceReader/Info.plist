@@ -52,6 +52,8 @@
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Bisiklet ve yürüyüş modunda yolunu kaydeder: kaç km gittiğin, ne kadar tırmandığın, hızın ve yaktığın kalori. Ekran kapalıyken ve telefon cebindeyken de sürer; mod kapanınca durur. Konum yalnız telefonunda ve vault klasöründe saklanır, hiçbir yere gönderilmez.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Kâğıttaki sayfaları tarayıp metne çevirmek için.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Okurken aklına geleni sesli not olarak kaydetmek için.</string>
 	<key>NSMotionUsageDescription</key>
@@ -70,6 +72,8 @@
 			<string>Any</string>
 		</dict>
 	</dict>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Kıvılcım · Dikkat",
+  "short_name": "Kıvılcım",
+  "version": "1.1.0",
+  "description": "Sayfayı, X postunu, GitHub dosyasını, haberi, makaleyi ya da yapay zekâ sohbetini notunla ve sesinle Kıvılcım'a işaretler.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7p6t6YZvymXllvfQqT2QhL33q/IFnTdkG9QHQ+Ih2YI3+w39mgaxDlBXcA3BQPUucR4L1QhZ3S1I8kypkBUO7PP1LpsCZCRyrG5jkBRo3fc8MNuvC0ts/mzM9wcPL2DAimWGoZuLSEu07oiWWMAWgDUCsMhxfJuid7+AaZwtMbhRH/b7tRfYYbTWrAbNtfAnfs7Eu4EZlkmg9B7PJylzHVw8CrCw3CGXwG2sUlOIsYUrsedmbCgkL3u1CoEhSmWuK33d25qWxcLCP9leD5bCt+hl/n6ifXbZxTaZbLqra5XBomuTpnExFlrRPQDyuQHdQQM6d1jaPfgOl6MKC6NfhQIDAQAB",
+  "action": { "default_popup": "popup.html", "default_title": "Kıvılcım'a işaretle (⌥⇧K)" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["https://x.com/*", "https://twitter.com/*"], "js": ["x_likes.js"], "run_at": "document_idle" }],
+  "permissions": ["activeTab", "scripting", "contextMenus", "nativeMessaging", "storage", "notifications"],
+  "commands": {
+    "_execute_action": { "suggested_key": { "default": "Alt+Shift+K", "mac": "Alt+Shift+K" }, "description": "İşaret penceresini aç" },
+    "hizli": { "suggested_key": { "default": "Alt+Shift+J", "mac": "Alt+Shift+J" }, "description": "Bu sayfayı notsuz hemen işaretle" }
+  },
+  "icons": { "16": "ikon16.png", "48": "ikon48.png", "128": "ikon128.png" }
+}

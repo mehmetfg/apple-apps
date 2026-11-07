@@ -2,10 +2,13 @@
 import SwiftUI
 import AVFoundation
 import Observation
+import PDMBus
 
 @MainActor
 @Observable
 final class AppModel {
+    /// The one model of the process, for the system actions (they can run with no window).
+    @ObservationIgnored nonisolated(unsafe) static weak var current: AppModel?
     let store = LibraryStore()
     let settings = Settings()
     let player = SpeechPlayer()
@@ -41,11 +44,19 @@ final class AppModel {
     @ObservationIgnored var automationSavedAt = Date.distantPast    // the running automation's place was last written
     @ObservationIgnored let announcer = Announcer()
     var searchText = ""
+    /// The PDM bus (the apps' shared folder): one native event (a book finished) and the live state for the other apps.
+    @ObservationIgnored let bus = PDMBus(app: "wisepath", vaultRoot: { VaultMirror.connectedRoot })
+    @ObservationIgnored private let busQueue = DispatchQueue(label: "voice-reader.bus", qos: .utility)
+    /// Each opened book's id in Teoria, once found (absent: not looked up yet or not in Teoria).
+    var teoriaIDs: [UUID: String] = [:]
+    /// Bumped when a link asks the open reader to show a place (`revealRequest`).
+    var revealTick = 0
 
     init() {
         player.onPosition = { [weak self] id, offset in
             self?.store.setPosition(id, offset)
             self?.sync.positionsChanged()
+            self?.publishLive()
             if let p = self?.player { self?.listening.position(id, offset, length: p.length, text: p.excerptWord) }
             self?.automationTick()
         }
@@ -79,6 +90,7 @@ final class AppModel {
         }
         notes.mirror()
         UIDevice.current.isBatteryMonitoringEnabled = true      // the moving modes show the battery from the first second
+        installSystemSurface()
         workout.weight = { [weak self] in self?.settings.bodyWeight ?? 0 }
         workout.nowListening = { [weak self] in self?.player.isPlaying == true ? self?.player.documentID : nil }
         if settings.bikeMode { workout.start(settings.moveKind) }     // the app was closed on the way: go on recording
@@ -207,8 +219,13 @@ final class AppModel {
     }
 
     func statusText(_ d: DocumentRecord) -> String {
+        Self.statusText(d, charsPerSecond: player.charsPerSecond, speed: settings.speed)
+    }
+
+    /// The same text from plain values, for work off the main thread (the widget snapshot).
+    nonisolated static func statusText(_ d: DocumentRecord, charsPerSecond: Double, speed: Double) -> String {
         if d.isFinished { return d.finishes.count >= 2 ? "Bitti · \(d.finishes.count) kez" : "Bitti" }
-        let left = duration(characters: d.length - d.position, speed: d.speed)
+        let left = Double(d.length - d.position) / (charsPerSecond * (d.speed ?? speed))
         let pass = d.readingNumber >= 2 ? "\(d.readingNumber). okuma · " : ""
         return d.isUnread ? Format.duration(left) : "\(pass)%\(Int(d.progress * 100)) · \(Format.duration(left)) kaldı"
     }
@@ -234,6 +251,8 @@ final class AppModel {
         store.update(id) { $0.lastOpenedAt = .now }
         UserDefaults.standard.set(id.uuidString, forKey: "lastDocument")
         applyAudioSettings()
+        publishLive()
+        findTeoriaID(id, title: doc.title)
         if let profile = VoiceProfile.with(id: currentVoiceID) { ProfileRenderer.shared.warmUp(profile) }
     }
 
@@ -245,6 +264,57 @@ final class AppModel {
         player.load(id: id, title: doc.title, author: doc.author, content: content, at: doc.position)
         player.studio = store.studioPack(id)
         applyAudioSettings()
+        publishLive()
+        findTeoriaID(id, title: doc.title)
+    }
+
+    // MARK: the PDM bus
+
+    /// What is being read now, for the other apps on this phone. Called on opening, play, pause, the end, and with
+    /// the player's place reports (every couple of seconds); the bus writes only when something changed, and the
+    /// write happens off the main thread.
+    func publishLive() {
+        guard let id = player.documentID else { return }
+        let length = max(1, player.length)
+        let live = PDMLive(app: "wisepath", kind: "book", id: id.uuidString, title: player.title,
+                           detail: player.chapterTitle(at: player.cursor),
+                           progress: min(1, max(0, Double(player.cursor) / Double(length))), active: player.isPlaying,
+                           link: "wisepath://book/\(id.uuidString)", refs: teoriaIDs[id].map { ["teoria": $0] })
+        let bus = bus
+        busQueue.async { bus.publishLive(live) }
+        ReadingCard.shared.sync(self)
+    }
+
+    private func findTeoriaID(_ id: UUID, title: String) {
+        guard teoriaIDs[id] == nil else { return }
+        Task {
+            guard let found = await VaultMirror.shared.teoriaID(document: id, title: title) else { return }
+            teoriaIDs[id] = found
+            publishLive()
+        }
+    }
+
+    /// The app came to the front (after its own sync): today's opening, then the events waiting go to the vault.
+    func busActivated() async {
+        _ = await VaultMirror.shared.connect()
+        let bus = bus
+        busQueue.async { bus.emitOpenedToday() }
+        await bus.sync()
+    }
+
+    /// Teoria's page of this book, when Teoria knows it.
+    func openInTeoria(_ id: UUID) {
+        guard let t = teoriaIDs[id], let url = URL(string: "teoria://kitap/\(t)") else { return }
+        UIApplication.shared.open(url)
+    }
+
+    /// Kıvılcım starts a recording about this book.
+    func talkAboutBook(_ id: UUID) {
+        guard let d = store.document(id) else { return }
+        var c = URLComponents()
+        c.scheme = "kivilcim"; c.host = "kaydet"
+        c.queryItems = [URLQueryItem(name: "topic", value: teoriaIDs[id] ?? "k:\(d.title)")]
+        if let url = c.url { UIApplication.shared.open(url) }
     }
 
     /// Settings screens call this: changes are gathered for a moment and applied once, after the finger stops,
@@ -271,11 +341,13 @@ final class AppModel {
         player.musicMix = settings.musicMix
         player.musicLevel = settings.musicLevel
         player.clearVoice = settings.clearVoice
+        player.fastClear = settings.fastClear
         player.systemSpeech = settings.systemSpeech
         player.breakEvery = settings.musicBreak ? settings.breakMinutes * 60 : 0
         player.breakLength = settings.breakSeconds
         player.remotePauseWaits = settings.remotePauseWaits
         player.remotePauseSeconds = settings.waitSeconds > 0 ? settings.waitSeconds : nil
+        player.steadyCloud = settings.steadyCloud
         player.voiceDepth = settings.voiceDepth
         player.voiceTune = settings.voiceTune
         player.voiceID = currentVoiceID
@@ -340,6 +412,96 @@ final class AppModel {
         setSpeed(330 / SpeechPlayer.wordsAtOneX, documentOnly: false)
     }
 
+    /// "Bu tınıyı Wise Path'e al": the Turkish voice is measured as the phone's Spoken Content settings make it, then
+    /// Wise Path's own Kalınlık (and speed, when iOS ruled it) are set to the same sound and the phone's settings are
+    /// let go, so the speed button and Kalınlık work in the app. Level and cleaning stay as they were in that mode
+    /// (VoiceMaster, +4 dB). When this phone's engine cannot reach the pitch, nothing changes.
+    func adoptPhoneVoice() async -> String {
+        let id = Voices.voice(currentVoiceID)?.language.hasPrefix("tr") == true ? currentVoiceID
+            : AVSpeechSynthesisVoice(language: "tr-TR")?.identifier ?? currentVoiceID
+        let m = await withCheckedContinuation { (k: CheckedContinuation<PhoneVoice?, Never>) in
+            ProfileRenderer.shared.queue.async { k.resume(returning: ProfileRenderer.shared.phoneVoice(voiceID: id)) }
+        }
+        guard let m else { return "Ölçülemedi: Türkçe ses üretilemedi. Ayar değişmedi." }
+        let hz = "iPhone ayarı \(Int(m.phoneHz.rounded())) Hz, Wise Path \(Int(m.ownHz.rounded())) Hz"
+        guard m.matched else {
+            return "Bu iPhone'da Wise Path aynı kalınlığa inemedi (\(hz)). Ayar değişmedi; iPhone'un ayarıyla okumaya devam."
+        }
+        var t = tune(id)
+        t.pitch = m.kalinlik
+        t.volume = 1
+        settings.voiceTune[id] = t
+        settings.referenceHz = m.phoneHz
+        settings.clearVoice = true
+        settings.systemSpeech = false
+        if let s = m.speed { setSpeed(s, documentOnly: false) } else { applyAudioSettings() }
+        let speed = m.speed.map { _ in " · Hız \(SpeechPlayer.wpm(settings.speed))" } ?? ""
+        return "Alındı: Kalınlık \(Int((m.kalinlik * 100).rounded()))\(speed) (\(hz)). Artık hız ve kalınlık Wise Path'ten."
+    }
+
+    /// "Kararlı ölçüye getir" for an iPhone voice other than the one in use (Cem, a Gelişmiş voice…): its melody is
+    /// measured and Düzlük is set so that it comes down toward Yelda's 3.7 semitones (at most 40 % narrower); a voice
+    /// that is higher than the reader's own measured pitch is brought down to it with Kalınlık. Level and cleaning
+    /// are the same chain as Yelda's (VoiceMaster), so the loudness is the same.
+    func steadyVoice() async -> String {
+        let id = currentVoiceID
+        guard isSystemVoice, Voices.voice(id) != nil else { return "Bu ayar iPhone sesleri içindir." }
+        let before = tune(id)
+        guard let r = await steadyMeasure(id) else { return "Ölçülemedi; ayar değişmedi." }
+        let t = steadyTune(before, hz: r.hz, spread: r.spread)
+        settings.systemSpeech = false
+        settings.clearVoice = true
+        settings.voiceTune[id] = t
+        applyAudioSettings()
+        let pitch = t.pitch != before.pitch ? " · Kalınlık \(Int((t.pitch * 100).rounded()))" : ""
+        return String(format: "Bu ses: %.0f Hz, melodi %.1f yarım ton. Düzlük %%%d%@ olarak ayarlandı (hedef 3,7 yarım ton).",
+                      r.hz, r.spread, Int((t.steady * 100).rounded()), pitch)
+    }
+
+    /// The same measure for every other Turkish iPhone voice, so that changing the voice keeps the steadiness. A voice
+    /// the user has already set (its own Kalınlık or Düzlük) is left as it is, and so is the voice in use.
+    func steadyOtherVoices() async -> String {
+        let current = currentVoiceID
+        let voices = Voices.voices(for: "tr").filter { $0.identifier.hasPrefix("com.apple") && $0.identifier != current }
+        guard !voices.isEmpty else { return "Başka Türkçe iPhone sesi kurulu değil." }
+        var lines: [String] = []
+        for v in voices {
+            let name = v.name + (Voices.qualityName(v).map { " (\($0))" } ?? "")
+            let before = tune(v.identifier)
+            if before.steady > 0.01 || abs(before.pitch - 1) > 0.005 { lines.append("\(name): kendi ayarın duruyor"); continue }
+            guard let r = await steadyMeasure(v.identifier) else { lines.append("\(name): ölçülemedi"); continue }
+            let t = steadyTune(before, hz: r.hz, spread: r.spread)
+            settings.voiceTune[v.identifier] = t
+            lines.append(String(format: "%@: %.0f Hz, %.1f yarım ton → Düzlük %%%d%@", name, r.hz, r.spread, Int((t.steady * 100).rounded()),
+                                t.pitch != before.pitch ? " · Kalınlık \(Int((t.pitch * 100).rounded()))" : ""))
+        }
+        applyAudioSettings()
+        return lines.joined(separator: "\n")
+    }
+
+    /// Median pitch and melody width of an iPhone voice as it is (Kalınlık 100, no Düzlük), at the reading speed.
+    private func steadyMeasure(_ id: String) async -> (hz: Double, spread: Double)? {
+        let rate = SpeechPlayer.rate(for: player.speed)
+        return await withCheckedContinuation { k in
+            ProfileRenderer.shared.queue.async {
+                let text = "Felsefe, insanın kendi aklını kendi üzerine çevirmesiyle başlar. Sokrates sorgulanmamış bir hayatın yaşanmaya değmediğini söylediğinde, Atina mahkemesi onu ölüme mahkûm etti; yine de bu cümle bugün bile okunuyor."
+                let s = ProfileRenderer.shared.renderSystem(text, voiceID: id, rate: rate, tune: VoiceTune(pitch: 1, volume: 1, steady: 0), cancelled: { false })
+                k.resume(returning: s.flatMap { Steady.melody($0.samples) })
+            }
+        }
+    }
+
+    /// Düzlük for the measured melody, and Kalınlık down to the reference voice when this one is higher.
+    private func steadyTune(_ before: VoiceTune, hz: Double, spread: Double) -> VoiceTune {
+        var t = before
+        t.steady = ((1 - Steady.keep(for: spread)) * 20).rounded() / 20
+        let reference = settings.referenceHz
+        if reference > 60, hz > reference * 1.06 {
+            t.pitch = min(max((SystemPitch.kalinlik(ratio: reference / hz) * 100).rounded() / 100, SystemPitch.reachesDeep ? 0.2 : 0.5), 1)
+        }
+        return t
+    }
+
     func setSpeed(_ s: Double, documentOnly: Bool) {
         // system voices move in steps of 5 words a minute, Voice Reader's own voices in steps of 0.05×
         let unit = isSystemVoice ? 5 / SpeechPlayer.wordsAtOneX : 0.05
@@ -364,8 +526,11 @@ final class AppModel {
                 let now = Date.now
                 store.update(id) { $0.finishedAt = now; $0.finishes.append(now) }
                 store.saveNow()
+                let bus = bus, title = d.title
+                busQueue.async { bus.emit("book.finished", subject: "book:\(id.uuidString)", data: ["title": .string(title)]) }
             }
         }
+        publishLive()
         if automationRun != nil { segmentEnded(.finished); return }
         switch settings.endBehavior {
         case .stopAtEnd: break
@@ -382,11 +547,15 @@ final class AppModel {
 
     // MARK: importing
 
-    func importFiles(_ urls: [URL], fromSync: Bool = false) async {
+    /// `folder`: where a sync (Loader) import files the document; any other import goes to the folder the library
+    /// had chosen when it began. Returns the files that became documents.
+    @discardableResult
+    func importFiles(_ urls: [URL], fromSync: Bool = false, folder syncFolder: String? = nil) async -> Set<URL> {
         importing = true
         defer { importing = false }
+        let destination = fromSync ? syncFolder : folder
         var failures: [String] = []
-        var lastAdded: UUID?
+        var imported: Set<URL> = []
         let tmp = FileManager.default.temporaryDirectory.appending(path: "import-\(UUID().uuidString)", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmp) }
@@ -403,16 +572,18 @@ final class AppModel {
             switch result {
             case .success(let doc):
                 if let rec = try? store.add(doc, original: copy) {
-                    lastAdded = rec.id
-                    if let f = folder ?? Self.seriesFolder(for: rec.title) { store.update(rec.id) { $0.folder = f } }
+                    imported.insert(url)
+                    if let f = destination ?? Self.seriesFolder(for: rec.title) { store.update(rec.id) { $0.folder = f } }
                     sync.publish(rec.id)
+                } else {
+                    failures.append("“\(url.lastPathComponent)” eklenemedi.")
                 }
             case .failure(let e):
                 failures.append((e as? LocalizedError)?.errorDescription ?? "“\(url.lastPathComponent)” eklenemedi.")
             }
         }
         if !failures.isEmpty { importMessage = failures.joined(separator: "\n") }
-        _ = lastAdded
+        return imported
     }
 
     /// Files dropped into "On My iPhone › Voice Reader" (the app's Documents folder, visible in the Files app) join the
@@ -422,11 +593,37 @@ final class AppModel {
         let fm = FileManager.default
         guard let items = try? fm.contentsOfDirectory(at: docs, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) else { return }
         for pack in items where pack.pathExtension == "vrstudio" { importStudio(pack) }
-        let files = items.filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true }
+        var files = items.filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true }
         guard !files.isEmpty, !importing else { return }
-        await importFiles(files)
-        for f in files { try? fm.removeItem(at: f) }
+        // A file still arriving stays for the next scan: an iCloud placeholder, an empty file, or one whose size
+        // is still changing (the Files app is copying it in). A file that failed before is not tried (and reported)
+        // again until it changes.
+        func signature(_ u: URL) -> String? {
+            guard let v = try? u.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isUbiquitousItemKey,
+                                                           .ubiquitousItemDownloadingStatusKey]) else { return nil }
+            if v.isUbiquitousItem == true, v.ubiquitousItemDownloadingStatus != .current { return nil }
+            guard let size = v.fileSize, size > 0 else { return nil }
+            return "\(size)-\(Int(v.contentModificationDate?.timeIntervalSince1970 ?? 0))"
+        }
+        let before = Dictionary(uniqueKeysWithValues: files.compactMap { f in signature(f).map { (f, $0) } })
+        try? await Task.sleep(for: .milliseconds(400))
+        var failed = UserDefaults.standard.dictionary(forKey: Self.dropFailedKey) as? [String: String] ?? [:]
+        files = files.filter { f in
+            guard let s = before[f], signature(f) == s else { return false }
+            return failed[f.lastPathComponent] != s
+        }
+        guard !files.isEmpty, !importing else { return }
+        let done = await importFiles(files)
+        // only a file that became a document is removed; one that could not be read stays where the user put it
+        for f in files {
+            if done.contains(f) { try? fm.removeItem(at: f); failed[f.lastPathComponent] = nil }
+            else if let s = before[f] { failed[f.lastPathComponent] = s }
+        }
+        let present = Set(items.map(\.lastPathComponent))
+        failed = failed.filter { present.contains($0.key) }
+        UserDefaults.standard.set(failed, forKey: Self.dropFailedKey)
     }
+    private static let dropFailedKey = "drop.failed"
 
     /// A book voiced on the Mac (Voice Reader Studio, `<name>.vrstudio` dropped into the Documents folder): added as a
     /// document with the Anlatıcı voice, or, if it is already in the library (same id), its audio is replaced, so a

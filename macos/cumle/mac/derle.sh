@@ -6,7 +6,7 @@ UPDATER="${0:A:h:h:h:h}/shared/AppUpdater"   # resolved before cd: $0 may be rel
 cd "${0:A:h}"
 SDK=$(xcrun --show-sdk-path --sdk macosx 2>/dev/null || echo /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
 GECICI=$(mktemp -d)
-KAYNAK=(Kaynak/*.swift "$UPDATER/AppUpdater.swift")
+KAYNAK=(Kaynak/*.swift "$UPDATER/AppUpdater.swift" "${UPDATER:h}/TimeBox/TimeBox.swift")
 for MIMARI in arm64 x86_64; do
   swiftc -O -swift-version 5 -parse-as-library -target $MIMARI-apple-macos14.0 -sdk "$SDK" $KAYNAK -o "$GECICI/Cumle-$MIMARI"
 done

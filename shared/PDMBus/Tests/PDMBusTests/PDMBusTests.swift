@@ -47,6 +47,60 @@ final class PDMBusTests: XCTestCase {
         XCTAssertEqual(PDMBus.cachedToday()?.lines?.first?.today, "Gün 23")
     }
 
+    func testLiveState() throws {
+        let app = "live-\(UUID().uuidString.prefix(6))"
+        let b = PDMBus(app: app, vaultRoot: { nil })
+        XCTAssertNil(PDMBus.live(of: app))
+        let t0 = Date(timeIntervalSince1970: 1_000_000)
+        b.publishLive(PDMLive(app: "other", updated: t0, kind: "book", id: "d1", title: "Arkhe", progress: 0.421,
+                              active: true, link: "wisepath://book/d1", refs: ["teoria": "by-k1-c04"]))
+        let a = try XCTUnwrap(PDMBus.live(of: app))
+        XCTAssertEqual(a.app, app)                       // an app writes only its own file
+        XCTAssertEqual(a.refs?["teoria"], "by-k1-c04")
+        // The same content a few seconds later is not written again.
+        b.publishLive(PDMLive(app: app, updated: t0.addingTimeInterval(5), kind: "book", id: "d1", title: "Arkhe",
+                              progress: 0.424, active: true, link: "wisepath://book/d1", refs: ["teoria": "by-k1-c04"]))
+        XCTAssertEqual(PDMBus.live(of: app)?.updated, t0)
+        // A change is written immediately.
+        b.publishLive(PDMLive(app: app, updated: t0.addingTimeInterval(6), kind: "book", id: "d1", title: "Arkhe",
+                              progress: 0.424, active: false, link: "wisepath://book/d1", refs: ["teoria": "by-k1-c04"]))
+        XCTAssertEqual(PDMBus.live(of: app)?.active, false)
+        // After the refresh interval the time is written again.
+        b.publishLive(PDMLive(app: app, updated: t0.addingTimeInterval(120), kind: "book", id: "d1", title: "Arkhe",
+                              progress: 0.424, active: false, link: "wisepath://book/d1", refs: ["teoria": "by-k1-c04"]))
+        XCTAssertEqual(PDMBus.live(of: app)?.updated, t0.addingTimeInterval(120))
+        XCTAssertNil(PDMBus.live(of: app, maxAge: 60))    // t0 is in 1970
+        XCTAssertTrue(PDMBus.allLive().contains { $0.app == app })
+        b.clearLive()
+        XCTAssertNil(PDMBus.live(of: app))
+    }
+
+    func testRelayCarriesOtherOutboxes() throws {
+        let vault = FileManager.default.temporaryDirectory.appendingPathComponent("pdm-relay-\(UUID().uuidString)")
+        let bus = vault.appendingPathComponent("_bus")
+        try FileManager.default.createDirectory(at: bus, withIntermediateDirectories: true)
+        let other = "ufuk-\(UUID().uuidString.prefix(4).lowercased())"
+        let silent = PDMBus(app: other, vaultRoot: { nil })     // no vault folder of its own
+        silent.emit("weather.day")
+        silent.emit("app.opened")
+        XCTAssertEqual(silent.syncNow().status, .noVault)
+        XCTAssertEqual(silent.pendingCount, 2)
+
+        let carrier = PDMBus(app: "carrier-\(UUID().uuidString.prefix(4).lowercased())", vaultRoot: { vault })
+        let r = carrier.syncNow()
+        XCTAssertEqual(r.status, .ok)
+        XCTAssertGreaterThanOrEqual(r.relayed, 2)
+        XCTAssertTrue(r.relayedApps.contains(other))
+        XCTAssertEqual(silent.pendingCount, 0)
+        let file = bus.appendingPathComponent("events/\(other)/\(PDMBus.device).jsonl")
+        let lines = try String(contentsOf: file).split(separator: "\n")
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertTrue(lines[0].contains("\"app\":\"\(other)\""))
+        // Nothing is carried twice.
+        XCTAssertFalse(carrier.syncNow().relayedApps.contains(other))
+        XCTAssertFalse(PDMEvent.isSafeApp("../x"))
+    }
+
     func testWrongRootIsRejected() {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("pdm-none-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)

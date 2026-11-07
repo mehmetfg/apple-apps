@@ -1,0 +1,1 @@
+/Users/mfg/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personel Data Management/_araçlar/kivilcim/links.py

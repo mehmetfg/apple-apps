@@ -61,14 +61,19 @@ struct MenuPaneli: View {
                 if k.kayitta {
                     HStack {
                         Text(Zaman.sure(k.sure)).font(.system(.title2, design: .rounded).monospacedDigit().weight(.semibold))
+                        if k.mode == .journal { Text(k.part > 1 ? "uzun · \(k.part). parça" : "uzun konuşma").font(.caption).foregroundStyle(Ink.journal) }
                         Spacer()
                         Button("Vazgeç") { k.vazgec() }.controlSize(.small)
                     }
                     DuzeyCubuklari(seviyeler: k.seviyeler).frame(height: 22)
                 } else {
                     Text("Aklına geleni söyle").font(.headline)
-                    Text("\(KisayolSecenegi.secili.ad) · bas-konuş için basılı tut").font(.caption).foregroundStyle(.secondary)
-                    Text("\(k.kaliteSecimi.ad) · ≈\(k.kaliteSecimi.kbDk) KB/dk").font(.caption2).foregroundStyle(.tertiary)
+                    Text("\(KisayolSecenegi.secili.ad) fikir · ⌃⌥G uzun konuşma").font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        NextTopicMenu()
+                        Button { k.baslat(.journal) } label: { Label("Uzun konuşma", systemImage: "book.pages") }
+                            .controlSize(.small)
+                    }
                 }
                 if let h = k.hata ?? depo.hata { Text(h).font(.caption2).foregroundStyle(.red).lineLimit(3) }
             }
@@ -158,19 +163,29 @@ func obsidianAc(_ dosya: URL, _ vault: URL) {
 // MARK: Arşiv penceresi
 
 enum Suzgec: Hashable {
-    case tumu, bugun, hafta, yildizli, bekleyen, alan(String), amac(String)
+    case yon, akis, konular, tatbik, acik, biten, gunluk, tumu, bugun, hafta, yildizli, bekleyen, alan(String), amac(String)
 }
 
 struct ArsivPenceresi: View {
     @EnvironmentObject var depo: Depo
     @EnvironmentObject var k: Kaydedici
-    @State private var suzgec: Suzgec? = .tumu
+    @SceneStorage("suzgec") private var acilis = "yon"
+    @State private var suzgec: Suzgec? = .yon
     @State private var sorgu = ""
+    @State private var konu: String?
+    @State private var madde: String?
+    @State private var feedItem: String?
+    @State private var gitKayit: String?
+    @AppStorage("tema") private var tema = "sistem"
 
     var liste: [Oge] {
         let tk = Calendar.current
         return depo.ogeler.filter { o in
             switch suzgec ?? .tumu {
+            case .yon, .akis, .konular, .tatbik: false
+            case .acik: !o.isDone && !o.isJournal
+            case .biten: o.isDone
+            case .gunluk: o.isJournal
             case .tumu: true
             case .bugun: tk.isDateInToday(o.zaman)
             case .hafta: Date().timeIntervalSince(o.zaman) < 7 * 86400
@@ -185,6 +200,17 @@ struct ArsivPenceresi: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $suzgec) {
+                Section("Merkez") {
+                    Label("Yön", systemImage: "safari").tag(Suzgec.yon)
+                    satir(.akis, "Akış", "newspaper", depo.feed.openCount)
+                    satir(.tatbik, "Tatbik", "checklist", depo.tatbik.openCount)
+                    satir(.konular, "Konular", "books.vertical", depo.links.topics.count)
+                    satir(.gunluk, "Uzun konuşmalar", "book.pages", depo.ogeler.filter(\.isJournal).count)
+                }
+                Section("İşler") {
+                    satir(.acik, "Açık", "circle", depo.ogeler.filter { !$0.isDone && !$0.isJournal }.count)
+                    satir(.biten, "Yapıldı", "checkmark.circle", depo.ogeler.filter(\.isDone).count)
+                }
                 Section {
                     satir(.tumu, "Tümü", "tray.full", depo.ogeler.count)
                     satir(.bugun, "Bugün", "sun.max", depo.ogeler.filter { Calendar.current.isDateInToday($0.zaman) }.count)
@@ -210,26 +236,61 @@ struct ArsivPenceresi: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 210)
-            .safeAreaInset(edge: .bottom) {
-                Button { k.degistir() } label: {
-                    Label(k.kayitta ? "Bitir · \(Zaman.sure(k.sure))" : "Yeni sesli fikir", systemImage: k.kayitta ? "stop.fill" : "mic.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .controlSize(.large).buttonStyle(.borderedProminent).tint(.kivilcim)
-                .padding(10)
-            }
+            .safeAreaInset(edge: .bottom) { RecordDock() }
         } content: {
-            OgeListesi(liste: liste, sorgu: sorgu)
-                .navigationSplitViewColumnWidth(min: 300, ideal: 360)
+            Group {
+                switch suzgec {
+                case .yon: DirectionView(topic: $konu, filter: $suzgec)
+                case .akis: FeedView(selection: $feedItem)
+                case .tatbik: TatbikView(selection: $madde, query: sorgu)
+                case .konular: TopicList(selection: $konu, query: sorgu)
+                case .gunluk: JournalList(query: sorgu)
+                default: OgeListesi(liste: liste, sorgu: sorgu, oncelikle: suzgec == .acik)
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 300, ideal: suzgec == .yon || suzgec == .tatbik || suzgec == .akis ? 600 : 360)
         } detail: {
-            if let id = depo.secili, let o = depo.ogeler.first(where: { $0.id == id }) {
-                Detay(o: o, sorgu: sorgu).id(o.id)
+            if suzgec == .akis {
+                FeedDetail(id: feedItem ?? "")
+            } else if suzgec == .tatbik {
+                TatbikDetail(id: madde ?? "", goRecord: $gitKayit)
+            } else if suzgec == .yon || suzgec == .konular {
+                if let id = konu, let t = depo.links.topic(id) {
+                    TopicPage(t: t).id(t.id)
+                } else {
+                    ContentUnavailableView("Bir konu seç", systemImage: "books.vertical",
+                                           description: Text("Bir kitap hakkında söylediğin her şey, nerede kaydettiysen, burada bir arada."))
+                }
+            } else if depo.coklu.count > 1 {
+                BulkPanel(items: depo.ogeler.filter { depo.coklu.contains($0.id) })
+            } else if let id = depo.secili, let o = depo.ogeler.first(where: { $0.id == id }) {
+                if o.isJournal { JournalDetail(o: o).id(o.id) } else { Detay(o: o, sorgu: sorgu).id(o.id) }
             } else {
-                ContentUnavailableView("Bir fikir seç", systemImage: "waveform", description: Text("Ya da \(KisayolSecenegi.secili.ad) ile yenisini söyle."))
+                ContentUnavailableView(suzgec == .gunluk ? "Bir konuşma seç" : "Bir fikir seç", systemImage: "waveform",
+                                       description: Text("\(KisayolSecenegi.secili.ad) fikir · ⌃⌥G uzun konuşma"))
             }
         }
         .searchable(text: $sorgu, placement: .toolbar, prompt: "Başlık, döküm, etiket…")
+        .onAppear { suzgec = Suzgec.from(acilis) }
+        .onChange(of: suzgec) { _, y in depo.coklu = []; if let y { acilis = y.key } }
+        .onChange(of: gitKayit) { _, id in
+            guard let id else { return }
+            suzgec = .tumu; depo.secili = id; gitKayit = nil
+        }
+        .onChange(of: depo.openTatbik) { _, id in
+            guard let id else { return }
+            suzgec = .tatbik; madde = id; depo.openTatbik = nil
+        }
         .toolbar {
+            ToolbarItem {
+                Menu {
+                    Picker("Görünüm", selection: $tema) {
+                        ForEach(ThemeChoice.allCases) { t in Label(t.name, systemImage: t.symbol).tag(t.rawValue) }
+                    }.pickerStyle(.inline)
+                } label: { Image(systemName: (ThemeChoice(rawValue: tema) ?? .sistem).symbol) }
+                .help("Görünüm: Sistem · Açık · Koyu")
+                .onChange(of: tema) { _, _ in ThemeChoice.apply() }
+            }
             ToolbarItem {
                 if depo.isleniyor { ProgressView().controlSize(.small).help(depo.durumMetni) }
                 else { Button { depo.isle() } label: { Image(systemName: "arrow.clockwise") }.help("Şimdi işle (⌘R)") }
@@ -249,14 +310,33 @@ struct OgeListesi: View {
     @EnvironmentObject var depo: Depo
     let liste: [Oge]
     let sorgu: String
+    var oncelikle = false
+
+    /// Open items: grouped by priority (urgent first, oldest first); everything else by day.
+    private var gruplar: [(String, [Oge])] {
+        guard oncelikle else { return liste.gunlere() }
+        return Priority.allCases.reversed().compactMap { p in
+            let bu = liste.filter { $0.priority == p.rawValue }.sorted { $0.tarih > $1.tarih }
+            return bu.isEmpty ? nil : ("\(p.name) · \(bu.count)", bu)
+        }
+    }
 
     var body: some View {
-        List(selection: $depo.secili) {
-            ForEach(liste.gunlere(), id: \.0) { gun, ogeler in
+        List(selection: Binding<Set<String>>(
+            get: { depo.coklu.count > 1 ? depo.coklu : Set([depo.secili].compactMap { $0 }) },
+            set: { yeni in
+                depo.coklu = yeni
+                if yeni.count == 1 { depo.secili = yeni.first } else if yeni.isEmpty { depo.secili = nil }
+            })) {
+            ForEach(gruplar, id: \.0) { gun, ogeler in
                 Section(gun) {
                     ForEach(ogeler) { o in
                         ListeSatiri(o: o, sorgu: sorgu).tag(o.id)
-                            .contextMenu { BaglamMenusu(o: o) }
+                            .contextMenu {
+                                if depo.coklu.count > 1, depo.coklu.contains(o.id) {
+                                    BulkMenu(items: liste.filter { depo.coklu.contains($0.id) })
+                                } else { BaglamMenusu(o: o) }
+                            }
                     }
                 }
             }
@@ -276,11 +356,21 @@ struct ListeSatiri: View {
     var body: some View {
         let al = depo.siniflar.alan(o.alan)
         HStack(alignment: .top, spacing: 10) {
-            RoundedRectangle(cornerRadius: 2).fill(al.color).frame(width: 4).padding(.vertical, 2)
+            if o.isJournal {
+                RoundedRectangle(cornerRadius: 2).fill(.indigo).frame(width: 4).padding(.vertical, 2)
+            } else {
+                Button { depo.duzelt(o, "status", o.isDone ? "open" : "done") } label: {
+                    Image(systemName: o.isDone ? "checkmark.circle.fill" : "circle").font(.title3)
+                        .foregroundStyle(o.isDone ? Color.green : Color(hex: o.prio.hex))
+                }.buttonStyle(.plain).help(o.isDone ? "Yeniden aç" : "Yapıldı")
+            }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 4) {
                     if o.yildiz { Image(systemName: "star.fill").font(.caption2).foregroundStyle(.yellow) }
-                    Text(o.baslik).font(.body.weight(.semibold)).lineLimit(2)
+                    if o.priority >= Priority.high.rawValue && !o.isDone {
+                        Image(systemName: o.prio.symbol).font(.caption.weight(.heavy)).foregroundStyle(Color(hex: o.prio.hex))
+                    }
+                    Text(o.baslik).font(.body.weight(.semibold)).lineLimit(2).strikethrough(o.isDone)
                 }
                 Text(sorgu.isEmpty ? (o.ozet.isEmpty ? o.metin : o.ozet) : Arama.parca(o, sorgu))
                     .font(.callout).foregroundStyle(.secondary).lineLimit(2)
@@ -301,6 +391,10 @@ struct BaglamMenusu: View {
     @EnvironmentObject var depo: Depo
     let o: Oge
     var body: some View {
+        Button(o.isDone ? "Yeniden aç" : "Yapıldı") { depo.duzelt(o, "status", o.isDone ? "open" : "done") }
+        Menu("Öncelik") {
+            ForEach(Priority.allCases.reversed()) { p in Button(p.name) { depo.duzelt(o, "priority", p.rawValue) } }
+        }
         Button(o.yildiz ? "Yıldızı kaldır" : "Yıldızla") { depo.duzelt(o, "yildiz", !o.yildiz) }
         Menu("Alan") {
             ForEach(depo.siniflar.alanlar) { a in Button(a.ad) { depo.duzelt(o, "alan", a.id) } }
@@ -308,14 +402,87 @@ struct BaglamMenusu: View {
         Menu("Amaç") {
             ForEach(depo.siniflar.amaclar) { a in Button(a.ad) { depo.duzelt(o, "amac", a.id) } }
         }
+        Menu("Konu") { TopicChoices(current: o.topic) { depo.duzelt(o, "topic", $0) } }
         Divider()
         if let n = depo.notURL(o) { Button("Obsidian'da aç") { obsidianAc(n, depo.vault) } }
         if let s = depo.sesURL(o) { Button("Finder'da göster") { NSWorkspace.shared.activateFileViewerSelecting([s]) } }
+        if !o.metin.isEmpty { Button("Kurultay'a sor") { KurultayBag.send([o.id]) } }
         Button("Dökümü kopyala") {
             NSPasteboard.general.clearContents(); NSPasteboard.general.setString("\(o.baslik)\n\n\(o.metin)", forType: .string)
         }
         Divider()
         Button("Çöpe taşı", role: .destructive) { depo.duzelt(o, "sil", true); if depo.secili == o.id { depo.secili = nil } }
+    }
+}
+
+/// Actions for several records at once (2026-11-05): the open list had 74 records and one "done".
+struct BulkMenu: View {
+    @EnvironmentObject var depo: Depo
+    let items: [Oge]
+    private var ids: [String] { items.map(\.id) }
+    var body: some View {
+        Button("\(items.count) kaydı Yapıldı işaretle") { depo.duzeltToplu(ids, "status", "done"); depo.coklu = [] }
+        Button("Yeniden aç") { depo.duzeltToplu(ids, "status", "open") }
+        Menu("Öncelik") {
+            ForEach(Priority.allCases.reversed()) { p in Button(p.name) { depo.duzeltToplu(ids, "priority", p.rawValue) } }
+        }
+        Menu("Alan") {
+            ForEach(depo.siniflar.alanlar) { a in Button(a.ad) { depo.duzeltToplu(ids, "alan", a.id) } }
+        }
+        Divider()
+        Button("Birlikte Kurultay'a sor") { KurultayBag.send(items.filter { !$0.metin.isEmpty }.map(\.id)) }
+    }
+}
+
+struct BulkPanel: View {
+    @EnvironmentObject var depo: Depo
+    let items: [Oge]
+    @State private var silSor = false
+    private var ids: [String] { items.map(\.id) }
+    private var withText: [Oge] { items.filter { !$0.metin.isEmpty } }
+
+    var body: some View {
+        let seconds = Int(items.reduce(0) { $0 + $1.sure })
+        let chars = withText.reduce(0) { $0 + $1.metin.count }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("\(items.count) kayıt seçili").font(.system(.title, design: .serif).weight(.semibold))
+                Text("\(seconds / 60) dk \(seconds % 60) sn · \(chars.formatted()) karakter döküm").foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    Button { depo.duzeltToplu(ids, "status", "done"); depo.coklu = [] } label: { Label("Yapıldı", systemImage: "checkmark.circle") }
+                        .buttonStyle(.borderedProminent)
+                    Button { depo.duzeltToplu(ids, "status", "open") } label: { Label("Yeniden aç", systemImage: "arrow.uturn.backward.circle") }
+                    Menu {
+                        ForEach(Priority.allCases.reversed()) { p in Button(p.name) { depo.duzeltToplu(ids, "priority", p.rawValue) } }
+                    } label: { Label("Öncelik", systemImage: "flag") }.fixedSize()
+                    Menu {
+                        ForEach(depo.siniflar.alanlar) { a in Button(a.ad) { depo.duzeltToplu(ids, "alan", a.id) } }
+                    } label: { Label("Alan", systemImage: "square.grid.2x2") }.fixedSize()
+                }
+                HStack(spacing: 10) {
+                    Button { KurultayBag.send(withText.map(\.id)) } label: { Label("Birlikte Kurultay'a sor", systemImage: "paperplane") }
+                        .disabled(withText.isEmpty)
+                        .help("Seçili kayıtları Kurultay'ın seçimine ekler; soruyu orada yazarsın. Hiçbir döküm sen göndermeden dışarı gitmez.")
+                    Button("Seçimi kaldır") { depo.coklu = []; depo.secili = nil }
+                    Spacer()
+                    Button("Çöpe taşı", role: .destructive) { silSor = true }
+                }
+                Divider()
+                ForEach(items.sorted { $0.tarih > $1.tarih }) { o in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: o.isDone ? "checkmark.circle.fill" : "circle").foregroundStyle(o.isDone ? Color.green : Color(hex: o.prio.hex))
+                        Text(o.baslik).lineLimit(1)
+                        Spacer()
+                        Text("\(Zaman.saat(o.zaman)) · \(o.sureMetni)").font(.caption).foregroundStyle(.tertiary).monospacedDigit()
+                    }
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .confirmationDialog("\(items.count) kayıt çöpe taşınsın mı?", isPresented: $silSor) {
+            Button("Çöpe taşı", role: .destructive) { depo.duzeltToplu(ids, "sil", true); depo.coklu = []; depo.secili = nil }
+        } message: { Text("Kalıcı değildir: ses, künye ve not Kıvılcım/_silinen klasörüne taşınır.") }
     }
 }
 
@@ -326,6 +493,7 @@ struct Detay: View {
     let sorgu: String
     @State private var baslik = ""
     @State private var silSor = false
+    @State private var yeniNot = ""
 
     var body: some View {
         let al = depo.siniflar.alan(o.alan)
@@ -340,7 +508,7 @@ struct Detay: View {
                         if !o.kalite.isEmpty, let q = Kalite(rawValue: o.kalite) { Text("·"); Text(q.ad) }
                     }.font(.caption).foregroundStyle(.secondary)
                     TextField("Başlık", text: $baslik, axis: .vertical)
-                        .font(.system(size: 24, weight: .bold)).textFieldStyle(.plain)
+                        .font(Ink.serif(.largeTitle, .bold)).textFieldStyle(.plain)
                         .onSubmit(kaydetBaslik)
                     HStack(spacing: 8) {
                         Menu {
@@ -355,9 +523,19 @@ struct Detay: View {
                             }
                         } label: { let a = depo.siniflar.amac(o.amac); Label(a.ad, systemImage: a.simge) }
                             .menuStyle(.button).buttonStyle(.bordered).fixedSize()
+                        TopicMenu(o: o)
                         Button { depo.duzelt(o, "yildiz", !o.yildiz) } label: {
                             Image(systemName: o.yildiz ? "star.fill" : "star").foregroundStyle(o.yildiz ? .yellow : .secondary)
                         }.buttonStyle(.bordered).help("Yıldızla")
+                        if !o.isJournal {
+                            Picker("Öncelik", selection: Binding(get: { o.priority }, set: { depo.duzelt(o, "priority", $0) })) {
+                                ForEach(Priority.allCases.reversed()) { p in Text(p.name).tag(p.rawValue) }
+                            }
+                            .pickerStyle(.segmented).fixedSize().tint(Color(hex: o.prio.hex))
+                            Button { depo.duzelt(o, "status", o.isDone ? "open" : "done") } label: {
+                                Label(o.isDone ? "Yeniden aç" : "Yapıldı", systemImage: o.isDone ? "arrow.uturn.backward" : "checkmark")
+                            }.buttonStyle(.borderedProminent).tint(o.isDone ? .gray : .green)
+                        }
                         Spacer()
                         kaynakRozeti
                     }
@@ -371,11 +549,27 @@ struct Detay: View {
                     }
                 }
                 CalarSerit(o: o, renk: al.color)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(o.notes, id: \.self) { n in
+                        Label { Text(n.text) + Text("  " + n.t.prefix(16).replacingOccurrences(of: "T", with: " ")).font(.caption).foregroundColor(.secondary) }
+                            icon: { Image(systemName: "note.text").foregroundStyle(.secondary) }
+                    }
+                    TextField("Not ekle (↩ ile; Obsidian'daki Notlarım bölümüne gider)", text: $yeniNot)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            let t = yeniNot.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !t.isEmpty { depo.duzelt(o, "note", t) }
+                            yeniNot = ""
+                        }
+                }
                 if !o.ozet.isEmpty {
                     Text(o.ozet).font(.title3).foregroundStyle(.primary.opacity(0.85))
                         .padding(12).frame(maxWidth: .infinity, alignment: .leading)
                         .background { RoundedRectangle(cornerRadius: 10).fill(al.color.opacity(0.08)) }
                 }
+                // above the transcript: a long talk would push the council's result out of sight
+                TatbikForRecord(o: o) { depo.openTatbik = $0 }
+                if !o.metin.isEmpty { KurultayRow(o: o) }
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Döküm").font(.headline)
@@ -400,8 +594,9 @@ struct Detay: View {
                 }
                 .controlSize(.small)
             }
-            .padding(24).frame(maxWidth: 760, alignment: .leading)
+            .padding(28).frame(maxWidth: 760, alignment: .leading)
         }
+        .background(Ink.paper)
         .onAppear { baslik = o.baslik }
         .onChange(of: o.baslik) { _, y in baslik = y }
         .onDisappear(perform: kaydetBaslik)
@@ -473,6 +668,7 @@ struct AyarlarGorunumu: View {
     @AppStorage("kisayol") private var kisayol = "ctrlOptK"
     @AppStorage("claudeBaslik") private var claudeBaslik = true
     @AppStorage("hud") private var hud = true
+    @AppStorage("tema") private var tema = "sistem"
     @State private var giris = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -503,6 +699,12 @@ struct AyarlarGorunumu: View {
                 Toggle("Claude'dan başlık ve özet iste (terminaldeki claude oturumu açıksa)", isOn: $claudeBaslik)
                 Text("Kapalıysa ya da oturum yoksa başlığı yerel kural koyar. Bir Claude Code oturumunda \"Kıvılcım'ı düzenle\" demek de aynı işi yapar.")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Görünüm") {
+                Picker("Tema", selection: $tema) {
+                    ForEach(ThemeChoice.allCases) { t in Text(t.name).tag(t.rawValue) }
+                }.pickerStyle(.segmented)
+                .onChange(of: tema) { _, _ in ThemeChoice.apply() }
             }
             Section("Genel") {
                 Toggle("Mac açılınca başlat", isOn: $giris).onChange(of: giris) { _, a in

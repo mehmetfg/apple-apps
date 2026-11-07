@@ -50,6 +50,7 @@ struct ReaderTextView: UIViewRepresentable {
     var onNote: (NSRange, String) -> Void
     var onVoiceNote: (NSRange) -> Void = { _ in }
     var onOpenNote: (String) -> Void = { _ in }
+    var onExpand: (NSRange, String) -> Void = { _, _ in }   // Genişlet: a prompt made from this passage
     var onBookmark: (Int) -> Void
     var onPlayFrom: (Int) -> Void
     var onVisibleOffset: (Int) -> Void
@@ -155,7 +156,18 @@ struct ReaderTextView: UIViewRepresentable {
             tv.backgroundColor = p.style.background
             tv.indicatorStyle = p.style.background.isDark ? .white : .black
             var rebuilt = false
-            if builtFor?.0 != p.documentID || builtFor?.1 != p.style || builtFor?.2 != p.highlights || builtFor?.3 != p.notes {
+            if let old = builtFor, old.0 == p.documentID, old.1 == p.style, old.2 != p.highlights || old.3 != p.notes,
+               tv.textStorage.length > 0, tv.textStorage.length == p.text.utf16.count {
+                // Only the marks changed (a highlight or a note added, removed, recoloured): their attributes are
+                // changed in place. Setting the whole text again laid the book out from its first line down to the
+                // reading place on every mark, which grew with the place and was paid on each bicycle-mode mark.
+                restyleMarks(tv, from: old.2, old.3)
+                builtFor = (p.documentID, p.style, p.highlights, p.notes)
+                rebuilt = true
+                if let sh = shaping, NSMaxRange(sh.range) <= tv.textStorage.length, tv.selectedRange != sh.range {
+                    tv.selectedRange = sh.range
+                }
+            } else if builtFor?.0 != p.documentID || builtFor?.1 != p.style || builtFor?.2 != p.highlights || builtFor?.3 != p.notes {
                 let firstBuild = builtFor?.0 != p.documentID
                 let keep = firstBuild ? nil : topOffset(tv)
                 build(tv)
@@ -223,16 +235,60 @@ struct ReaderTextView: UIViewRepresentable {
                 a.addAttribute(.backgroundColor, value: h.color.uiColor.withAlphaComponent(0.42), range: h.range)
                 if h.note != nil { a.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: h.range) }
             }
-            let ink = UIColor(red: 0, green: 0.435, blue: 0.706, alpha: 1)       // the progress bar's blue
             for n in p.notes where NSMaxRange(n.range) <= len {
                 a.addAttribute(.underlineStyle, value: NSUnderlineStyle.thick.rawValue | NSUnderlineStyle.patternDot.rawValue, range: n.range)
-                a.addAttribute(.underlineColor, value: ink, range: n.range)
+                a.addAttribute(.underlineColor, value: Self.noteInk, range: n.range)
             }
             tv.attributedText = a
             tempWord = nil; tempSentence = nil
             bandFrame = nil
             band.alpha = 0
             chips.forEach { $0.isHidden = true }
+        }
+
+        private static let noteInk = UIColor(red: 0, green: 0.435, blue: 0.706, alpha: 1)       // the progress bar's blue
+
+        /// Brings the text's mark attributes from the old highlights and notes to the parent's, touching only the
+        /// ranges of the marks that differ. Inside such a range the result is what `build` gives: the highlights'
+        /// colour (and underline when they carry a note), then the notes' dotted underline over them. Colours and
+        /// underlines do not change a line's height, so the page stays where it is.
+        private func restyleMarks(_ tv: UITextView, from oldHighlights: [Highlight], _ oldNotes: [NoteMark]) {
+            let p = parent
+            let storage = tv.textStorage
+            let len = storage.length
+            var dirty: [NSRange] = []
+            let before = Dictionary(oldHighlights.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            let after = Dictionary(p.highlights.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            for h in oldHighlights where after[h.id] != h { dirty.append(h.range) }
+            for h in p.highlights where before[h.id] != h { dirty.append(h.range) }
+            for n in Set(oldNotes).symmetricDifference(p.notes) { dirty.append(n.range) }
+            // clamp to the text, then join ranges that touch
+            var merged: [NSRange] = []
+            for r in dirty.map({ NSIntersectionRange($0, NSRange(location: 0, length: len)) }).filter({ $0.length > 0 })
+                .sorted(by: { $0.location < $1.location }) {
+                if let last = merged.last, r.location <= NSMaxRange(last) { merged[merged.count - 1] = NSUnionRange(last, r) }
+                else { merged.append(r) }
+            }
+            guard !merged.isEmpty else { return }
+            storage.beginEditing()
+            for r in merged {
+                storage.removeAttribute(.backgroundColor, range: r)
+                storage.removeAttribute(.underlineStyle, range: r)
+                storage.removeAttribute(.underlineColor, range: r)
+                for h in p.highlights where h.location + h.length <= len {
+                    let part = NSIntersectionRange(h.range, r)
+                    guard part.length > 0 else { continue }
+                    storage.addAttribute(.backgroundColor, value: h.color.uiColor.withAlphaComponent(0.42), range: part)
+                    if h.note != nil { storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: part) }
+                }
+                for n in p.notes where NSMaxRange(n.range) <= len {
+                    let part = NSIntersectionRange(n.range, r)
+                    guard part.length > 0 else { continue }
+                    storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.thick.rawValue | NSUnderlineStyle.patternDot.rawValue, range: part)
+                    storage.addAttribute(.underlineColor, value: Self.noteInk, range: part)
+                }
+            }
+            storage.endEditing()
         }
 
         // MARK: reading marks
@@ -576,7 +632,8 @@ struct ReaderTextView: UIViewRepresentable {
             }
             let voice = UIAction(title: "Sesli not", image: UIImage(systemName: "mic.fill")) { _ in p.onVoiceNote(h.range) }
             let write = UIAction(title: "Not yaz", image: UIImage(systemName: "square.and.pencil")) { _ in p.onNote(h.range, h.text) }
-            var noteItems: [UIMenuElement] = [voice, write]
+            let expand = UIAction(title: "Bu kısmı genişlet", image: UIImage(systemName: "sparkles")) { _ in p.onExpand(h.range, h.text) }
+            var noteItems: [UIMenuElement] = [expand, voice, write]
             if let n = openingNote {
                 noteItems.insert(UIAction(title: n.voice ? "Notu dinle" : "Notu aç", image: UIImage(systemName: n.voice ? "play.circle" : "note.text")) { _ in
                     p.onOpenNote(n.id)
@@ -612,7 +669,11 @@ struct ReaderTextView: UIViewRepresentable {
                 p.onPlayFrom(range.location)
                 tv.selectedRange = NSRange(location: range.location, length: 0)
             }
-            let ours = UIMenu(options: .displayInline, children: [play, highlight, note, bookmark])
+            let expand = UIAction(title: "Genişlet", image: UIImage(systemName: "sparkles")) { _ in
+                p.onExpand(range, text)
+                tv.selectedRange = NSRange(location: range.location, length: 0)
+            }
+            let ours = UIMenu(options: .displayInline, children: [play, highlight, expand, note, bookmark])
             return UIMenu(children: [ours] + suggestedActions)
         }
     }

@@ -14,7 +14,13 @@ struct BugunEkrani: View {
                 VStack(alignment: .leading, spacing: 20) {
                     if let k = depo.gununKonusu {
                         KahramanKart(konu: k) { ac(.konu(k.id)) }
+                        if depo.durum.gununKaynagi == "cumle", let neden = depo.durum.gununNedeni {
+                            Label(neden, systemImage: "text.quote")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                                .accessibilityLabel("Bugünün konusu Cümle'den: \(neden)")
+                        }
                         adimlar(k)
+                        if !digerCumleKonulari.isEmpty { cumledenGelenler }
                         if !depo.donenKonular.isEmpty { donenler }
                     }
                     miniHarita
@@ -58,6 +64,33 @@ struct BugunEkrani: View {
             }
             AdimSatiri(no: 3, baslik: oyun.ad, alt: oyun.neden(k, depo), cizim: "oyun-" + oyun.rawValue,
                        renk: oyun.renk, bitti: depo.durum.bugunBitti.contains("oyun")) { ac(.oyun(oyun)) }
+        }
+    }
+
+    /// Cümle's other topics today (the first one is today's topic already).
+    private var digerCumleKonulari: [(Konu, String?)] {
+        depo.cumleOdagi.filter { $0.id != depo.durum.gununKonusu }.compactMap { f in depo.konu(f.id).map { ($0, f.why) } }
+    }
+
+    private var cumledenGelenler: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Cümle'den gelenler").font(Tema.baslik(.headline))
+            ForEach(digerCumleKonulari, id: \.0.id) { k, neden in
+                Button { ac(.konu(k.id)) } label: {
+                    HStack(spacing: 10) {
+                        KademeHalkasi(kademe: depo.kademe(k.id), renk: depo.renk(k), boy: 18)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(k.tr).font(.subheadline.weight(.medium))
+                            if let neden { Text(neden).font(.caption).foregroundStyle(.secondary) }
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    }
+                    .padding(12)
+                    .background(.background.secondary, in: .rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 

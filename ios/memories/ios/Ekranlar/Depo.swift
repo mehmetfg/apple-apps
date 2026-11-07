@@ -2,6 +2,7 @@
 // Yerel kayıt her zaman önce yazılır; vault erişilemese de hiçbir şey kaybolmaz, sonraki eşitlemede gider.
 // Paketin sesi uygulamanın kendi alanına kopyalanır: yolda internet olmadan da çalar.
 import Foundation
+import PDMBus
 import SwiftUI
 import WidgetKit
 
@@ -21,10 +22,18 @@ struct KayitBilgisi: Codable, Hashable, Identifiable {
 
 @MainActor
 final class Depo: ObservableObject {
-    @Published private(set) var paketler: [Paket] = []
-    @Published var secilenGun: Int?
-    @Published private(set) var cozumler: [Int: Cozum] = [:]
-    @Published private(set) var olaylar: [Olay] = []
+    /// One store for the whole process. The window, the background refresh and the widget's recording intent all use
+    /// it: on a background launch there is no window, so nothing that lives only in a view can be relied on.
+    static let shared = Depo()
+
+    // Every value below feeds the derived cache (guncel, listenedDays, hazirlik …): a change drops it.
+    @Published private(set) var paketler: [Paket] = [] { didSet { derivedCache = nil } }
+    @Published var secilenGun: Int? { didSet { derivedCache = nil } }
+    @Published private(set) var cozumler: [Int: Cozum] = [:] { didSet { derivedCache = nil } }
+    @Published private(set) var olaylar: [Olay] = [] { didSet { derivedCache = nil } }
+    /// False until the local cache has been read (off the main thread, right after launch). Nothing is written
+    /// to the widget or to the vault before that.
+    @Published private(set) var loaded = false
     @Published private(set) var kayitlar: [KayitBilgisi] = []
     @Published private(set) var sonEsitleme: Date?
     @Published private(set) var esitleniyor = false
@@ -49,9 +58,84 @@ final class Depo: ObservableObject {
     static let sentRebuildsKey = "memories.kurma.gonderilen"
     static let tutulan = 16    // yerelde tutulan son paket: tampon (14 açık gün) + 2 geçmiş (kayıtlar ayrı, hep kalır)
 
-    init() {
-        yerelYukle()
-        widgetYaz()
+    private var loadTask: Task<Void, Never>?
+
+    // MARK: PDM bus (the shared pool of the owner's apps)
+
+    /// One bus for the app. Events wait in the shared App Group and go to `<vault>/_bus` at the next sync.
+    let bus = PDMBus(app: "memories", vaultRoot: { Kasa.selectedFolder() })
+    /// Words that are known or dropped somewhere in the network (lowercased). Display only.
+    @Published private(set) var closedWords: Set<String> = []
+
+    /// Sends waiting events, refreshes the cached network state, then the list of closed words.
+    func syncBus(opened: Bool = false) async {
+        if opened { bus.emitOpenedToday() }
+        await bus.sync()
+        await refreshClosedWords()
+    }
+
+    private func refreshClosedWords() async {
+        let closed = await Task.detached(priority: .utility) { Set(PDMBus.cachedWords()?.closed ?? []) }.value
+        if closed != closedWords { closedWords = closed }
+    }
+
+    private var playing = false
+    private var playingPackage: Paket?
+    /// The player started or stopped (Oynatici).
+    func playbackChanged(playing: Bool, package: Paket?) {
+        self.playing = playing
+        playingPackage = package
+        publishLive()
+    }
+
+    /// What this app shows now, for the other apps on the phone: the open day (the playing one while audio plays).
+    /// The bus writes the file only when the content changes.
+    private func publishLive() {
+        guard loaded, let p = (playing ? playingPackage : nil) ?? guncel else { return }
+        bus.publishLive(PDMLive(app: bus.app, kind: "day", id: p.klasorAdi, title: "Gün \(p.gun)",
+                                progress: Double(hazirlik(p.gun).adim) / 3, active: playing, link: "memories://dinle"))
+    }
+
+    private init() {
+        let paths = localPaths
+        loadTask = Task { [weak self] in
+            let state = await Task.detached(priority: .userInitiated) { Depo.readLocal(paths, recordings: true) }.value
+            guard let self else { return }
+            self.apply(state)
+            self.loaded = true
+            self.widgetYaz()
+            await self.refreshClosedWords()
+        }
+    }
+
+    /// Returns once the local cache is in memory (at once, after the first load).
+    func whenLoaded() async { await loadTask?.value }
+
+    // MARK: Derived values (cached; rebuilt after the event log, the packages or the selection change)
+
+    private struct Derived {
+        var listened = Set<Int>(), written = Set<Int>(), skipped = Set<Int>(), readyMarked = Set<Int>()
+        var readiness: [Int: Hazirlik] = [:]
+        var current: Paket??                // nil: not worked out yet
+    }
+    private var derivedCache: Derived?
+
+    /// One pass over the event log instead of one per question asked of it.
+    private func derived() -> Derived {
+        if let d = derivedCache { return d }
+        var d = Derived()
+        for o in olaylar {
+            switch o.tur {
+            case .dinledi: d.listened.insert(o.gun)
+            case .bitti: d.written.insert(o.gun)
+            case .atladi: d.skipped.insert(o.gun)
+            case .hazirim: d.readyMarked.insert(o.gun)
+            default: break
+            }
+        }
+        for c in cozumler.values where c.yazim != nil { d.written.insert(c.gun) }
+        derivedCache = d
+        return d
     }
 
     // MARK: Okunan durum
@@ -60,13 +144,20 @@ final class Depo: ObservableObject {
     /// ya da geçilen en ileri gün; ondan sonraki ilk gün açılır. Geride kalmış eski bir güne geri atılmaz
     /// (2026-10-16, kullanıcı isteği: "dinlenmiş olandan sonrakine geç, geriye doğru atma"). Hepsi bittiyse en yeni gün.
     var guncel: Paket? {
+        let d = derived()
+        if let c = d.current { return c }
+        let p = currentPackage(d)
+        derivedCache?.current = .some(p)
+        return p
+    }
+    private func currentPackage(_ d: Derived) -> Paket? {
         if let s = secilenGun, let p = paketler.first(where: { $0.gun == s }) { return p }
-        let done = yazilanGunler.union(atlananGunler).union(listenedDays)
+        let done = d.written.union(d.skipped).union(d.listened)
         let reached = paketler.map(\.gun).filter { done.contains($0) }.max() ?? Int.min
         return paketler.first { $0.gun > reached } ?? paketler.last
     }
     /// Telefonda en az bir kez tam dinlenmiş günler.
-    var listenedDays: Set<Int> { Set(olaylar.filter { $0.tur == .dinledi }.map(\.gun)) }
+    var listenedDays: Set<Int> { derived().listened }
 
     /// Günler arasında bir adım: ‹ önceki · › sonraki (yerelde tutulan paketler arasında).
     func neighbor(of gun: Int, _ step: Int) -> Paket? {
@@ -75,12 +166,9 @@ final class Depo: ObservableObject {
         return paketler.indices.contains(j) ? paketler[j] : nil
     }
     /// Mac'te yazılmış günler: Tezgâh'ın "bitti" olayı ya da yazım sonucu taşıyan çözüm.
-    var yazilanGunler: Set<Int> {
-        Set(olaylar.filter { $0.tur == .bitti }.map(\.gun))
-            .union(cozumler.values.filter { $0.yazim != nil }.map(\.gun))
-    }
+    var yazilanGunler: Set<Int> { derived().written }
     /// «Yaptım, geç» denen günler (telefonda ya da Mac'te).
-    var atlananGunler: Set<Int> { Set(olaylar.filter { $0.tur == .atladi }.map(\.gun)) }
+    var atlananGunler: Set<Int> { derived().skipped }
 
     func gunSec(_ gun: Int?) {
         secilenGun = gun
@@ -99,7 +187,12 @@ final class Depo: ObservableObject {
         let yazilan = cozumler.values.filter { $0.yazim != nil }
         return (yazilan.isEmpty ? Array(cozumler.values) : yazilan).max { $0.gun < $1.gun }
     }
-    func hazirlik(_ gun: Int) -> Hazirlik { Hazirlik.kur(olaylar, gun: gun) }
+    func hazirlik(_ gun: Int) -> Hazirlik {
+        if let h = derived().readiness[gun] { return h }
+        let h = Hazirlik.kur(olaylar, gun: gun)
+        derivedCache?.readiness[gun] = h
+        return h
+    }
     func sesURL(_ p: Paket) -> URL? {
         let u = paketKlasoru.appendingPathComponent(p.klasorAdi).appendingPathComponent("ses.m4a")
         return FileManager.default.fileExists(atPath: u.path) ? u : nil
@@ -109,36 +202,64 @@ final class Depo: ObservableObject {
 
     // MARK: Yerel yükleme
 
-    private func yerelYukle() {
-        let fm = FileManager.default
-        try? fm.createDirectory(at: paketKlasoru, withIntermediateDirectories: true)
-        var p: [Paket] = []
-        var c: [Int: Cozum] = [:]
-        for ad in (try? fm.contentsOfDirectory(atPath: paketKlasoru.path)) ?? [] where ad.hasPrefix("gun-") {
-            let k = paketKlasoru.appendingPathComponent(ad)
-            if let v = try? Data(contentsOf: k.appendingPathComponent("paket.json")),
-               let x = try? JSONDecoder().decode(Paket.self, from: v) { p.append(x) }
-            if let v = try? Data(contentsOf: k.appendingPathComponent("cozum.json")),
-               let x = try? JSONDecoder().decode(Cozum.self, from: v) { c[x.gun] = x }
-        }
-        paketler = p.sorted { $0.gun < $1.gun }
-        cozumler = c
-        var hepsi = Gunluk.oku(benimGunluk)
-        for ad in (try? fm.contentsOfDirectory(atPath: digerKlasor.path)) ?? [] where ad.hasSuffix(".jsonl") {
-            hepsi += Gunluk.oku(digerKlasor.appendingPathComponent(ad))
-        }
-        olaylar = Gunluk.tekille(hepsi)
-        if let v = try? Data(contentsOf: kayitDefteri) {
-            let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
-            kayitlar = (try? d.decode([KayitBilgisi].self, from: v)) ?? []
-        }
+    /// What the local cache holds, read and decoded away from the main thread.
+    struct LocalState: Sendable {
+        var paketler: [Paket] = []
+        var cozumler: [Int: Cozum] = [:]
+        var olaylar: [Olay] = []
+        var kayitlar: [KayitBilgisi]?       // nil: not read (the list in memory is the truth after launch)
+    }
+    struct LocalPaths: Sendable { var packages: URL, myLog: URL, otherLogs: URL, recordingList: URL }
+    private var localPaths: LocalPaths {
+        LocalPaths(packages: paketKlasoru, myLog: benimGunluk, otherLogs: digerKlasor, recordingList: kayitDefteri)
     }
 
-    /// Telefonda üretilen paket yerel önbelleğe yazıldıktan sonra (Uretici).
-    func yerelYenile() {
-        yerelYukle()
-        widgetYaz()
+    nonisolated static func readLocal(_ at: LocalPaths, recordings: Bool) -> LocalState {
+        let fm = FileManager.default
+        try? fm.createDirectory(at: at.packages, withIntermediateDirectories: true)
+        var s = LocalState()
+        for ad in (try? fm.contentsOfDirectory(atPath: at.packages.path)) ?? [] where ad.hasPrefix("gun-") {
+            let k = at.packages.appendingPathComponent(ad)
+            if let v = try? Data(contentsOf: k.appendingPathComponent("paket.json")),
+               let x = try? JSONDecoder().decode(Paket.self, from: v) { s.paketler.append(x) }
+            if let v = try? Data(contentsOf: k.appendingPathComponent("cozum.json")),
+               let x = try? JSONDecoder().decode(Cozum.self, from: v) { s.cozumler[x.gun] = x }
+        }
+        s.paketler.sort { $0.gun < $1.gun }
+        var hepsi = Gunluk.oku(at.myLog)
+        for ad in ((try? fm.contentsOfDirectory(atPath: at.otherLogs.path)) ?? []).sorted() where ad.hasSuffix(".jsonl") {
+            hepsi += Gunluk.oku(at.otherLogs.appendingPathComponent(ad))
+        }
+        s.olaylar = Gunluk.tekille(hepsi)
+        if recordings {
+            s.kayitlar = []
+            if let v = try? Data(contentsOf: at.recordingList) {
+                let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
+                s.kayitlar = (try? d.decode([KayitBilgisi].self, from: v)) ?? []
+            }
+        }
+        return s
     }
+
+    /// Counts events appended in this process: a reload that started before an append must not drop that event.
+    private var eventAppends = 0
+
+    /// Takes a freshly read state. Only what differs is assigned, so an unchanged reload redraws nothing.
+    /// - Parameter appendsAtStart: `eventAppends` when the read began (nil: read on the main thread, nothing can be missing).
+    private func apply(_ s: LocalState, appendsAtStart: Int? = nil) {
+        if paketler != s.paketler { paketler = s.paketler }
+        if cozumler != s.cozumler { cozumler = s.cozumler }
+        var events = s.olaylar
+        if let mark = appendsAtStart, mark != eventAppends {
+            // appended while the files were being read: on disk, but perhaps not in `s`
+            let known = Set(events.map(\.id))
+            events += olaylar.filter { $0.cihaz == Cihaz.ad && !known.contains($0.id) }
+        }
+        if olaylar != events { olaylar = events }
+        if let k = s.kayitlar, kayitlar != k { kayitlar = k }
+    }
+
+    private func yerelYukle() { apply(Depo.readLocal(localPaths, recordings: true)) }
 
     private func kayitDefteriniYaz() {
         let e = JSONEncoder(); e.dateEncodingStrategy = .iso8601
@@ -148,19 +269,33 @@ final class Depo: ObservableObject {
     // MARK: Olaylar
 
     func ekle(_ o: Olay) {
-        Gunluk.ekle(o, benimGunluk)
+        Gunluk.ekle(o, benimGunluk)         // on disk at once; everything after this can wait a moment
+        eventAppends += 1
         olaylar.append(o)
         if o.tur != .hazirim, let p = paketler.first(where: { $0.gun == o.gun }) {
             let h = hazirlik(p.gun)
-            if h.dinleme > 0 && h.okuma && !olaylar.contains(where: { $0.gun == p.gun && $0.tur == .hazirim }) {
+            if h.dinleme > 0 && h.okuma && !derived().readyMarked.contains(p.gun) {
                 var hz = Olay(gun: p.gun, surum: p.surum, tur: .hazirim); hz.rol = "otomatik"
-                Gunluk.ekle(hz, benimGunluk); olaylar.append(hz)
+                Gunluk.ekle(hz, benimGunluk); eventAppends += 1; olaylar.append(hz)
                 bilgi = "Hazırsın. Yarın Tezgâh'ta yazarken bu metin tanıdık gelecek."
             }
         }
-        widgetYaz()
-        Task { await Bildirim.planla(self) }
+        scheduleSideEffects()
         esitle(gecikme: 3)
+    }
+
+    /// The widget snapshot and the notification plan follow an event a moment later, once for a burst of events,
+    /// and only if they would come out different (a `takildi` or `listened` event changes neither).
+    private var sideEffects: Task<Void, Never>?
+    private func scheduleSideEffects() {
+        guard sideEffects == nil else { return }        // the pending run covers this event too
+        sideEffects = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let self else { return }
+            self.sideEffects = nil
+            self.writeWidget(onlyIfChanged: true)
+            await Bildirim.planla(self, onlyIfChanged: true)
+        }
     }
 
     func dinledi(_ p: Paket, oran: Double, sure: Double) {
@@ -250,8 +385,20 @@ final class Depo: ObservableObject {
 
     // MARK: Widget
 
-    func widgetYaz() {
-        Paylasim.yaz(anlik())
+    func widgetYaz() { writeWidget(onlyIfChanged: false) }
+
+    /// The last snapshot written, without its timestamp.
+    private var widgetSignature: Data?
+    private func writeWidget(onlyIfChanged: Bool) {
+        guard loaded else { return }        // never an empty snapshot over a good one
+        publishLive()                       // the same moments the open day or its steps can change
+        let a = anlik()
+        var plain = a
+        plain.guncel = Date(timeIntervalSince1970: 0)
+        let signature = try? JSONEncoder().encode(plain)
+        if onlyIfChanged, signature != nil, signature == widgetSignature { return }
+        widgetSignature = signature
+        Paylasim.yaz(a)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -295,11 +442,11 @@ final class Depo: ObservableObject {
     // MARK: Eşitleme
 
     func esitle(gecikme: Double = 0) {
-        esitlemeGorevi?.cancel()
+        esitlemeGorevi?.cancel()            // only the wait: a sync that has started is never cut short by a newer request
         esitlemeGorevi = Task { [weak self] in
             if gecikme > 0 { try? await Task.sleep(for: .seconds(gecikme)) }
             guard let self, !Task.isCancelled else { return }
-            await self.esitleSimdi()
+            Task { await self.esitleSimdi(localChange: true) }
         }
     }
 
@@ -313,19 +460,60 @@ final class Depo: ObservableObject {
         var sentRebuilds: [String] = []
     }
 
+    typealias SyncResult = (yeniPaket: Int?, yeniCozum: Int?)
+    private var joiners: [CheckedContinuation<SyncResult, Never>] = []       // wait for the sync that is running
+    private var followers: [CheckedContinuation<SyncResult, Never>] = []     // wait for one more run after it
+
+    /// One sync at a time. A request that arrives while one runs is not dropped:
+    ///   · `localChange` (a new event, recording or built sentence may have missed the running sync's snapshot):
+    ///     one more run follows the current one, and the caller gets that run's result;
+    ///   · otherwise the caller waits for the running sync and gets its result.
+    /// Cancelling the task that runs the sync stops the vault work (background refresh, when its time is up).
     /// - Returns: yeni gelen paket ya da çözüm varsa (gün) — arka plan bildirimi için.
     @discardableResult
-    func esitleSimdi() async -> (yeniPaket: Int?, yeniCozum: Int?) {
-        guard kasa.bagli, !esitleniyor else { return (nil, nil) }
+    func esitleSimdi(localChange: Bool = false) async -> SyncResult {
+        await whenLoaded()
+        guard kasa.bagli else { return (nil, nil) }
+        if esitleniyor {
+            return await withCheckedContinuation { c in
+                if localChange { followers.append(c) } else { joiners.append(c) }
+            }
+        }
         esitleniyor = true
-        defer { esitleniyor = false }
+        var result = await syncOnce()
+        while true {
+            let waiting = joiners
+            joiners = []
+            waiting.forEach { $0.resume(returning: result) }
+            guard !followers.isEmpty else { break }
+            let next = followers
+            followers = []
+            if Task.isCancelled {
+                // This task may not go on (background time is over); a fresh one does the follow-up run.
+                esitleniyor = false
+                Task {
+                    let r = await self.esitleSimdi(localChange: true)
+                    next.forEach { $0.resume(returning: r) }
+                }
+                return result
+            }
+            let again = await syncOnce()
+            next.forEach { $0.resume(returning: again) }
+            result = (again.yeniPaket ?? result.yeniPaket, again.yeniCozum ?? result.yeniCozum)
+        }
+        esitleniyor = false
+        return result
+    }
 
+    private func syncOnce() async -> SyncResult {
         let ben = Cihaz.ad
         let benimOlaylar = olaylar.filter { $0.cihaz == ben }
         let benimYerel = benimGunluk
         let yerelPaket = paketKlasoru
         let yerelSurum = Dictionary(paketler.map { ($0.gun, $0.surum ?? "") }, uniquingKeysWith: { a, _ in a })
         let yerelSesVar = Set(paketler.filter { sesURL($0) != nil }.map(\.gun))
+        // A stale iCloud must not undo a package in the long-text form that reached this phone by cable
+        let yerelUzun = Set(paketler.filter { $0.dinleme != nil }.map(\.gun))
         let gonderilecek = kayitlar.filter { $0.cihaz == ben && !$0.vaultta && $0.yerelde }
         let kayitYerel = kayitKlasoru
         let tutulan = Depo.tutulan
@@ -349,6 +537,7 @@ final class Depo: ObservableObject {
             if !Set(vaultBenim.map(\.id)).subtracting(benimOlaylar.map(\.id)).isEmpty {
                 try? Gunluk.veri(birlesik).write(to: benimYerel, options: .atomic)
             }
+            try Task.checkCancellation()
             // 2 · Öteki cihazlar (Mac'teki Tezgâh) — çakışma kopyaları dahil
             for ad in (try? fm.contentsOfDirectory(atPath: ilerleme.path)) ?? [] {
                 if ad.hasPrefix("."), ad.hasSuffix(".icloud") {
@@ -365,11 +554,13 @@ final class Depo: ObservableObject {
                 .filter { $0.hasPrefix("gun-") }
             let gunler = Set(adlar.compactMap { Int($0.dropFirst(4)) }).sorted().suffix(tutulan)
             for gun in gunler {
+                try Task.checkCancellation()
                 let k = pk.appendingPathComponent(Paket.klasor(gun))
                 let pj = k.appendingPathComponent("paket.json")
                 guard Kasa.indir(pj), let v = Kasa.koordineliOku(pj),
                       let p = try? JSONDecoder().decode(Paket.self, from: v) else { continue }
-                s.paketler[gun] = v
+                let eskiBicim = p.dinleme == nil && yerelUzun.contains(gun)
+                if !eskiBicim { s.paketler[gun] = v }
                 let cj = k.appendingPathComponent("cozum.json")
                 let yj = k.appendingPathComponent("yazim.json")     // Mac'te yazınca aynı gün gelir
                 if fm.fileExists(atPath: cj.path) || fm.fileExists(atPath: k.appendingPathComponent(".cozum.json.icloud").path) {
@@ -378,7 +569,7 @@ final class Depo: ObservableObject {
                     if Kasa.indir(yj), let c = Kasa.koordineliOku(yj) { s.cozumler[gun] = c }
                 }
                 // Ses: yerelde yoksa ya da paket yeniden üretildiyse (sürüm değişti)
-                if p.ses != nil, !bitmisGunler.contains(gun), !yerelSesVar.contains(gun) || yerelSurum[gun] != (p.surum ?? "") {
+                if p.ses != nil, !eskiBicim, !bitmisGunler.contains(gun), !yerelSesVar.contains(gun) || yerelSurum[gun] != (p.surum ?? "") {
                     let kaynak = k.appendingPathComponent("ses.m4a")
                     let hedef = yerelPaket.appendingPathComponent(Paket.klasor(gun)).appendingPathComponent("ses.m4a")
                     if Kasa.indir(kaynak, bekle: 30), Kasa.koordineliKopyala(kaynak, hedef) { s.inenSes.append(gun) }
@@ -396,6 +587,7 @@ final class Depo: ObservableObject {
             }
             // 4 · Kendi kayıtlarımı gönder (m4a + yan dosya)
             for k in gonderilecek {
+                try Task.checkCancellation()
                 let hedefK = pk.appendingPathComponent(Paket.klasor(k.gun)).appendingPathComponent("kayit", isDirectory: true)
                 let kaynak = kayitYerel.appendingPathComponent(k.ad)
                 guard let v = try? Data(contentsOf: kaynak) else { continue }
@@ -427,27 +619,34 @@ final class Depo: ObservableObject {
             UserDefaults.standard.set(Array(sentRebuilds.union(g.sentRebuilds)), forKey: Depo.sentRebuildsKey)
         }
 
-        // Yerel önbelleğe al
+        // Yerel önbelleğe al — off the main thread: write what changed, then read the cache back
         let fm = FileManager.default
         let eskiPaket = Set(paketler.map(\.gun)), eskiCozum = Set(cozumler.keys)
-        try? fm.createDirectory(at: digerKlasor, withIntermediateDirectories: true)
-        for (ad, v) in g.digerler { try? v.write(to: digerKlasor.appendingPathComponent(ad), options: .atomic) }
-        for (gun, v) in g.paketler {
-            let k = paketKlasoru.appendingPathComponent(Paket.klasor(gun))
-            try? fm.createDirectory(at: k, withIntermediateDirectories: true)
-            try? v.write(to: k.appendingPathComponent("paket.json"), options: .atomic)
-        }
-        for (gun, v) in g.cozumler {
-            try? v.write(to: paketKlasoru.appendingPathComponent(Paket.klasor(gun)).appendingPathComponent("cozum.json"), options: .atomic)
-        }
-        // Eski paketleri yerelden at (kayıtlar ayrı klasörde, kalır)
-        let tut = Set(g.paketler.keys)
-        if !tut.isEmpty, let enKucuk = tut.min() {
-            for ad in (try? fm.contentsOfDirectory(atPath: paketKlasoru.path)) ?? [] {
-                if let n = Int(ad.dropFirst(4)), n < enKucuk { try? fm.removeItem(at: paketKlasoru.appendingPathComponent(ad)) }
+        let paths = localPaths
+        let appendsAtStart = eventAppends
+        let fresh: LocalState = await Task.detached(priority: .utility) {
+            let fm = FileManager.default
+            func write(_ v: Data, _ u: URL) { if (try? Data(contentsOf: u)) != v { try? v.write(to: u, options: .atomic) } }
+            try? fm.createDirectory(at: paths.otherLogs, withIntermediateDirectories: true)
+            for (ad, v) in g.digerler { write(v, paths.otherLogs.appendingPathComponent(ad)) }
+            for (gun, v) in g.paketler {
+                let k = paths.packages.appendingPathComponent(Paket.klasor(gun))
+                try? fm.createDirectory(at: k, withIntermediateDirectories: true)
+                write(v, k.appendingPathComponent("paket.json"))
             }
-        }
+            for (gun, v) in g.cozumler {
+                write(v, paths.packages.appendingPathComponent(Paket.klasor(gun)).appendingPathComponent("cozum.json"))
+            }
+            // Eski paketleri yerelden at (kayıtlar ayrı klasörde, kalır)
+            if let enKucuk = g.paketler.keys.min() {
+                for ad in (try? fm.contentsOfDirectory(atPath: paths.packages.path)) ?? [] {
+                    if let n = Int(ad.dropFirst(4)), n < enKucuk { try? fm.removeItem(at: paths.packages.appendingPathComponent(ad)) }
+                }
+            }
+            return Depo.readLocal(paths, recordings: false)
+        }.value
         // Kayıt defteri: gönderilenleri işaretle, Mac'in kayıtlarını ekle
+        let oncekiKayitlar = kayitlar
         for ad in g.gonderilen { if let i = kayitlar.firstIndex(where: { $0.ad == ad }) { kayitlar[i].vaultta = true } }
         let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601
         for (gun, liste) in g.vaultKayitlari {
@@ -459,8 +658,8 @@ final class Depo: ObservableObject {
                 kayitlar.append(k)
             }
         }
-        kayitDefteriniYaz()
-        yerelYukle()
+        if kayitlar != oncekiKayitlar { kayitDefteriniYaz() }
+        apply(fresh, appendsAtStart: appendsAtStart)
         sonEsitleme = Date()
         let yeniPaket = Set(paketler.map(\.gun)).subtracting(eskiPaket).max()
         let yeniCozum = Set(cozumler.keys).subtracting(eskiCozum).max()

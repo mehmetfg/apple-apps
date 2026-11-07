@@ -5,6 +5,7 @@ import Foundation
 import AVFoundation
 import ActivityKit
 import Speech
+import SwiftUI
 import UIKit
 import WidgetKit
 
@@ -14,15 +15,31 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     @Published private(set) var kayitta = false
     @Published private(set) var duraklatildi = false
-    @Published private(set) var sure: TimeInterval = 0
-    @Published private(set) var seviyeler: [Float] = []
+    /// Level and elapsed time change about 14 times a second: they are published by `meter`, not by this object,
+    /// so a tick redraws only the views that show them (RecordingClock, MeterBars, MeterWave).
+    let meter = RecordingMeter()
+    var sure: TimeInterval { meter.sure }
+    var seviyeler: [Float] { meter.seviyeler }
     @Published var hata: String?
     @Published private(set) var sonKimlik: String?
     /// Son biten kayıt (uygulama içi ada "Kaydedildi" gösterir).
     @Published private(set) var sonBitis: Bitis?
-    struct Bitis: Equatable { let an: Date; let baslik: String; let sure: Double }
+    struct Bitis: Equatable { let an: Date; let baslik: String; let sure: Double; var id: String = ""; var kind: String = "spark" }
+    /// spark (short idea) or journal (long spoken diary); the next recording uses this unless the caller names one.
+    @Published var kind = UserDefaults.standard.string(forKey: "kayitTuru") ?? "spark" {
+        didSet { UserDefaults.standard.set(kind, forKey: "kayitTuru") }
+    }
+    @Published private(set) var aktifTur = "spark"
+    /// The book/topic this recording is about, when another app started it with kivilcim://kaydet?topic=…
+    /// (a Teoria book id or "k:<name>"). Goes into the sidecar's `topic`, the field the Mac writes for a topic
+    /// chosen before recording, so links.py treats both the same. nil for every other way of starting.
+    @Published private(set) var activeTopic: String?
+    /// After a spark ends in the app: the quick sheet (title · priority · note) opens for this id.
+    @Published var hizliDuzen: String?
 
     static let tavan: TimeInterval = 30 * 60
+    static let gunlukTavan: TimeInterval = 60 * 60
+    var tavan: TimeInterval { aktifTur == "journal" ? KayitMerkezi.gunlukTavan : KayitMerkezi.tavan }
     private var kaydedici: AVAudioRecorder?
     private var zamanlayici: Timer?
     private var kimlik = ""
@@ -34,10 +51,16 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var duraklamaAni: Date?
     private var sonEtkinlikTazesi = Date.distantPast
     private var arkaPlan: UIBackgroundTaskIdentifier = .invalid
+    /// A long talk does not stop at the cap: it goes on in a new part (2026-11-04; on 11-03 a 30 min cap
+    /// silently cut the evening talk at 22:05). Each part is its own file and note, linked to the one before.
+    private var parca = 1
+    private var oncekiParca: String?
+    private var parcaGeciyor = false
+    private var oncekiToplam: TimeInterval = 0
 
     var kaliteSecimi: Kalite { Kalite(rawValue: UserDefaults.standard.string(forKey: "kalite") ?? "") ?? .dengeli }
 
-    static var kayitKlasoru: URL {
+    nonisolated static var kayitKlasoru: URL {
         let u = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Kivilcim/kayit")
         try? FileManager.default.createDirectory(at: u, withIntermediateDirectories: true)
         return u
@@ -54,17 +77,19 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     @discardableResult
-    func degistir(kaynak: String = "uygulama") async -> Bool {
+    func degistir(kaynak: String = "uygulama", tur: String? = nil) async -> Bool {
         // Denetim bazen bir dokunuşu iki kez yolluyor: ikincisi 1 sn sonra gelip yeni kaydı kapatıyordu (2026-10-30)
         if kayitta, Date().timeIntervalSince(baslangic) < 1.5 { Tani.yaz("değiştir: kayıt yeni başladı, ikinci dokunuş yok sayıldı"); return true }
         if kayitta { await bitir(); return true }
-        return await baslat(kaynak: kaynak)
+        return await baslat(kaynak: kaynak, tur: tur)
     }
 
     /// Kayıt başladıysa true. Arka planda mikrofon açılamazsa false döner; niyet o zaman öne geçip yeniden dener.
     @discardableResult
-    func baslat(kaynak: String = "uygulama") async -> Bool {
+    func baslat(kaynak: String = "uygulama", tur: String? = nil, topic: String? = nil) async -> Bool {
         guard !kayitta else { Tani.yaz("başlat: zaten kayıtta"); return true }
+        aktifTur = tur ?? kind
+        activeTopic = topic
         // İkon menüsü / "Aç ve kaydet" sırasında uygulama henüz öne gelmemişken açılan kaydedici ~1 sn'de duruyordu
         // (2026-10-11…30 tanı kaydı, "geçişte" → "1 sn"); öne gelmesini en çok 2 sn bekle.
         var bekleme = 0
@@ -85,12 +110,10 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
             Tani.yaz("HATA: mikrofon izni kapalı")
             hata = "Mikrofon izni kapalı: Ayarlar › Kıvılcım › Mikrofon."; return false
         }
-        let bos = (try? KayitMerkezi.kayitKlasoru.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
-            .volumeAvailableCapacityForImportantUsage ?? Int64.max
-        guard bos > 30_000_000 else { hata = "Telefonda yer çok az (30 MB'tan az)."; Tani.yaz("HATA: yer az"); return false }
         kalite = kaliteSecimi
         baslangic = Date()
         sayacBaslangic = baslangic; duraklamaAni = nil; duraklatildi = false
+        parca = 1; oncekiParca = nil; parcaGeciyor = false; oncekiToplam = 0
         kimlik = Kimlik.yeni("iphone", baslangic)
         // Sistem, kilit ekranından başlayan ses kaydında Canlı Etkinliği ÖNCE ister; yoksa kaydı keser.
         etkinlikBaslat()
@@ -116,15 +139,19 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
             let k = try AVAudioRecorder(url: u, settings: ayar)
             k.delegate = self
             k.isMeteringEnabled = true
-            guard k.record(forDuration: KayitMerkezi.tavan) else {
+            // 30 s of slack past the cap: the tick rolls over to the next part at cap − 0.5 s; if the main actor
+            // is late, the recorder must still be running, or the talk would end at the cap instead of going on.
+            guard k.record(forDuration: tavan + 30) else {
                 Tani.yaz("HATA: kaydedici başlamadı"); hata = "Kayıt başlamadı."; await etkinlikBitir(nil, 0); return false
             }
-            kaydedici = k; kayitta = true; sure = 0; seviyeler = []; hata = nil
+            kaydedici = k; kayitta = true; meter.sure = 0; meter.seviyeler = []; hata = nil
         } catch {
             Tani.yaz("HATA: kaydedici: \(error.localizedDescription)")
             hata = error.localizedDescription; await etkinlikBitir(nil, 0); return false
         }
         Tani.yaz("kayıt başladı \(kimlik) · canlı etkinlik: \(etkinlik == nil ? "YOK" : "var")")
+        yerDenetle(kimlik)
+        KivilcimBus.publishLive(id: kimlik, active: true)
         widgetDurumu(kayitta: true)
         // Uygulama dışından başladıysa: adasız telefonda (13 Pro Max) üstte ada gibi şerit, adalıda ada bir an açılır.
         // Uyarının sesi oturumu kısa kesebilir; kesinti() kaydı bitirmez, sürdürür. Uygulama öndeyse içteki ada yeter.
@@ -137,15 +164,34 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         return true
     }
 
+    /// Free space is looked at after capture has begun, off the main thread: the query is not needed to start and
+    /// can take a while. Under 30 MB the recording stops at once with the same message as before; what was
+    /// captured is kept by the usual rules (bitir()).
+    private func yerDenetle(_ baslayan: String) {
+        Task {
+            let bos = await Task.detached(priority: .userInitiated) {
+                (try? KayitMerkezi.kayitKlasoru.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
+                    .volumeAvailableCapacityForImportantUsage ?? Int64.max
+            }.value
+            guard bos <= 30_000_000, kayitta, kimlik == baslayan else { return }
+            Tani.yaz("HATA: yer az")
+            await bitir()
+            hata = "Telefonda yer çok az (30 MB'tan az)."
+        }
+    }
+
     private func tik() {
         guard let k = kaydedici, k.isRecording else { return }
         k.updateMeters()
-        sure = k.currentTime
+        meter.sure = oncekiToplam + k.currentTime   // the screen counts the whole talk, not the part
         let db = k.averagePower(forChannel: 0)
-        seviyeler.append(max(0.05, min(1, (db + 52) / 52)))
-        if seviyeler.count > 80 { seviyeler.removeFirst(seviyeler.count - 80) }
-        // duraklatma record(forDuration:) tavanını düşürür; tavanı burada tutarız
-        if sure >= KayitMerkezi.tavan { Task { await bitir() }; return }
+        var s = meter.seviyeler
+        s.append(max(0.05, min(1, (db + 52) / 52)))
+        if s.count > 80 { s.removeFirst(s.count - 80) }
+        meter.seviyeler = s
+        // duraklatma record(forDuration:) tavanını düşürür; tavanı burada tutarız.
+        // Tavan dolunca kayıt bitmez: yeni parçaya geçer (konuşma kaybolmasın).
+        if k.currentTime >= tavan - 0.5, !parcaGeciyor { parcaGeciyor = true; Task { await parcaDegistir() }; return }
         if Date().timeIntervalSince(sonEtkinlikTazesi) >= 1 { sonEtkinlikTazesi = Date(); Task { await etkinlikTazele() } }
     }
 
@@ -200,6 +246,7 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let u = KayitMerkezi.kayitKlasoru.appendingPathComponent(kimlik + ".m4a")
         if gecen < 1.0 {
             Tani.yaz("bitir: 1 sn'den kısa → silindi")
+            KivilcimBus.publishLive(id: sonBitis?.id, active: false)
             try? FileManager.default.removeItem(at: u)
             await etkinlikBitir(nil, 0)
             widgetDurumu(kayitta: false)
@@ -210,12 +257,15 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
             Task { @MainActor in self?.arkaPlaniKapat() }
         }
         let kunye = Kunye(id: kimlik, cihaz: "iphone", zaman: Zaman.iso(baslangic), sure: (gecen * 10).rounded() / 10,
-                          kalite: kalite.rawValue, dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil)
+                          kalite: kalite.rawValue, dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil,
+                          kind: aktifTur, devam: oncekiParca, topic: activeTopic)
         sonKimlik = kimlik
+        KivilcimBus.publishLive(id: kimlik, active: false)
         Tani.yaz("kayıt bitti \(kimlik) · \(Int(gecen)) sn")
         let depo = TelefonDeposu.shared
         depo.yeniKayit(kunye)
-        sonBitis = Bitis(an: Date(), baslik: depo.oge(kimlik)?.baslik ?? "Sesli fikir", sure: gecen)
+        sonBitis = Bitis(an: Date(), baslik: depo.oge(kimlik)?.baslik ?? "Sesli fikir", sure: gecen, id: kimlik, kind: aktifTur)
+        if aktifTur == "spark", UIApplication.shared.applicationState == .active { hizliDuzen = kimlik }
         await etkinlikBitir(depo.oge(kimlik)?.baslik, gecen)
         widgetDurumu(kayitta: false)
         await depo.gonder()                                  // vault'a hemen (olmazsa sonra yeniden dener)
@@ -225,6 +275,7 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 await depo.gonder()
             }
         }
+        await Task.detached(priority: .utility) { Tani.kirp() }.value   // the log is trimmed here, never on the way to a recording
         arkaPlaniKapat()
     }
 
@@ -233,6 +284,7 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         kaydedici?.stop(); kaydedici = nil
         zamanlayici?.invalidate(); zamanlayici = nil; kayitta = false; duraklatildi = false; duraklamaAni = nil
         Tani.yaz("kayıttan vazgeçildi")
+        KivilcimBus.publishLive(id: sonBitis?.id, active: false)
         try? FileManager.default.removeItem(at: KayitMerkezi.kayitKlasoru.appendingPathComponent(kimlik + ".m4a"))
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         await etkinlikBitir(nil, 0)
@@ -243,9 +295,48 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         if arkaPlan != .invalid { UIApplication.shared.endBackgroundTask(arkaPlan); arkaPlan = .invalid }
     }
 
+    /// The cap is reached: the next part starts first, then the full part is closed and sent. The audio session stays
+    /// open the whole time, so this works on the lock screen too (a new session could not start in the background).
+    private func parcaDegistir() async {
+        defer { parcaGeciyor = false }
+        guard kayitta, let eski = kaydedici else { return }
+        let yeniAn = Date()
+        let yeniKimlik = Kimlik.yeni("iphone", yeniAn)
+        let u = KayitMerkezi.kayitKlasoru.appendingPathComponent(yeniKimlik + ".m4a")
+        let ayar: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: kalite.hz, AVNumberOfChannelsKey: 1,
+            AVEncoderBitRateKey: kalite.bit, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+        ]
+        guard let yeni = try? AVAudioRecorder(url: u, settings: ayar) else {
+            Tani.yaz("HATA: yeni parça açılamadı → kayıt bitiyor"); await bitir(); return
+        }
+        yeni.delegate = self
+        yeni.isMeteringEnabled = true
+        guard yeni.record(forDuration: tavan + 30) else {   // same slack as the first part
+            Tani.yaz("HATA: yeni parça başlamadı → kayıt bitiyor"); await bitir(); return
+        }
+        // the old part: stop it without its delegate (the delegate would end the whole recording)
+        eski.delegate = nil
+        let gecen = eski.currentTime > 0 ? eski.currentTime : Date().timeIntervalSince(baslangic)
+        eski.stop()
+        let kunye = Kunye(id: kimlik, cihaz: "iphone", zaman: Zaman.iso(baslangic), sure: (gecen * 10).rounded() / 10,
+                          kalite: kalite.rawValue, dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil,
+                          kind: aktifTur, devam: oncekiParca, topic: activeTopic)
+        Tani.yaz("parça \(parca) bitti \(kimlik) · \(Int(gecen)) sn → parça \(parca + 1) \(yeniKimlik)")
+        oncekiParca = kimlik
+        kaydedici = yeni; kimlik = yeniKimlik; baslangic = yeniAn; parca += 1; oncekiToplam += gecen
+        KivilcimBus.publishLive(id: yeniKimlik, active: true)
+        TelefonDeposu.shared.yeniKayit(kunye)
+        if UserDefaults.standard.bool(forKey: "dokunsal") { UINotificationFeedbackGenerator().notificationOccurred(.warning) }
+        await etkinlikTazele(uyari: AlertConfiguration(title: "Kıvılcım sürüyor",
+                                                       body: "\(Int(tavan / 60)) dk doldu, \(parca). parça başladı",
+                                                       sound: .named("sessiz.caf")))
+        await TelefonDeposu.shared.gonder()
+    }
+
     nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         Task { @MainActor in
-            guard KayitMerkezi.shared.kayitta else { return }
+            guard KayitMerkezi.shared.kayitta, recorder === KayitMerkezi.shared.kaydedici else { return }
             Tani.yaz("kaydedici kendiliğinden durdu (başarılı: \(flag ? "evet" : "HAYIR")) · \(Int(recorder.currentTime)) sn")
             await KayitMerkezi.shared.bitir()
         }
@@ -260,7 +351,7 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let d = KayitEtkinligi.ContentState(baslangic: baslangic)
         do {
             etkinlik = try Activity.request(attributes: KayitEtkinligi(kalite: kalite.ad),
-                                            content: .init(state: d, staleDate: baslangic.addingTimeInterval(KayitMerkezi.tavan)))
+                                            content: .init(state: d, staleDate: baslangic.addingTimeInterval(tavan)))
         } catch { Tani.yaz("HATA: Canlı Etkinlik başlamadı: \(error.localizedDescription)") }
     }
 
@@ -269,7 +360,7 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         guard let e = etkinlik, kayitta else { return }
         sonEtkinlikTazesi = Date()
         let d = KayitEtkinligi.ContentState(baslangic: sayacBaslangic, duraklama: duraklamaAni, seviyeler: dalga())
-        await e.update(.init(state: d, staleDate: Date().addingTimeInterval(KayitMerkezi.tavan)), alertConfiguration: uyari)
+        await e.update(.init(state: d, staleDate: Date().addingTimeInterval(tavan)), alertConfiguration: uyari)
     }
 
     /// Son ~3 saniyenin düzeyleri 18 çubuğa indirgenir (her çubuk kendi diliminin tepesi).
@@ -287,11 +378,13 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private func etkinlikBitir(_ baslik: String?, _ sure: Double) async {
         guard let e = etkinlik else { return }
         if let baslik {
-            let d = KayitEtkinligi.ContentState(baslangic: baslangic, bitti: true, sure: sure, baslik: baslik)
+            var d = KayitEtkinligi.ContentState(baslangic: baslangic, bitti: true, sure: sure, baslik: baslik)
+            d.kimlik = aktifTur == "spark" ? kimlik : nil
             // adasız telefonda "kaydedildi" şeridi; adalı telefonda ada bir an açılıp onay gösterir
             await e.update(.init(state: d, staleDate: nil),
                            alertConfiguration: AlertConfiguration(title: "Kaydedildi", body: "\(baslik)", sound: .named("sessiz.caf")))
-            await e.end(.init(state: d, staleDate: nil), dismissalPolicy: .after(Date().addingTimeInterval(6)))
+            // a spark keeps its card ~45 sn: priority and "done" buttons on the lock screen, no need to open the app
+            await e.end(.init(state: d, staleDate: nil), dismissalPolicy: .after(Date().addingTimeInterval(d.kimlik == nil ? 6 : 45)))
         } else {
             await e.end(nil, dismissalPolicy: .immediate)
         }
@@ -337,6 +430,35 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
             }
         }
     }
+}
+
+/// Level bars and elapsed time of the running recording. A separate object from KayitMerkezi: these two values
+/// change about 14 times a second, and whoever observes KayitMerkezi (the App body, every screen) must not be
+/// re-evaluated at that rate.
+@MainActor
+final class RecordingMeter: ObservableObject {
+    @Published fileprivate(set) var seviyeler: [Float] = []
+    @Published fileprivate(set) var sure: TimeInterval = 0
+}
+
+/// Elapsed time of the recording (or a fixed duration, for the "saved" state).
+struct RecordingClock: View {
+    @ObservedObject var meter: RecordingMeter
+    var fixed: Double? = nil
+    var body: some View { Text(Zaman.sure(fixed ?? meter.sure)) }
+}
+
+struct MeterBars: View {
+    @ObservedObject var meter: RecordingMeter
+    var adet: Int
+    var body: some View { DuzeyCubuklari(seviyeler: meter.seviyeler, adet: adet) }
+}
+
+struct MeterWave: View {
+    @ObservedObject var meter: RecordingMeter
+    let duraklatildi: Bool
+    var adet: Int
+    var body: some View { Dalga(seviyeler: meter.seviyeler.map(Double.init), duraklatildi: duraklatildi, adet: adet) }
 }
 
 /// Uzun kayıtta tanıyıcı parça parça verir; parçaları kayıpsız birleştirir (Memories'te bulunan hata, aynı çözüm).

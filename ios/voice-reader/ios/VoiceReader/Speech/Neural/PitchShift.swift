@@ -19,13 +19,15 @@ enum PitchShift {
     /// their direction but only `keep` of their size (0.7 = 30 % narrower), as Yelda's narrow melody (4.1 semitones
     /// between the 10th and 90th percentile) against Cem's 5.7. The middle is the median pitch of the piece; the
     /// formants and the duration stay. Small moves (under a semitone mostly), so PSOLA's grains stay clean.
-    static func flatten(_ x: [Float], keep: Double, sampleRate sr: Int = 48_000) -> [Float] {
+    /// `toward`: the pitch to draw the melody to instead of the piece's own middle (a whole book's middle, so that
+    /// its pieces also come to the same height: the studio packs).
+    static func flatten(_ x: [Float], keep: Double, toward: Double? = nil, sampleRate sr: Int = 48_000) -> [Float] {
         guard keep < 0.99, x.count > sr / 10 else { return x }
         let hop = sr / 200
         let f0 = f0Track(x, sr: sr, hop: hop)
         let voiced = f0.filter { $0 > 0 }.sorted()
         guard voiced.count > 20 else { return x }
-        let middle = voiced[voiced.count / 2]
+        let middle = toward ?? voiced[voiced.count / 2]
         // per-frame factor, smoothed over ±25 ms so a period never jumps against its neighbour
         var raw = f0.map { $0 > 0 ? pow(middle / $0, 1 - keep) : 1 }
         let w = 5
@@ -40,68 +42,137 @@ enum PitchShift {
     }
 
     /// TD-PSOLA with a pitch factor that may change along the signal (factor(sample) > 1 = higher).
-    private static func resynthesize(_ x: [Float], f0: [Double], hop: Int, sr: Int, factor factorAt: (Int) -> Double) -> [Float] {
-        func period(_ t: Double) -> Double? {
-            let i = min(Int(t) / hop, f0.count - 1)
-            return f0[i] > 0 ? Double(sr) / f0[i] : nil
+    ///
+    /// Only the voiced runs are rebuilt; everything else is the input itself, sample for sample. Each run starts on
+    /// its own first pitch mark and its grains reach from the mark before to the mark after (two half windows that add
+    /// up to one), so with a factor of 1 the output is the input, and at the run's two ends the rebuilt sound meets the
+    /// untouched sound on the same samples. The version before this one ran one synthesis clock over the whole piece:
+    /// at every word start the first grain was laid down twice and the word came about 5 ms late, with a copy of it
+    /// in the silence before (measured on Cem at 330 words a minute, 2026-11-06: 20 ms level changes of 10 to 13 dB
+    /// with no pitch change asked at all). That was the break between words.
+    private static func resynthesize(_ x: [Float], f0 raw: [Double], hop: Int, sr: Int, factor factorAt: (Int) -> Double) -> [Float] {
+        let f0 = tidy(raw)
+        var out = x
+        var i = 0
+        while i < f0.count {
+            guard f0[i] > 0 else { i += 1; continue }
+            var j = i
+            while j < f0.count, f0[j] > 0 { j += 1 }
+            var next = j
+            while next < f0.count, f0[next] == 0 { next += 1 }
+            rebuild(x, into: &out, from: i * hop, to: min(j * hop, x.count), limit: next < f0.count ? next * hop : x.count,
+                    f0: f0, hop: hop, sr: sr, factor: factorAt)
+            i = j
         }
-        func argMax(_ a: Int, _ b: Int, absolute: Bool) -> Int {
-            var best = a, value = -Float.infinity
-            for i in a..<b { let v = absolute ? abs(x[i]) : x[i]; if v > value { value = v; best = i } }
+        return out
+    }
+
+    /// Holes of up to 15 ms inside a vowel are closed and voiced islands under 20 ms are dropped, so a run is a whole
+    /// syllable and not pieces of one.
+    private static func tidy(_ f: [Double]) -> [Double] {
+        var g = f
+        var i = 0
+        while i < g.count {
+            guard g[i] == 0 else { i += 1; continue }
+            var j = i
+            while j < g.count, g[j] == 0 { j += 1 }
+            if i > 0, j < g.count, j - i <= 3, max(g[i - 1], g[j]) / min(g[i - 1], g[j]) < 1.25 {
+                for k in i..<j { g[k] = g[i - 1] + (g[j] - g[i - 1]) * Double(k - i + 1) / Double(j - i + 1) }
+            }
+            i = j
+        }
+        i = 0
+        while i < g.count {
+            guard g[i] > 0 else { i += 1; continue }
+            var j = i
+            while j < g.count, g[j] > 0 { j += 1 }
+            if j - i < 4 { for k in i..<j { g[k] = 0 } }
+            i = j
+        }
+        return g
+    }
+
+    private static func rebuild(_ x: [Float], into out: inout [Float], from a: Int, to b: Int, limit: Int, f0: [Double], hop: Int, sr: Int,
+                                factor factorAt: (Int) -> Double) {
+        func period(_ t: Int) -> Double { let v = f0[min(t / hop, f0.count - 1)]; return v > 0 ? Double(sr) / v : 0 }
+        let p0 = period(a)
+        guard p0 > 0, b - a > Int(3 * p0) else { return }
+        // the side of the wave with the stronger peaks carries the marks
+        var up: Float = 0, down: Float = 0
+        for i in a..<min(b, a + Int(2 * p0)) { up = max(up, x[i]); down = max(down, -x[i]) }
+        let sign: Float = up >= down ? 1 : -1
+        func peak(_ lo: Int, _ hi: Int) -> Int {
+            var best = lo, value = -Float.infinity
+            for i in lo..<hi where sign * x[i] > value { value = sign * x[i]; best = i }
             return best
         }
-
-        // analysis marks: one per period at the peak when voiced, every 5 ms when unvoiced
-        var marks: [Int] = [], periods: [Double?] = []
-        var t = 0.0
-        while t < Double(x.count) {
-            guard let p = period(t) else {
-                marks.append(Int(t)); periods.append(nil); t += Double(hop); continue
-            }
-            let a = Int(t), b = Int(min(Double(x.count), t + p))
-            if periods.isEmpty || periods.last! == nil { t = Double(b > a ? argMax(a, b, absolute: true) : a) }
-            marks.append(Int(t)); periods.append(p)
-            let nt = t + p
-            let lo = Int(nt - p / 4), hi = Int(min(Double(x.count), nt + p / 4))
-            t = hi > lo ? Double(argMax(lo, hi, absolute: false)) : nt
-            if t <= Double(marks.last!) { t = Double(marks.last! + 1) }
+        var m = [peak(a, min(b, a + Int(p0)))]
+        while true {
+            let p = period(m.last!)
+            guard p > 0 else { break }
+            let next = Double(m.last!) + p
+            let lo = max(m.last! + 1, Int(next - p / 4)), hi = min(x.count, Int(next + p / 4) + 1)
+            guard lo < hi, lo < b else { break }
+            m.append(peak(lo, hi))
         }
+        // the voice goes on a little after the last frame the tracker called voiced: follow it while one period
+        // still looks like the one before, so the end of the syllable is rebuilt with the rest of it
+        let reach = min(x.count, b + 6 * hop, limit)
+        while m.count >= 2 {
+            let p = m[m.count - 1] - m[m.count - 2], c = m[m.count - 1]
+            guard p > 0, c + p + p / 4 < reach, c - p >= 0 else { break }
+            let next = peak(c + p - p / 4, c + p + p / 4 + 1)
+            var ab: Float = 0, aa: Float = 0, bb: Float = 0
+            for i in 0..<p { let u = x[c - p + i], v = x[next - p + i]; ab += u * v; aa += u * u; bb += v * v }
+            guard ab > 0.5 * (aa * bb).squareRoot(), bb > 0.03 * aa else { break }
+            m.append(next)
+        }
+        let n = m.count - 1
+        guard n >= 3 else { return }
+        func gap(_ k: Int) -> Int { k < n ? m[k + 1] - m[k] : m[n] - m[n - 1] }
 
-        // synthesis: place the marks at the new period, overlap-add two-period Hann grains
-        var y = [Float](repeating: 0, count: x.count + sr / 10)
-        var norm = [Float](repeating: 0, count: y.count)
-        var ts = 0.0, j = 0
-        while ts < Double(x.count) {
-            while j + 1 < marks.count && abs(Double(marks[j + 1]) - ts) < abs(Double(marks[j]) - ts) { j += 1 }
-            let m = marks[j]
-            let L: Int, step: Double
-            if let p = periods[j] { L = Int(p); step = p / factorAt(m) } else { L = hop; step = Double(hop) }
-            let M = 2 * L + 1
-            let a0 = max(0, m - L), a1 = min(x.count, m + L + 1)
-            let o = Int(ts) - (m - a0)
-            if o >= 0 {
-                for i in a0..<a1 where o + i - a0 < y.count {
-                    let k = i - (m - L)
-                    let w = Float(0.5 - 0.5 * cos(2 * Double.pi * Double(k) / Double(M - 1)))
-                    y[o + i - a0] += x[i] * w
-                    norm[o + i - a0] += w
-                }
-            }
+        // where the grains go: one local period apart, divided by the factor
+        var at: [Double] = []
+        var ts = Double(m[0]), k = 0
+        while true {
+            while k < n, abs(Double(m[k + 1]) - ts) < abs(Double(m[k]) - ts) { k += 1 }
+            at.append(ts)
+            let step = Double(gap(k)) / factorAt(m[k])
+            if ts + step > Double(m[n]) + step / 2 { break }
             ts += step
         }
-        // level by grain density (window sum smoothed with a 10 ms box)
-        let K = sr / 100
-        var smooth = [Float](repeating: 0, count: norm.count)
-        var sum: Float = 0
-        for i in 0..<(norm.count + K / 2) {
-            if i < norm.count { sum += norm[i] }
-            if i - K >= 0 { sum -= norm[i - K] }
-            let c = i - K / 2
-            if c >= 0 && c < norm.count { smooth[c] = sum / Float(K) }
+        // the last grain on the last mark when that asks for a stretch of a few per cent at most
+        let span = at.last! - at[0], want = Double(m[n] - m[0])
+        var closed = false
+        if span > 0, abs(want / span - 1) <= 0.06 {
+            for q in at.indices { at[q] = at[0] + (at[q] - at[0]) * want / span }
+            closed = true
         }
-        var output = [Float](repeating: 0, count: x.count)
-        for i in 0..<x.count { output[i] = y[i] / max(smooth[i], 0.3) }
-        return output
+
+        let first = max(0, m[0] - gap(0)), last = min(x.count - 1, Int(at.last!) + gap(n) + 1)
+        var y = [Float](repeating: 0, count: last - first + 1)
+        var norm = y
+        k = 0
+        for (q, t) in at.enumerated() {
+            while k < n, abs(Double(m[k + 1]) - t) < abs(Double(m[k]) - t) { k += 1 }
+            let g = closed && q == at.count - 1 ? n : k
+            let left = g > 0 ? m[g] - m[g - 1] : gap(0), right = gap(g)
+            let c = Int(t.rounded())
+            for d in -left...right {
+                let src = m[g] + d, dst = c + d - first
+                guard src >= 0, src < x.count, dst >= 0, dst < y.count else { continue }
+                let w = Float(0.5 + 0.5 * cos(Double.pi * Double(d) / Double(d < 0 ? left : right)))
+                y[dst] += x[src] * w
+                norm[dst] += w
+            }
+        }
+        // inside the run the grains alone; at its two ends they cross into the sound that was there
+        let inner = m[0]...Int(at.last!.rounded())
+        for i in first...last {
+            let w = norm[i - first]
+            if inner.contains(i) { out[i] = y[i - first] / max(w, 0.3) }
+            else { out[i] = y[i - first] + (1 - min(w, 1)) * out[i] }
+        }
     }
 
     /// YIN pitch track on a signal reduced to 16 kHz; Hz for every `hop` (0 = silent or unvoiced).

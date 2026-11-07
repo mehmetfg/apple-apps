@@ -238,6 +238,9 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
     private let synth = AVSpeechSynthesizer()
     private var waiter: CheckedContinuation<Void, Never>?
     private var serial = 0
+    /// The utterance the waiter belongs to. The end (or the cancelling) of an earlier one arrives late, after the
+    /// next announcement has begun, and must not end that one's wait.
+    private var speaking: AVSpeechUtterance?
 
     override init() {
         super.init()
@@ -262,6 +265,7 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
         let mine = serial
         await withCheckedContinuation { c in
             waiter = c
+            speaking = u
             synth.speak(u)
             // a safety net: a voice that never reports its end does not hold the automation
             let seconds = Double(text.count) / 8 + 6
@@ -280,12 +284,21 @@ final class Announcer: NSObject, AVSpeechSynthesizerDelegate {
     private func finish() {
         waiter?.resume()
         waiter = nil
+        speaking = nil
+    }
+
+    /// From the synthesiser: only the utterance being waited for ends the wait.
+    private func ended(_ id: ObjectIdentifier) {
+        guard let u = speaking, ObjectIdentifier(u) == id else { return }
+        finish()
     }
 
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish u: AVSpeechUtterance) {
-        Task { @MainActor in self.finish() }
+        let id = ObjectIdentifier(u)
+        Task { @MainActor in self.ended(id) }
     }
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didCancel u: AVSpeechUtterance) {
-        Task { @MainActor in self.finish() }
+        let id = ObjectIdentifier(u)
+        Task { @MainActor in self.ended(id) }
     }
 }

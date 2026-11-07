@@ -36,9 +36,14 @@
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>tr</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.fatihgocgun.kivilcim.send</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>fetch</string>
 	</array>
 </dict>
 </plist>

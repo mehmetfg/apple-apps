@@ -71,7 +71,7 @@ final class Kasa: ObservableObject {
             do { return .success(try `is`(Kasa.teoria(kok))) } catch { return .failure(error) }
         }.value
         switch sonuc {
-        case .success(let v): hata = nil; return v
+        case .success(let v): if hata != nil { hata = nil }; return v
         case .failure(let h): hata = h.localizedDescription; return nil
         }
     }

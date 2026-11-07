@@ -65,8 +65,12 @@ struct BookScreen: View {
                 } else {
                     coreCard
                 }
+                BookRatingBar(book: entry.id)
                 partsStrip
                 doors
+                #if os(iOS)
+                outsideLinks
+                #endif
                 SimgeSecici(secenekler: tabs.map { .init(deger: $0, ad: $0.name, sembol: $0.symbol) },
                             secili: Binding(get: { tab }, set: { chosenTab = $0 }), sikisik: !wide)
                 Group {
@@ -281,6 +285,23 @@ struct BookScreen: View {
     private func legend(_ c: Color, _ t: String) -> some View {
         HStack(spacing: 5) { RoundedRectangle(cornerRadius: 2).fill(c).frame(width: 12, height: 8); Text(t) }
     }
+
+    #if os(iOS)
+    /// The same book in the other apps: listen in Wise Path (when it is there), talk about it in Kıvılcım.
+    private var outsideLinks: some View {
+        HStack(spacing: 18) {
+            if entry.inVR == true || Network.isWisePathID(entry.id), let u = Network.wisePathLink(entry.id) {
+                Button { UIApplication.shared.open(u) } label: { Label("Wise Path'te dinle", systemImage: "headphones") }
+            }
+            if let u = Network.talkLink(entry.id) {
+                Button { UIApplication.shared.open(u) } label: { Label("Bu kitap üzerine konuş", systemImage: "mic") }
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.footnote.weight(.semibold)).buttonStyle(.borderless).tint(tint)
+        .lineLimit(1).minimumScaleFactor(0.8)
+    }
+    #endif
 
     private var doors: some View {
         HStack(spacing: 12) {

@@ -238,6 +238,9 @@ final class SyncEngine {
     private var pendingEvents: [SyncEvent] = []
     private var cloudBacklog: [SyncEvent] = []
     private var stateTask: Task<Void, Never>?
+    private var stateFirstPending: Date?            // when the oldest position change not yet written arrived
+    private static let stateSettle = 4.0
+    private static let stateMaxWait = 30.0
     private var running = false
     private var timer: Timer?
 
@@ -308,12 +311,19 @@ final class SyncEngine {
         for d in model.store.documents where !remote.contains(d.id) { publish(d.id) }
     }
 
-    /// Positions are written a few seconds after they settle, not on every word.
+    /// Positions are written a few seconds after they settle, not on every word. The player reports every two
+    /// seconds while it reads, so a plain debounce never fired during continuous listening (the State files were
+    /// written only at a pause): a change that has waited `stateMaxWait` seconds is written even if more keep coming.
     func positionsChanged() {
+        let now = Date.now
+        let first = stateFirstPending ?? now
+        stateFirstPending = first
+        let wait = min(Self.stateSettle, max(0, Self.stateMaxWait - now.timeIntervalSince(first)))
         stateTask?.cancel()
         stateTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(wait))
             guard let self, !Task.isCancelled, let model = self.model else { return }
+            self.stateFirstPending = nil
             var s = DeviceState()
             for listed in model.store.documents where listed.positionAt != nil || listed.lastOpenedAt != nil {
                 let d = model.store.document(listed.id) ?? listed          // the exact place from the journal
@@ -393,12 +403,10 @@ final class SyncEngine {
         // 5. the Loader inbox
         let claimed = await files.claimLoader()
         for (url, folder) in claimed {
-            let before = Set(model.store.documents.map(\.id))
-            model.folder = folder
             if let folder { model.store.addFolder(folder) }
-            await model.importFiles([url], fromSync: true)      // importing publishes it
-            model.folder = nil
-            _ = before
+            // the folder goes along as a parameter: setting the library's own `folder` here sent an import the
+            // user started meanwhile to the wrong place
+            await model.importFiles([url], fromSync: true, folder: folder)      // importing publishes it
             await files.finishLoader(url)
         }
         status = "Eşitlendi · \(Date.now.formatted(date: .omitted, time: .shortened))"

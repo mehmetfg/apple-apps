@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<header>
+  <img src="ikon48.png" alt="">
+  <span class="ad">Kıvılcım</span>
+  <span id="tur" class="cip">…</span>
+</header>
+<input id="baslik" placeholder="Başlık">
+<div id="site" class="site"></div>
+<blockquote id="secili" hidden></blockquote>
+<div id="ozet" class="ozet"></div>
+<textarea id="not" placeholder="Notun (isteğe bağlı) — neden işaretliyorsun, ne yapacaksın?"></textarea>
+<div class="ses">
+  <button id="mik" title="Sesli not">🎙 Sesli not</button>
+  <span id="sure"></span>
+  <audio id="dinle" controls hidden></audio>
+</div>
+<button id="kaydet" class="ana">İşaretle <kbd>⌘↩</kbd></button>
+<div id="durum" class="durum"></div>
+<section id="simdi" hidden>
+  <h2>Şimdi bak</h2>
+  <ol id="liste"></ol>
+</section>
+<script src="popup.js"></script>
+</body>
+</html>

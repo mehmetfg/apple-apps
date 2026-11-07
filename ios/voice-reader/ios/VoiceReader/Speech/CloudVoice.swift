@@ -189,7 +189,7 @@ final class CloudVoice {
                 }
         case .azure:
             struct V: Decodable { let ShortName: String; let LocalName: String?; let Gender: String?; let Locale: String }
-            var r = URLRequest(url: URL(string: "https://\(azureRegion).tts.speech.microsoft.com/cognitiveservices/voices/list")!)
+            var r = URLRequest(url: try Self.azureURL(azureRegion, "cognitiveservices/voices/list"))
             r.setValue(k, forHTTPHeaderField: "Ocp-Apim-Subscription-Key")
             let all = try JSONDecoder().decode([V].self, from: try await Self.send(r))
             return all.filter { $0.Locale == "tr-TR" || $0.ShortName.contains("Multilingual") }
@@ -226,6 +226,15 @@ final class CloudVoice {
         }.value
     }
 
+    /// The Azure address for a region the user typed; a region that does not make a host name is an error to show,
+    /// not a crash.
+    nonisolated private static func azureURL(_ region: String, _ path: String) throws -> URL {
+        let host = region.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !host.isEmpty, host.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }),
+              let url = URL(string: "https://\(host).tts.speech.microsoft.com/\(path)") else { throw CloudError.badRegion(region) }
+        return url
+    }
+
     /// Audio (MP3) and, when the provider gives them, the start of every word in seconds.
     nonisolated private static func fetch(_ text: String, provider: CloudProvider, voice: String, key: String,
                                           region: String) async throws -> (Data, [Double]?) {
@@ -255,7 +264,7 @@ final class CloudVoice {
             }
             return (mp3, starts)
         case .azure:
-            var r = URLRequest(url: URL(string: "https://\(region).tts.speech.microsoft.com/cognitiveservices/v1")!)
+            var r = URLRequest(url: try azureURL(region, "cognitiveservices/v1"))
             r.httpMethod = "POST"; r.timeoutInterval = 40
             r.setValue(key, forHTTPHeaderField: "Ocp-Apim-Subscription-Key")
             r.setValue("application/ssml+xml", forHTTPHeaderField: "Content-Type")
@@ -270,7 +279,7 @@ final class CloudVoice {
             r.setValue("application/json", forHTTPHeaderField: "Content-Type")
             r.httpBody = try JSONSerialization.data(withJSONObject: [
                 "model": "gpt-4o-mini-tts", "voice": voice, "input": text, "response_format": "mp3",
-                "instructions": "Metni Türkçe, doğal ve akıcı bir anlatıcı gibi oku; abartılı vurgu yapma.",
+                "instructions": "Metni Türkçe, sakin ve kararlı bir anlatıcı gibi oku: ses yüksekliği ve hız baştan sona aynı kalsın, tonlama dar olsun, duygu ve abartılı vurgu katma, her cümlenin sonunda sesi belirgin biçimde indir, nefes ve uzun duraklama ekleme.",
             ])
             return (try await send(r), nil)
         }
@@ -341,5 +350,11 @@ final class CloudVoice {
 
 enum CloudError: LocalizedError {
     case freeAllowance(String)
-    var errorDescription: String? { if case .freeAllowance(let m) = self { return m }; return nil }
+    case badRegion(String)
+    var errorDescription: String? {
+        switch self {
+        case .freeAllowance(let m): m
+        case .badRegion(let r): "Azure bölgesi geçersiz: “\(r)”. Örnek: westeurope."
+        }
+    }
 }

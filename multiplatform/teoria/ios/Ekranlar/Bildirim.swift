@@ -171,6 +171,19 @@ enum Bildirim {
             let tetik = UNCalendarNotificationTrigger(dateMatching: t.dateComponents([.year, .month, .day, .hour, .minute], from: an), repeats: false)
             try? await m.add(UNNotificationRequest(identifier: "\(onek)aksam", content: c, trigger: tetik))
         }
+        // İkinci dikkat: one notification at 14:00 today, unless the afternoon block is already closed.
+        if depo.durum.afternoonDone[Tarih.gun(simdi)] == nil,
+           let an = t.date(bySettingHour: 14, minute: 0, second: 0, of: simdi), an > simdi.addingTimeInterval(60) {
+            let n = await MainActor.run { AfternoonStore.shared.today.count }
+            let c = UNMutableNotificationContent()
+            c.title = "İkinci dikkat · 20 dk"
+            c.body = n > 0 ? "Sabahın \(n) öğesi: önce hatırla, sonra bak. Bakılmayan yarına kalmaz."
+                           : "Sabah işaretlediklerine ve takıldığın cümlelere 20 dakika."
+            duzey(c)
+            c.userInfo = ["ac": "ikinci"]
+            let tetik = UNCalendarNotificationTrigger(dateMatching: t.dateComponents([.year, .month, .day, .hour, .minute], from: an), repeats: false)
+            try? await m.add(UNNotificationRequest(identifier: "\(onek)ikinci", content: c, trigger: tetik))
+        }
         UserDefaults.standard.set(sayac, forKey: "teoria.bildirim.planli")
     }
 

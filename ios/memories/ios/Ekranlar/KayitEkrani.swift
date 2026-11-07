@@ -146,7 +146,7 @@ struct KayitEkrani: View {
             let say = Metin.kelimeler(w).count
             guard say > 0, let r = a[arama...].range(of: w) else { continue }
             if k.eslesen.contains(i) { a[r].foregroundColor = Tema.yesil }
-            else { a[r].backgroundColor = Tema.sari.opacity(0.45) }
+            else { a[r].backgroundColor = Tema.sari.opacity(0.32) }
             arama = r.upperBound
             i += say
         }
@@ -383,7 +383,7 @@ struct FlowCipler: View {
             ForEach(kelimeler, id: \.self) { w in
                 Text(w).font(Tema.ingilizce(.callout))
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background { RoundedRectangle(cornerRadius: 6).fill(Tema.sari.opacity(0.35)) }
+                    .background { RoundedRectangle(cornerRadius: 6).fill(Tema.sari.opacity(0.26)) }
             }
         }
     }

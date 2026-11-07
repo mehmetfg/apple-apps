@@ -29,9 +29,34 @@ struct Oge: Codable, Identifiable, Hashable, Sendable {
     var yildiz: Bool
     var durum: String          // hazir · bekliyor · hata · yerel (henüz Mac'e ulaşmadı)
     var not: String
+    // Lifecycle (2026-11-02): open → done → archived (isle.py moves the note to Arşiv/ 30 days after done).
+    var status: String = "open"
+    var priority: Int = Priority.normal.rawValue
+    var done_at: String = ""
+    /// spark = short idea · journal = long spoken diary (goes to the day's journal) · extract = idea pulled out of a journal
+    var kind: String = "spark"
+    var parent: String = ""
+    var offset: Double = 0
+    var notes: [NoteEntry] = []
+    /// Vault-relative path of the day journal a journal recording was written into.
+    var journal_note: String = ""
+    /// Dikkat marks (kind "isaret", 2026-11-04): the link, its type, and Claude's "look now" reason.
+    var url: String = ""
+    var tur: String = ""
+    var simdi: String = ""
+    /// Link layer (links.py, 2026-11-04): the book/topic this record is about. topic_source: elle · soz · gunluk.
+    var topic: String = ""
+    var topic_name: String = ""
+    var topic_source: String = ""
+    /// A long journal can touch several topics; seconds spoken on each.
+    var topics: [TopicShare] = []
+    /// The part before this one when a long talk rolled over into a new file.
+    var devam: String = ""
 
     enum CodingKeys: String, CodingKey {
         case id, tarih, cihaz, sure, kalite, boyut, ses, metin, metin_kaynak, baslik, baslik_kaynak, ozet, alan, amac, etiketler, yildiz, durum, not
+        case status, priority, done_at, kind, parent, offset, notes, journal_note, url, tur, simdi
+        case topic, topic_name, topic_source, topics, devam
     }
 
     init(id: String, tarih: String, cihaz: String, sure: Double, kalite: String, boyut: Int, ses: String,
@@ -62,11 +87,56 @@ struct Oge: Codable, Identifiable, Hashable, Sendable {
         yildiz = (try? c.decode(Bool.self, forKey: .yildiz)) ?? false
         durum = (try? c.decode(String.self, forKey: .durum)) ?? "hazir"
         not = (try? c.decode(String.self, forKey: .not)) ?? ""
+        status = (try? c.decode(String.self, forKey: .status)) ?? "open"
+        priority = (try? c.decode(Int.self, forKey: .priority)) ?? Priority.normal.rawValue
+        done_at = (try? c.decode(String.self, forKey: .done_at)) ?? ""
+        kind = (try? c.decode(String.self, forKey: .kind)) ?? "spark"
+        parent = (try? c.decode(String.self, forKey: .parent)) ?? ""
+        offset = (try? c.decode(Double.self, forKey: .offset)) ?? 0
+        notes = (try? c.decode([NoteEntry].self, forKey: .notes)) ?? []
+        journal_note = (try? c.decode(String.self, forKey: .journal_note)) ?? ""
+        url = (try? c.decode(String.self, forKey: .url)) ?? ""
+        tur = (try? c.decode(String.self, forKey: .tur)) ?? ""
+        simdi = (try? c.decode(String.self, forKey: .simdi)) ?? ""
+        topic = (try? c.decode(String.self, forKey: .topic)) ?? ""
+        topic_name = (try? c.decode(String.self, forKey: .topic_name)) ?? ""
+        topic_source = (try? c.decode(String.self, forKey: .topic_source)) ?? ""
+        topics = (try? c.decode([TopicShare].self, forKey: .topics)) ?? []
+        devam = (try? c.decode(String.self, forKey: .devam)) ?? ""
     }
 
     var zaman: Date { Zaman.coz(tarih) ?? .distantPast }
+    var isDone: Bool { status == "done" }
+    var isJournal: Bool { kind == "journal" }
+    var prio: Priority { Priority(rawValue: priority) ?? .normal }
+    var doneDate: Date? { done_at.isEmpty ? nil : Zaman.coz(done_at) }
+    /// Days left before isle.py moves a done item to the vault archive.
+    var daysToArchive: Int? {
+        guard isDone, let d = doneDate else { return nil }
+        return max(0, Priority.archiveDays - Int(Date().timeIntervalSince(d) / 86400))
+    }
     var sureMetni: String { Zaman.sure(sure) }
     var islendi: Bool { durum == "hazir" }
+}
+
+struct TopicShare: Codable, Hashable, Sendable {
+    var id: String
+    var name: String
+    var seconds: Int
+}
+
+struct NoteEntry: Codable, Hashable, Sendable {
+    var t: String
+    var text: String
+}
+
+enum Priority: Int, CaseIterable, Identifiable, Sendable {
+    case low = 0, normal = 1, high = 2, urgent = 3
+    static let archiveDays = 30
+    var id: Int { rawValue }
+    var name: String { ["Düşük", "Normal", "Yüksek", "Acil"][rawValue] }
+    var symbol: String { ["arrow.down", "minus", "exclamationmark", "exclamationmark.3"][rawValue] }
+    var hex: String { ["#8A8F98", "#4C8DF6", "#FF9500", "#FF3B30"][rawValue] }
 }
 
 struct Dizin: Codable, Sendable {
@@ -232,17 +302,22 @@ struct Kunye: Codable, Sendable {
     var kalite: String
     var dil: String
     var onMetin: String?
+    /// spark (default) · journal
+    var kind: String?
+    /// When a recording passes its cap it goes on in a new part; this is the id of the part before it (2026-11-04).
+    var devam: String? = nil
+    /// Mac (2026-11-04): the book/topic chosen before recording (Teoria book id or "k:<name>").
+    var topic: String? = nil
 }
 
 enum Kimlik {
+    private static let stampFormat = Zaman.formatter("yyyyMMdd-HHmmss", posix: true)
+    private static let monthFormat = Zaman.formatter("yyyy-MM", posix: true)
     static func yeni(_ cihaz: String, _ t: Date = Date()) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyyMMdd-HHmmss"
         let ek = String(UUID().uuidString.prefix(4)).lowercased()
-        return "\(f.string(from: t))-\(cihaz)-\(ek)"
+        return "\(stampFormat.string(from: t))-\(cihaz)-\(ek)"
     }
-    static func ay(_ t: Date) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyy-MM"; return f.string(from: t)
-    }
+    static func ay(_ t: Date) -> String { monthFormat.string(from: t) }
 }
 
 // MARK: Olay (elle düzeltme)
@@ -257,11 +332,14 @@ enum Olay {
 
     /// Düzeltmeleri bir öğeye uygular (Mac henüz işlemediyse ekranda hemen görünsün diye).
     static func uygula(_ satirlar: Data, _ ogeler: inout [Oge]) {
+        // one pass over the log: last-write-wins fields and the accumulating notes are collected together
         var son: [String: [String: (String, Any)]] = [:]
+        var notlar: [String: [NoteEntry]] = [:]
         for parca in satirlar.split(separator: 0x0A) {
             guard let o = try? JSONSerialization.jsonObject(with: Data(parca)) as? [String: Any],
                   let h = o["hedef"] as? String, let tur = o["tur"] as? String, let d = o["deger"] else { continue }
             let t = o["t"] as? String ?? ""
+            if tur == "note", let x = d as? String, !x.isEmpty { notlar[h, default: []].append(NoteEntry(t: t, text: x)) }
             if let e = son[h]?[tur], e.0 > t { continue }
             son[h, default: [:]][tur] = (t, d)
         }
@@ -271,6 +349,19 @@ enum Olay {
             if let v = d["alan"]?.1 as? String, !v.isEmpty { ogeler[i].alan = v }
             if let v = d["amac"]?.1 as? String, !v.isEmpty { ogeler[i].amac = v }
             if let v = d["yildiz"]?.1 as? Bool { ogeler[i].yildiz = v }
+            if let v = d["status"] {
+                ogeler[i].status = (v.1 as? String) ?? "open"
+                ogeler[i].done_at = ogeler[i].status == "done" ? (ogeler[i].done_at.isEmpty ? v.0 : ogeler[i].done_at) : ""
+            }
+            if let v = d["priority"]?.1 as? Int { ogeler[i].priority = v }
+            if let v = d["kind"]?.1 as? String, !v.isEmpty { ogeler[i].kind = v }
+        }
+        // notes accumulate (every "note" event is a new line); the rest are last-write-wins
+        for i in ogeler.indices {
+            guard let yeni = notlar[ogeler[i].id] else { continue }
+            let var_ = Set(ogeler[i].notes.map { $0.t + $0.text })
+            ogeler[i].notes += yeni.filter { !var_.contains($0.t + $0.text) }
+            ogeler[i].notes.sort { $0.t < $1.t }
         }
         ogeler.removeAll { son[$0.id]?["sil"]?.1 as? Bool == true }
     }
@@ -288,7 +379,8 @@ enum Arama {
     static func eslesir(_ o: Oge, _ sorgu: String, _ s: Siniflar) -> Bool {
         let parcalar = katla(sorgu).split(separator: " ").map(String.init)
         if parcalar.isEmpty { return true }
-        let alan = [o.baslik, o.metin, o.ozet, o.etiketler.joined(separator: " "), s.alan(o.alan).ad, s.amac(o.amac).ad].joined(separator: " ")
+        let alan = [o.baslik, o.metin, o.ozet, o.etiketler.joined(separator: " "), s.alan(o.alan).ad, s.amac(o.amac).ad,
+                    o.notes.map(\.text).joined(separator: " ")].joined(separator: " ")
         let k = katla(alan)
         return parcalar.allSatisfy { k.contains($0) }
     }
@@ -312,13 +404,23 @@ enum Arama {
 // MARK: Zaman
 
 enum Zaman {
-    static func iso(_ t: Date) -> String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"; return f.string(from: t)
+    /// Formatters are built once and shared. A DateFormatter may be read from several threads; none of these is
+    /// changed after it is set up. The time zone follows the device (a cached formatter would otherwise keep the old one).
+    static func formatter(_ format: String, posix: Bool = false, turkish: Bool = false) -> DateFormatter {
+        let f = DateFormatter()
+        if posix { f.locale = Locale(identifier: "en_US_POSIX") } else if turkish { f.locale = Locale(identifier: "tr_TR") }
+        f.timeZone = .autoupdatingCurrent
+        f.dateFormat = format
+        return f
     }
-    static func coz(_ s: String) -> Date? {
-        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-        return f.date(from: String(s.prefix(19)))
-    }
+    private static let isoFormat = formatter("yyyy-MM-dd'T'HH:mm:ss", posix: true)
+    private static let clockFormat = formatter("HH:mm")
+    private static let weekdayClockFormat = formatter("EEEE HH:mm", turkish: true)
+    private static let dayClockFormat = formatter("d MMM HH:mm", turkish: true)
+    private static let dayTitleFormat = formatter("d MMMM EEEE", turkish: true)
+
+    static func iso(_ t: Date) -> String { isoFormat.string(from: t) }
+    static func coz(_ s: String) -> Date? { isoFormat.date(from: String(s.prefix(19))) }
     static func sure(_ sn: Double) -> String {
         let s = Int(sn.rounded()); return "\(s / 60):" + String(format: "%02d", s % 60)
     }
@@ -329,19 +431,14 @@ enum Zaman {
         let tk = Calendar.current
         if tk.isDateInToday(t) { return "bugün " + saat(t) }
         if tk.isDateInYesterday(t) { return "dün " + saat(t) }
-        let f = DateFormatter(); f.locale = Locale(identifier: "tr_TR")
-        f.dateFormat = fark < 6 * 86400 ? "EEEE HH:mm" : "d MMM HH:mm"
-        return f.string(from: t)
+        return (fark < 6 * 86400 ? weekdayClockFormat : dayClockFormat).string(from: t)
     }
-    static func saat(_ t: Date) -> String {
-        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f.string(from: t)
-    }
+    static func saat(_ t: Date) -> String { clockFormat.string(from: t) }
     static func gunBasligi(_ t: Date) -> String {
         let tk = Calendar.current
         if tk.isDateInToday(t) { return "Bugün" }
         if tk.isDateInYesterday(t) { return "Dün" }
-        let f = DateFormatter(); f.locale = Locale(identifier: "tr_TR"); f.dateFormat = "d MMMM EEEE"
-        return f.string(from: t)
+        return dayTitleFormat.string(from: t)
     }
 }
 
@@ -355,5 +452,178 @@ extension Array where Element == Oge {
             gr[g, default: []].append(o)
         }
         return sira.map { (Zaman.gunBasligi(gr[$0]![0].zaman), gr[$0]!) }
+    }
+}
+
+// MARK: Tatbik (2026-11-05)
+// What was said in Kıvılcım, item by item, per program: Claude writes Tatbik/claude/tatbik.json, the user's touches go
+// to Tatbik/olay/<device>.jsonl, tatbik.py merges both into Tatbik/tatbik.json (this is what the apps read).
+
+enum TatbikStatus: String, CaseIterable, Identifiable, Sendable {
+    case acik, kismen, tamam, gerekYok = "gerek-yok"
+    var id: String { rawValue }
+    var name: String {
+        switch self { case .acik: "Açık"; case .kismen: "Kısmen"; case .tamam: "Tamamlandı"; case .gerekYok: "Gerek görülmedi" }
+    }
+    var short: String {
+        switch self { case .acik: "Açık"; case .kismen: "Kısmen"; case .tamam: "Tamam"; case .gerekYok: "Gerek yok" }
+    }
+    var symbol: String {
+        switch self { case .acik: "circle"; case .kismen: "circle.lefthalf.filled"; case .tamam: "checkmark.circle.fill"; case .gerekYok: "minus.circle" }
+    }
+    var hex: String {
+        switch self { case .acik: "#2F6FEB"; case .kismen: "#E09B2D"; case .tamam: "#23915E"; case .gerekYok: "#8E8C86" }
+    }
+    var isClosed: Bool { self == .tamam || self == .gerekYok }
+}
+
+struct TatbikProgram: Codable, Identifiable, Hashable, Sendable {
+    var id: String
+    var ad: String
+    var renk: String?
+    var aciklama: String?
+}
+
+struct TatbikNote: Codable, Hashable, Sendable {
+    var t: String
+    var text: String
+    var device: String?
+}
+
+struct TatbikItem: Codable, Identifiable, Hashable, Sendable {
+    var id: String
+    var program: String
+    var durum: String
+    var baslik: String
+    var kaynaklar: [String]?
+    var ayrinti: String?
+    var kanit: String?
+    var tarih: String?
+    var eksik: String?
+    var gerekce: String?
+    var oncelik: String?
+    var buyukluk: String?
+    var kaynak_durum: String?
+    var notlar: [TatbikNote]?
+    var status: TatbikStatus { TatbikStatus(rawValue: durum) ?? .acik }
+    var sources: [String] { kaynaklar ?? [] }
+    var byUser: Bool { kaynak_durum == "elle" }
+    var priorityName: String? {
+        switch oncelik { case "yuksek": "yüksek"; case "normal": "normal"; case "dusuk": "düşük"; default: nil }
+    }
+    var sizeName: String? {
+        switch buyukluk { case "kucuk": "küçük iş"; case "orta": "orta iş"; case "buyuk": "büyük iş"; default: nil }
+    }
+    var priorityRank: Int { ["yuksek": 0, "normal": 1, "dusuk": 2][oncelik ?? ""] ?? 1 }
+
+    /// The text to paste into Claude Code: what to do, why, what is already there, where it came from.
+    func prompt(_ program: TatbikProgram?, _ records: [Oge]) -> String {
+        var s = "Kıvılcım › Tatbik maddesi \(id) · \(program?.ad ?? self.program)\n\nYapılacak: \(baslik)\n"
+        if let a = ayrinti, !a.isEmpty { s += "Ayrıntı: \(a)\n" }
+        if let k = kanit, !k.isEmpty { s += "Şu an var olan: \(k)\n" }
+        if let e = eksik, !e.isEmpty { s += "Eksik kalan: \(e)\n" }
+        for n in notlar ?? [] { s += "Notum (\(n.t.prefix(10))): \(n.text)\n" }
+        if !records.isEmpty {
+            s += "\nKaynak kayıtlar (Kıvılcım):\n"
+            for o in records { s += "- \(o.tarih.prefix(16).replacingOccurrences(of: "T", with: " ")) · \(o.baslik) · \(o.id)\n" }
+        }
+        s += "\nÖnce kaynak kaydın metnini oku, sonra işi yap. Bitince Kıvılcım/Tatbik/claude/tatbik.json'da bu maddeyi \"tamam\" yap ve kanıtını yaz."
+        return s
+    }
+}
+
+struct TatbikState: Codable, Sendable {
+    var guncelleme: String?
+    var programlar: [TatbikProgram]
+    var maddeler: [TatbikItem]
+    var incelenmemis: [String]?
+    static let empty = TatbikState(guncelleme: nil, programlar: [], maddeler: [], incelenmemis: [])
+    func program(_ id: String) -> TatbikProgram? { programlar.first { $0.id == id } }
+    func items(of program: String) -> [TatbikItem] { maddeler.filter { $0.program == program } }
+    func items(for record: String) -> [TatbikItem] { maddeler.filter { $0.sources.contains(record) } }
+    func count(_ s: TatbikStatus, in list: [TatbikItem]? = nil) -> Int { (list ?? maddeler).filter { $0.status == s }.count }
+    var openCount: Int { maddeler.filter { !$0.status.isClosed }.count }
+    /// Done share: closed items over all items (gerek-yok counts as decided).
+    func progress(_ list: [TatbikItem]? = nil) -> Double {
+        let l = list ?? maddeler
+        return l.isEmpty ? 0 : Double(l.filter { $0.status.isClosed }.count) / Double(l.count)
+    }
+}
+
+enum TatbikEvent {
+    /// Same line format as the record edit log, aimed at an item id.
+    static func line(item: String, kind: String, value: String, device: String) -> Data {
+        Olay.satir(hedef: item, tur: kind, deger: value, cihaz: device)
+    }
+}
+
+// MARK: Daily feed (2026-11-06)
+// A finite daily issue in place of the X timeline: feed.py (Mac) picks at most 10 items from Hacker News, Reddit and the
+// posts liked on X, and writes Feed/feed.json. Touches go to Feed/olay/<device>.jsonl; a marked item becomes a Dikkat mark.
+// An issue from another day is never shown: nothing here carries over.
+
+struct FeedItem: Codable, Identifiable, Hashable, Sendable {
+    var id: String
+    var source: String
+    var community: String
+    var topic: String
+    var title: String
+    var url: String
+    var discussion: String?
+    var points: Int?
+    var comments: Int?
+    var excerpt: String?
+    var author: String?
+    var status: String
+    /// When the merged status was last touched, on any device: the phone's own newer touch still wins on its screen.
+    var touched: String?
+    var image: String?
+    var body: String?
+    /// Turkish, from Apple's on-device translation on the Mac (Feed/translations.json). Empty until it is done.
+    var title_tr: String?
+    var body_tr: String?
+    var imageLink: URL? { image.flatMap { $0.isEmpty ? nil : URL(string: $0) } }
+    var shownTitle: String { (title_tr ?? "").isEmpty ? title : title_tr! }
+    /// The original under the Turkish title; nil when there is no translation or it is the same text.
+    var originalTitle: String? { shownTitle == title ? nil : title }
+    var shownBody: String { let t = body_tr ?? ""; return t.isEmpty ? (body ?? excerpt ?? "") : t }
+    var hasTurkishBody: Bool { !(body_tr ?? "").isEmpty && body_tr != body }
+    var isOpen: Bool { status == "open" }
+    var isMarked: Bool { status == "marked" }
+    var isSkipped: Bool { status == "skipped" }
+    /// "412 puan · 130 yorum" where the source gives numbers; Reddit's feed does not.
+    var numbers: String? {
+        guard let points else { return nil }
+        return "\(points) puan" + (comments.map { " · \($0) yorum" } ?? "")
+    }
+    var link: URL? { URL(string: url) }
+    var discussionLink: URL? { discussion.flatMap { $0 == url ? nil : URL(string: $0) } }
+}
+
+struct FeedTopic: Codable, Hashable, Sendable {
+    var id: String
+    var name: String
+}
+
+struct FeedIssue: Codable, Sendable {
+    var date: String
+    var built_at: String?
+    var ready_at: String?
+    var updated: String?
+    var topics: [FeedTopic]
+    var items: [FeedItem]
+    var errors: [String]?
+    static let empty = FeedIssue(date: "", topics: [], items: [])
+    var isToday: Bool { date == String(Zaman.iso(Date()).prefix(10)) }
+    var readyAt: String { ready_at ?? "12:30" }
+    var openCount: Int { isToday ? items.filter(\.isOpen).count : 0 }
+    var markedCount: Int { items.filter(\.isMarked).count }
+    var skipped: [FeedItem] { items.filter(\.isSkipped) }
+    /// Topics in the issue's order, with what is left to read in each.
+    var sections: [(topic: FeedTopic, items: [FeedItem])] {
+        topics.compactMap { t in
+            let l = items.filter { $0.topic == t.id && !$0.isSkipped }
+            return l.isEmpty ? nil : (t, l)
+        }
     }
 }

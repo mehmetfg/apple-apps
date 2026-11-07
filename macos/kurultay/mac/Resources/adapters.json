@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "_note": "Kurultay'ın meclisi. Uygulama bu dosyayı vault'tan (_araçlar/kurultay/adapters.json) okur; site değişirse yalnız seçiciler düzeltilir, derleme gerekmez (uygulamada Ayarlar › yeniden yükle ya da POST /reload). input/send/stop/answer: CSS seçici listesi, ilk eşleşen kullanılır. think.match: düşünme düğmesinin etiketi (regex); think.onClass verilmezse düğmenin açık olduğu anlaşılamaz ve tıklanmaz. api: tarayıcı olmazsa sorulacak ücretsiz model.",
+  "providers": {
+    "openrouter": {
+      "name": "OpenRouter (ücretsiz modeller)",
+      "base": "https://openrouter.ai/api/v1",
+      "style": "openrouter",
+      "keyUrl": "https://openrouter.ai/keys"
+    },
+    "gemini": {
+      "name": "Google AI Studio (Gemini)",
+      "base": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "style": "gemini",
+      "keyUrl": "https://aistudio.google.com/apikey"
+    },
+    "groq": {
+      "name": "Groq",
+      "base": "https://api.groq.com/openai/v1",
+      "style": "groq",
+      "keyUrl": "https://console.groq.com/keys"
+    }
+  },
+  "seats": [
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "maker": "OpenAI",
+      "color": "#10A37F",
+      "url": "https://chatgpt.com/",
+      "newChatUrl": "https://chatgpt.com/",
+      "input": [
+        "#prompt-textarea",
+        "#mobile-composer-prompt",
+        "div.ProseMirror[contenteditable=true]",
+        "textarea"
+      ],
+      "send": [
+        "button[aria-label='Send message']",
+        "button[data-testid=send-button]",
+        "#composer-submit-button"
+      ],
+      "stop": [
+        "button[data-testid=stop-button]",
+        "button[aria-label='Stop streaming']",
+        "button[aria-label*='Stop']"
+      ],
+      "answer": [
+        "[data-message-role=assistant] [data-assistant-markdown-root]",
+        "[data-message-author-role=assistant]",
+        "[data-message-role=assistant]"
+      ],
+      "think": {
+        "match": "^\\s*(Think|Düşün)",
+        "note": "Ücretsiz katmanda + menüsündeki 'Think' aracı; açıksa kompozerde hap olarak görünür"
+      },
+      "api": {
+        "provider": "openrouter",
+        "model": "openai/gpt-oss-120b:free"
+      }
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "maker": "Google",
+      "color": "#4285F4",
+      "url": "https://gemini.google.com/app",
+      "newChatUrl": "https://gemini.google.com/app",
+      "input": [
+        "rich-textarea .ql-editor",
+        "div.ql-editor[contenteditable=true]",
+        "div[contenteditable=true]"
+      ],
+      "send": [
+        "button[aria-label*='gönder']",
+        "button.send-button",
+        "button[aria-label*='Send']",
+        "button[aria-label*='Gönder']",
+        ".send-button-container button"
+      ],
+      "stop": [
+        "button[aria-label*='Stop']",
+        "button[aria-label*='Durdur']",
+        "button[aria-label*='durdur']",
+        "button[aria-label*='Yanıtı durdur']"
+      ],
+      "answer": [
+        "model-response message-content",
+        "model-response .markdown",
+        "model-response"
+      ],
+      "api": {
+        "provider": "gemini",
+        "model": "gemini-2.5-pro"
+      },
+      "maxChars": 32000
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "maker": "xAI",
+      "color": "#111111",
+      "url": "https://grok.com/",
+      "newChatUrl": "https://grok.com/",
+      "input": [
+        "textarea[aria-label]",
+        "div.tiptap[contenteditable=true]",
+        "div[contenteditable=true]",
+        "textarea"
+      ],
+      "send": [
+        "button[type=submit][aria-label]",
+        "button[aria-label='Submit']",
+        "button[aria-label='Gönder']"
+      ],
+      "stop": [
+        "button[aria-label*='Stop']"
+      ],
+      "answer": [
+        "div[id^='response-'] .message-bubble",
+        "[class*='message-bubble']"
+      ],
+      "answerExclude": "[class*='items-end']",
+      "think": {
+        "match": "^\\s*(Think|Düşün)\\s*$"
+      },
+      "api": {
+        "provider": "openrouter",
+        "model": "x-ai/grok-4-fast:free"
+      }
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "maker": "DeepSeek",
+      "color": "#4D6BFE",
+      "url": "https://chat.deepseek.com/",
+      "newChatUrl": "https://chat.deepseek.com/",
+      "input": [
+        "textarea#chat-input",
+        "textarea"
+      ],
+      "send": [
+        "div[role=button][aria-disabled=false]:has(svg)"
+      ],
+      "stop": [],
+      "answer": [
+        ".ds-markdown"
+      ],
+      "think": {
+        "match": "DeepThink|Derin ?Düşün|R1",
+        "onClass": "--selected"
+      },
+      "api": {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-r1-0528:free"
+      }
+    },
+    {
+      "id": "kimi",
+      "name": "Kimi",
+      "maker": "Moonshot",
+      "color": "#1A1A2E",
+      "url": "https://www.kimi.ai/",
+      "newChatUrl": "https://www.kimi.ai/",
+      "input": [
+        ".chat-input-editor",
+        "div[contenteditable=true]",
+        "textarea"
+      ],
+      "send": [
+        ".send-button-container:not(.disabled) .send-button",
+        ".send-button"
+      ],
+      "stop": [
+        ".send-button-container.stop .send-button",
+        ".send-button-container.stop",
+        ".stop-button"
+      ],
+      "answer": [
+        ".segment-assistant .markdown",
+        ".chat-content-item-assistant .markdown",
+        ".markdown-container"
+      ],
+      "think": {
+        "match": "^\\s*(Thinking|Think|Düşün)"
+      },
+      "api": {
+        "provider": "openrouter",
+        "model": "moonshotai/kimi-k2:free"
+      }
+    },
+    {
+      "id": "glm",
+      "name": "GLM",
+      "maker": "Zhipu",
+      "color": "#2D5BFF",
+      "url": "https://chat.z.ai/",
+      "newChatUrl": "https://chat.z.ai/",
+      "input": [
+        "textarea#chat-input",
+        "textarea"
+      ],
+      "send": [
+        "#send-message-button",
+        "button[type=submit]"
+      ],
+      "stop": [
+        "#stop-message-button"
+      ],
+      "answer": [
+        ".chat-assistant .markdown-prose",
+        ".markdown-prose"
+      ],
+      "think": {
+        "match": "Deep ?Think|Think"
+      },
+      "api": {
+        "provider": "openrouter",
+        "model": "z-ai/glm-4.5-air:free"
+      }
+    },
+    {
+      "id": "perplexity",
+      "name": "Perplexity",
+      "maker": "Perplexity",
+      "color": "#20808D",
+      "url": "https://www.perplexity.ai/",
+      "newChatUrl": "https://www.perplexity.ai/",
+      "input": [
+        "#ask-input",
+        "textarea[placeholder]",
+        "div[contenteditable=true]"
+      ],
+      "send": [
+        "button[data-testid=submit-button]",
+        "button[aria-label='Submit']",
+        "button[aria-label='Gönder']"
+      ],
+      "stop": [
+        "button[data-testid=stop-generating-response-button]"
+      ],
+      "answer": [
+        "[id^='markdown-content']",
+        "div.prose"
+      ]
+    }
+  ],
+  "engine": "chrome"
+}

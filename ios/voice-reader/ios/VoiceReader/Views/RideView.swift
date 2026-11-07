@@ -30,22 +30,73 @@ enum BikeLook: String, CaseIterable, Identifiable, Sendable {
     var road: Bool { self == .focus || self == .kinetic }
 }
 
-/// The colours of the dark road screen: OLED black, cream text, sunlight amber for what is heard, gold for marks.
+/// The colours of the road screen. Gece: OLED black, cream text, sunlight amber for what is heard, gold for marks.
+/// Gündüz (2026-11-06): warm paper, ink text, a burnt orange and a deep gold that hold against daylight; the same
+/// roles, so every piece of the screen follows. `day` is set by the screen before it draws (RideView, MusicModeView).
 enum Ride {
-    static let oled = Color.black
-    static let panel = Color(red: 0.051, green: 0.047, blue: 0.043)
-    static let raise = Color(red: 0.090, green: 0.082, blue: 0.075)
-    static let line = Color(red: 0.165, green: 0.149, blue: 0.133)
-    static let paper = Color(red: 0.957, green: 0.925, blue: 0.863)
-    static let muted = Color(red: 0.553, green: 0.525, blue: 0.482)
-    static let dim = Color(red: 0.290, green: 0.271, blue: 0.247)
-    static let amber = Color(red: 0.941, green: 0.698, blue: 0.290)
-    static let gold = Color(red: 0.847, green: 0.698, blue: 0.369)
-    static let alert = Color(red: 0.886, green: 0.439, blue: 0.353)
-    static let uiPaper = UIColor(red: 0.957, green: 0.925, blue: 0.863, alpha: 1)
+    nonisolated(unsafe) static var day = false
+
+    private static func pick(_ night: (Double, Double, Double), _ day: (Double, Double, Double)) -> Color {
+        let c = Self.day ? day : night
+        return Color(red: c.0, green: c.1, blue: c.2)
+    }
+    static var oled: Color { pick((0, 0, 0), (0.965, 0.945, 0.905)) }
+    static var panel: Color { pick((0.051, 0.047, 0.043), (0.935, 0.912, 0.868)) }
+    static var raise: Color { pick((0.090, 0.082, 0.075), (0.905, 0.880, 0.832)) }
+    static var line: Color { pick((0.165, 0.149, 0.133), (0.800, 0.770, 0.710)) }
+    static var paper: Color { pick((0.957, 0.925, 0.863), (0.125, 0.105, 0.085)) }
+    static var muted: Color { pick((0.553, 0.525, 0.482), (0.400, 0.370, 0.330)) }
+    static var dim: Color { pick((0.290, 0.271, 0.247), (0.600, 0.570, 0.520)) }
+    static var amber: Color { pick((0.941, 0.698, 0.290), (0.780, 0.360, 0.030)) }
+    static var gold: Color { pick((0.847, 0.698, 0.369), (0.620, 0.430, 0.060)) }
+    static var alert: Color { pick((0.886, 0.439, 0.353), (0.760, 0.240, 0.160)) }
+    /// Hairlines round the quiet keys, the wells the dock's keys sit in, the progress track, text on an amber key.
+    static var edge: Color { pick((0.120, 0.110, 0.100), (0.830, 0.800, 0.745)) }
+    static var well: Color { pick((0.055, 0.051, 0.047), (0.990, 0.978, 0.952)) }
+    static var track: Color { pick((0.114, 0.106, 0.098), (0.850, 0.820, 0.765)) }
+    static var onAmber: Color { day ? .white : Color.black.opacity(0.85) }
+    static var uiPaper: UIColor { day ? UIColor(red: 0.125, green: 0.105, blue: 0.085, alpha: 1) : UIColor(red: 0.957, green: 0.925, blue: 0.863, alpha: 1) }
 
     static func serif(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .system(size: size, weight: weight, design: .serif) }
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .system(size: size, weight: weight, design: .monospaced) }
+}
+
+/// Whether the phone's screen is turned up as in daylight (auto-brightness goes above three quarters outdoors):
+/// what "Otomatik" follows. It comes on at 75 % and goes off under 55 %, so it does not flicker at the edge.
+@MainActor
+@Observable
+final class DayLight {
+    static let shared = DayLight()
+    private(set) var bright = false
+
+    private init() {
+        update()
+        NotificationCenter.default.addObserver(forName: UIScreen.brightnessDidChangeNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { DayLight.shared.update() }
+        }
+    }
+    private func update() {
+        let b = UIScreen.main.brightness
+        if b >= 0.75 { bright = true } else if b <= 0.55 { bright = false }
+    }
+}
+
+/// The road screen's and the kinetic type's light: Gece (as it was), Gündüz, or by the screen's brightness.
+enum RideLight: String, CaseIterable, Identifiable {
+    case night, day, auto
+    var id: String { rawValue }
+    var name: String { self == .night ? "Gece" : self == .day ? "Gündüz" : "Otomatik (ekran parlaklığına göre)" }
+    var symbol: String { self == .night ? "moon.stars" : self == .day ? "sun.max" : "circle.lefthalf.filled" }
+}
+
+extension AppModel {
+    var rideDay: Bool {
+        switch RideLight(rawValue: settings.rideLight) ?? .night {
+        case .night: false
+        case .day: true
+        case .auto: DayLight.shared.bright
+        }
+    }
 }
 
 // MARK: - concepts
@@ -181,14 +232,25 @@ struct RideView: View {
     private var kinetic: Bool { model.settings.bikeLook == .kinetic }
 
     var body: some View {
+        // the palette is chosen before anything is drawn; a change of it builds the screen again (`.id`), since the
+        // pieces take their colours from Ride, not from their inputs
+        let day = model.rideDay
+        let _ = (Ride.day = day)
+        return screen
+            .id(day)
+            .preferredColorScheme(day ? .light : .dark)
+    }
+
+    private var screen: some View {
         GeometryReader { g in
             let w = min(g.size.width, 520)
             ZStack {
                 Ride.oled.ignoresSafeArea()
-                tint(w)
+                RideTint(w: w)
                 Group {
                     if kinetic {
-                        KineticListening(size: CGSize(width: w * 0.88, height: max(200, g.size.height - 430)), accent: Ride.amber, paper: Ride.paper)
+                        KineticListening(size: CGSize(width: w * 0.88, height: max(200, g.size.height - 430)), accent: Ride.amber, paper: Ride.paper,
+                                         glow: !Ride.day, mask: model.settings.kineticMask, page: Ride.oled)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         RestLayer(w: w, concepts: state.concepts, markTick: state.falling)
@@ -215,8 +277,8 @@ struct RideView: View {
                         .font(Ride.mono(13))
                         .foregroundStyle(Ride.gold)
                         .padding(.horizontal, 14).padding(.vertical, 7)
-                        .background(Color(red: 0.055, green: 0.047, blue: 0.035), in: Capsule())
-                        .overlay(Capsule().strokeBorder(Color(red: 0.24, green: 0.2, blue: 0.13), lineWidth: 1))
+                        .background(Ride.well, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Ride.gold.opacity(0.35), lineWidth: 1))
                         .frame(maxHeight: .infinity, alignment: .top)
                         .padding(.top, w * 0.2)
                         .transition(.opacity)
@@ -228,12 +290,12 @@ struct RideView: View {
             .coordinateSpace(.named("ride"))
             .onAppear { state.markPoint = CGPoint(x: g.size.width / 2, y: g.size.height * 0.35) }
         }
-        .preferredColorScheme(.dark)
         .statusBarHidden(true)                      // the quiet top line has the clock and the battery
         .animation(.easeInOut(duration: 0.3), value: state.toast)
         .animation(.smooth(duration: 0.4), value: kinetic)
         .sheet(isPresented: $switching) { BookSwitchSheet() }
-        .onChange(of: player.spokenWord) { _, wr in state.heard(wr) }
+        // the word being heard is watched by a view of its own: read here, every word evaluated this whole screen again
+        .background { HeardWordWatch(state: state) }
         // the concepts are worked out once the text is there (it can arrive a moment after the screen)
         .task(id: "\(player.documentID?.uuidString ?? "")·\(content?.text.utf16.count ?? 0)") {
             state.reset()
@@ -241,18 +303,6 @@ struct RideView: View {
             let map = await Task.detached(priority: .utility) { RideConcepts.build(text) }.value
             state.concepts = map
         }
-    }
-
-    // MARK: layers
-
-    private func tint(_ w: CGFloat) -> some View {
-        // a warm glow whose hue drifts with the sentences, slowly enough not to be noticed
-        let hue = 24 + Double((player.spokenSentence?.location ?? player.cursor) / 600 % 9) * 7
-        return RadialGradient(colors: [Color(hue: hue / 360, saturation: 0.45, brightness: 0.14).opacity(0.55), .clear],
-                              center: UnitPoint(x: 0.5, y: 0.32), startRadius: 0, endRadius: w * 0.9)
-            .ignoresSafeArea()
-            .animation(.linear(duration: 6), value: hue)
-            .allowsHitTesting(false)
     }
 
     // MARK: chrome
@@ -264,10 +314,10 @@ struct RideView: View {
             if !kinetic { sediment(w: w) }
             RestBar(onJump: onJump)
                 .padding(.bottom, 10)
-            bookLine
+            RideBookLine(title: title, onContents: onContents)
                 .padding(.horizontal, w * 0.06)
                 .padding(.bottom, 6)
-            progress
+            RideProgress()
                 .padding(.horizontal, w * 0.06)
                 .padding(.bottom, 10)
             RideDock(state: state, mark: mark)
@@ -301,30 +351,12 @@ struct RideView: View {
         .padding(.top, 6)
     }
 
-    /// The book and the chapter, quiet, above the progress line. A tap opens the contents.
-    private var bookLine: some View {
-        Button(action: onContents) {
-            HStack(spacing: 6) {
-                Text(title).font(Ride.serif(13, .semibold)).foregroundStyle(Ride.muted)
-                if let ch = player.chapterTitle(at: player.spokenSentence?.location ?? player.cursor) {
-                    Text("·").foregroundStyle(Ride.dim)
-                    Text(ch).font(.system(size: 12)).foregroundStyle(Ride.dim)
-                }
-                Spacer(minLength: 0)
-            }
-            .lineLimit(1)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("İçindekiler: \(title)")
-    }
-
     /// Tap: the library. Hold: the books to switch to, at the bottom of the screen.
     private var libraryKey: some View {
         Image(systemName: "books.vertical").font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Ride.muted)
             .frame(width: 44, height: 40)
-            .overlay(Capsule().strokeBorder(Color(red: 0.12, green: 0.11, blue: 0.10), lineWidth: 1))
+            .overlay(Capsule().strokeBorder(Ride.edge, lineWidth: 1))
             .contentShape(Capsule())
             .onTapGesture(perform: onBack)
             .onLongPressGesture(minimumDuration: 0.45) { held += 1; switching = true }
@@ -340,7 +372,7 @@ struct RideView: View {
             Image(systemName: symbol).font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Ride.muted)
                 .frame(width: 44, height: 40)
-                .overlay(Capsule().strokeBorder(Color(red: 0.12, green: 0.11, blue: 0.10), lineWidth: 1))
+                .overlay(Capsule().strokeBorder(Ride.edge, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -374,16 +406,88 @@ struct RideView: View {
         .allowsHitTesting(false)
     }
 
-    private var progress: some View {
-        let ch = player.chapters.lastIndex { $0.offset <= player.cursor }
+    private func mark() {
+        guard player.documentID != nil, let r = model.markSpokenSentence() else { return }
+        state.marked(r)
+    }
+}
+
+// MARK: - the road screen's pieces that follow the voice
+//
+// Each is a view of its own, so what changes with the voice (the word, the sentence, the place) evaluates only that
+// piece again and never the whole road screen.
+
+/// Feeds the heard word to the ride's state (its concept joins the sediment).
+private struct HeardWordWatch: View {
+    @Environment(AppModel.self) private var model
+    let state: RideState
+
+    var body: some View {
+        Color.clear
+            .onChange(of: model.player.spokenWord) { _, wr in state.heard(wr) }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// A warm glow whose hue drifts with the sentences, slowly enough not to be noticed.
+private struct RideTint: View {
+    @Environment(AppModel.self) private var model
+    let w: CGFloat
+
+    var body: some View {
+        let player = model.player
+        let hue = 24 + Double((player.spokenSentence?.location ?? player.shownCursor) / 600 % 9) * 7
+        RadialGradient(colors: [Ride.day ? Color(hue: hue / 360, saturation: 0.35, brightness: 1).opacity(0.22)
+                                         : Color(hue: hue / 360, saturation: 0.45, brightness: 0.14).opacity(0.55), .clear],
+                       center: UnitPoint(x: 0.5, y: 0.32), startRadius: 0, endRadius: w * 0.9)
+            .ignoresSafeArea()
+            .animation(.linear(duration: 6), value: hue)
+            .allowsHitTesting(false)
+    }
+}
+
+/// The book and the chapter, quiet, above the progress line. A tap opens the contents.
+private struct RideBookLine: View {
+    @Environment(AppModel.self) private var model
+    let title: String
+    var onContents: () -> Void
+
+    var body: some View {
+        let player = model.player
+        Button(action: onContents) {
+            HStack(spacing: 6) {
+                Text(title).font(Ride.serif(13, .semibold)).foregroundStyle(Ride.muted)
+                if let ch = player.chapterTitle(at: player.spokenSentence?.location ?? player.shownCursor) {
+                    Text("·").foregroundStyle(Ride.dim)
+                    Text(ch).font(.system(size: 12)).foregroundStyle(Ride.dim)
+                }
+                Spacer(minLength: 0)
+            }
+            .lineLimit(1)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("İçindekiler: \(title)")
+    }
+}
+
+/// The chapter's and the book's progress and the time left in the chapter (follows the place once a second).
+private struct RideProgress: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let player = model.player
+        let at = player.shownCursor
+        let ch = player.chapters.lastIndex { $0.offset <= at }
         let start = ch.map { player.chapters[$0].offset } ?? 0
         let end = ch.flatMap { $0 + 1 < player.chapters.count ? player.chapters[$0 + 1].offset : nil } ?? player.length
-        let inChapter = Double(player.cursor - start) / Double(max(1, end - start))
-        let whole = Double(player.cursor) / Double(max(1, player.length))
-        return VStack(spacing: 5) {
+        let inChapter = Double(at - start) / Double(max(1, end - start))
+        let whole = Double(at) / Double(max(1, player.length))
+        VStack(spacing: 5) {
             GeometryReader { g in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color(red: 0.114, green: 0.106, blue: 0.098))
+                    Capsule().fill(Ride.track)
                     Capsule().fill(Ride.amber).frame(width: max(3, g.size.width * min(1, max(0, inChapter))))
                         .shadow(color: Ride.amber.opacity(0.7), radius: 6)
                 }
@@ -394,18 +498,13 @@ struct RideView: View {
                 Spacer()
                 Text("kitap %\(Int(whole * 100))")
                 Spacer()
-                Text("bölümde \(Format.duration(Double(max(0, end - player.cursor)) / (player.charsPerSecond * player.speed))) kaldı")
+                Text("bölümde \(Format.duration(Double(max(0, end - at)) / (player.charsPerSecond * player.speed))) kaldı")
             }
             .font(Ride.mono(11))
             .foregroundStyle(Ride.dim)
         }
-        .animation(.linear(duration: 0.4), value: player.cursor)
+        .animation(.linear(duration: 0.4), value: at)
         .allowsHitTesting(false)
-    }
-
-    private func mark() {
-        guard player.documentID != nil, let r = model.markSpokenSentence() else { return }
-        state.marked(r)
     }
 }
 
@@ -420,6 +519,9 @@ struct KineticListening: View {
     let size: CGSize
     var accent: Color = Ride.amber
     var paper: Color = Ride.paper
+    var glow = true
+    var mask = false
+    var page: Color = .black
 
     var body: some View {
         let p = model.player
@@ -430,10 +532,10 @@ struct KineticListening: View {
             let (index, shown) = Self.place(of: p.spokenWord, in: sentence, phrases: phrases, player: p)
             if phrases.indices.contains(index) {
                 let phrase = phrases[index]
-                KineticPhraseView(phrase: phrase, shown: shown, size: size, accent: accent, paper: paper)
+                KineticPhraseView(phrase: phrase, shown: shown, size: size, accent: accent, paper: paper, glow: glow, mask: mask && !reduceMotion, page: page)
                     .id("\(sentence.location)-\(phrase.id)")
                     .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity,
-                                                                      removal: .modifier(active: FlyPast(t: 1), identity: FlyPast(t: 0))))
+                                                                      removal: mask ? Rise.leave : .modifier(active: FlyPast(t: 1), identity: FlyPast(t: 0))))
                     .animation(.spring(duration: 0.3, bounce: 0.35), value: shown)
             }
         }
@@ -664,7 +766,7 @@ private struct RestBar: View {
             Button { p.toggle() } label: {
                 Image(systemName: p.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Color.black.opacity(0.85))
+                    .foregroundStyle(Ride.onAmber)
                     .offset(x: p.isPlaying ? 0 : 2)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 58, height: 58)
@@ -725,8 +827,8 @@ private struct RideDock: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Ride.gold)
                     .frame(maxWidth: .infinity, minHeight: 60)
-                    .background(Color(red: 0.055, green: 0.051, blue: 0.047), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color(red: 0.353, green: 0.29, blue: 0.165), lineWidth: 1))
+                    .background(Ride.well, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Ride.gold.opacity(0.4), lineWidth: 1))
             }
             .modifier(MarkHold(mark: { mark(); marks += 1 }, count: $held))
             .animation(.snappy, value: held)
@@ -735,8 +837,8 @@ private struct RideDock: View {
         }
     }
 
-    /// One key, three speeds: each tap goes 330 → 380 → 430 → 330 words a minute (the same setting as everywhere).
-    static let speeds = [330, 380, 430]
+    /// One key, four speeds: each tap goes 330 → 380 → 430 → 470 → 330 words a minute (the same setting as everywhere).
+    static let speeds = [330, 380, 430, 470]
 
     private var speed: some View {
         let now = SpeechPlayer.wpm(model.player.speed)
@@ -752,7 +854,7 @@ private struct RideDock: View {
             }
             .foregroundStyle(Ride.paper)
             .frame(width: 66, height: 60)
-            .background(Color(red: 0.055, green: 0.051, blue: 0.047), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(Ride.well, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Ride.line, lineWidth: 1))
             .contentShape(Rectangle())
         }
@@ -770,10 +872,10 @@ private struct RideDock: View {
             Image(systemName: on ? "stop.fill" : "mic.fill").font(.system(size: 18, weight: .semibold))
             Text(on ? "Bitir" : "Basılı tut").font(.system(size: 11, weight: .semibold))
         }
-        .foregroundStyle(on ? Color(red: 1, green: 0.85, blue: 0.81) : Ride.alert)
+        .foregroundStyle(on ? (Ride.day ? Color.white : Color(red: 1, green: 0.85, blue: 0.81)) : Ride.alert)
         .frame(width: 84, height: 60)
-        .background(on ? Color(red: 0.227, green: 0.098, blue: 0.071) : Color(red: 0.055, green: 0.051, blue: 0.047), in: shape)
-        .overlay(shape.strokeBorder(on ? Ride.alert : Color(red: 0.353, green: 0.227, blue: 0.188), lineWidth: 1))
+        .background(on ? (Ride.day ? Ride.alert : Color(red: 0.227, green: 0.098, blue: 0.071)) : Ride.well, in: shape)
+        .overlay(shape.strokeBorder(on ? Ride.alert : Ride.alert.opacity(0.4), lineWidth: 1))
         .overlay(shape.trim(from: 0, to: holding ? 1 : 0).stroke(Ride.alert, style: StrokeStyle(lineWidth: 3, lineCap: .round)).padding(2)
             .animation(holding ? .linear(duration: MicHold.seconds) : .easeOut(duration: 0.15), value: holding).allowsHitTesting(false))
         .scaleEffect(on ? 1 + CGFloat(rec.level) * 0.05 : 1)
@@ -887,7 +989,7 @@ struct RidePeek: View {
                 Button { onJump(offset, true); dismiss() } label: {
                     Label("Buradan oku", systemImage: "play.fill").frame(maxWidth: .infinity, minHeight: 52)
                         .foregroundStyle(Ride.amber)
-                        .background(Color(red: 0.169, green: 0.129, blue: 0.086), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .background(Ride.day ? Ride.raise : Color(red: 0.169, green: 0.129, blue: 0.086), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Ride.amber, lineWidth: 1))
                 }
             }
@@ -898,6 +1000,6 @@ struct RidePeek: View {
         .padding(20)
         .presentationDetents([.medium, .large])
         .presentationBackground(Ride.panel)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(Ride.day ? .light : .dark)
     }
 }

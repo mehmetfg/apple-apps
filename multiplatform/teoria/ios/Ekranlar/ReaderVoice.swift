@@ -35,13 +35,25 @@ import UIKit
 
 struct SpokenBlock: Hashable { let ch: Int; let b: Int; let text: String }
 
+/// The word being heard, published on its own: it changes several times a second, and only what draws the cursor
+/// (the page's highlight) should be rebuilt for it — not every screen that watches the voice.
+@MainActor
+final class VoiceCursor: ObservableObject {
+    @Published fileprivate(set) var live: (ch: Int, b: Int, range: NSRange)?
+}
+
 @MainActor
 final class ReaderVoice: NSObject, ObservableObject {
     static let shared = ReaderVoice()
 
     @Published private(set) var speaking = false
     @Published private(set) var paused = false
-    @Published private(set) var live: (ch: Int, b: Int, range: NSRange)?     // the word being heard (UTF-16, block text)
+    let cursor = VoiceCursor()
+    /// The word being heard (UTF-16, block text). Not published here: observe `cursor` to follow it.
+    private(set) var live: (ch: Int, b: Int, range: NSRange)? {
+        get { cursor.live }
+        set { cursor.live = newValue }
+    }
     @Published private(set) var bookID: String?
 
     @Published var voiceID: String { didSet { UserDefaults.standard.set(voiceID, forKey: "teoria.voice.id"); restartSoon() } }
@@ -150,6 +162,12 @@ final class ReaderVoice: NSObject, ObservableObject {
         #endif
         speaking = true; paused = false
         restart(at: max(0, min(i, blocks.count - 1)), offset: offset)
+        startTicker()
+    }
+
+    /// The 25 Hz ticker runs only while audio plays: a paused book costs nothing.
+    private func startTicker() {
+        ticker?.invalidate()
         let t = Timer(timeInterval: 0.04, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
@@ -166,6 +184,7 @@ final class ReaderVoice: NSObject, ObservableObject {
         guard speaking, !paused else { return }
         player.pause()
         paused = true
+        ticker?.invalidate(); ticker = nil
         nowPlaying()
     }
 
@@ -175,6 +194,7 @@ final class ReaderVoice: NSObject, ObservableObject {
         try? AVAudioSession.sharedInstance().setActive(true)
         #endif
         paused = false
+        startTicker()
         if engine.isRunning {
             if scheduledEnd > 0 { player.play() }
         } else {
@@ -443,7 +463,10 @@ final class ReaderVoice: NSObject, ObservableObject {
 
     /// The sentence around what is being heard now (block address + UTF-16 range in the block's text).
     func currentSentence() -> (ch: Int, b: Int, s: Int, e: Int, quote: String)? {
-        guard let l = live, let blk = queue.first(where: { $0.ch == l.ch && $0.b == l.b }) else { return nil }
+        guard let l = live else { return nil }
+        // the paragraph under the play head is almost always the one; search the book only if it is not
+        let here = queue[safe: index]
+        guard let blk = here?.ch == l.ch && here?.b == l.b ? here : queue.first(where: { $0.ch == l.ch && $0.b == l.b }) else { return nil }
         let ns = blk.text as NSString
         let a = sentenceStart(blk.text, before: max(l.range.location, 0) + 1)
         var z = max(a, l.range.location)

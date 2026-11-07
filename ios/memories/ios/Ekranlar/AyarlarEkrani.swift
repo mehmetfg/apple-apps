@@ -1,4 +1,5 @@
 // Ayarlar: vault klasörü · bildirimler (hepsi burada — kullanıcı kararı) · oynatma · hakkında.
+import PDMBus
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -12,8 +13,6 @@ struct AyarlarEkrani: View {
     @State private var aksamSaat = Bildirim.aksamSaat
     @State private var cozumAcik = Bildirim.cozumAcik
     @State private var sesli = Bildirim.sesli
-    @State private var modelSec = false
-    @ObservedObject private var uretici = Uretici.shared
 
     var body: some View {
         NavigationStack {
@@ -92,23 +91,6 @@ struct AyarlarEkrani: View {
                     .onChange(of: depo.keepScreenOn) { _, _ in ScreenAwake.apply() }
                 }
 
-                Section {
-                    HStack {
-                        Label(uretici.modelVar ? "\(Uretici.modelAdi) · \(uretici.modelBoyutu)" : "Model yok",
-                              systemImage: uretici.modelVar ? "cpu" : "cpu.fill")
-                        Spacer()
-                        if uretici.iceAktariliyor { ProgressView() }
-                    }
-                    Button("Modeli içe aktar") { modelSec = true }
-                        .disabled(uretici.iceAktariliyor)
-                    if uretici.modelVar {
-                        Button("Modeli sil", role: .destructive) { uretici.modeliSil() }
-                    }
-                    if let b = uretici.bilgi { Text(b).font(.caption).foregroundStyle(.secondary) }
-                } header: { Text("Telefonda üretim") } footer: {
-                    Text("Qwen3.5-2B (MLX, 4-bit, ~1 GB) uygulamaya gömülmez. Dosyalar'dan \(Uretici.modelAdi) klasörünü seç; ya da Mac'ten kabloyla kopyala (QWEN.md).")
-                }
-
                 Section("Akış") {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("① Çalış — telefonda: dinle, ekrandan oku, kendi sesinle oku", systemImage: "iphone")
@@ -119,6 +101,8 @@ struct AyarlarEkrani: View {
                     Text("Paket bir gün önce sabah hazır olur. Çantada en fazla bir paket bekler; birikme yok.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+
+                PDMSettingsSection(bus: depo.bus, selectsVault: false)      // the vault folder row is above
             }
             .scrollContentBackground(.hidden)
             .background(Tema.arka)
@@ -127,12 +111,6 @@ struct AyarlarEkrani: View {
                 if case .success(let u) = r {
                     depo.kasa.klasorSecildi(u)
                     Task { await depo.esitleSimdi() }
-                }
-            }
-            .background {
-                // İkinci fileImporter aynı görünüme bağlanınca biri çalışmaz; ayrı bir boş görünümde durur.
-                Color.clear.fileImporter(isPresented: $modelSec, allowedContentTypes: [.folder]) { r in
-                    if case .success(let u) = r { Task { await uretici.iceAktar(u) } }
                 }
             }
             .task { izin = await Bildirim.izin() }

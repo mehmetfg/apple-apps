@@ -1,5 +1,5 @@
 // The listening log: what was heard each day, per document. Kept from 2026-10-22 on (nothing older exists).
-// Once a second it looks at the player: playing → that document's listening seconds; paused in a reading session →
+// Once a second, while a reading session or a wait exists, it looks at the player: playing → that document's listening seconds; paused in a reading session →
 // paused seconds; in a music break → break seconds. Words heard come from the cursor's advance (the words in the text
 // between two reported places, a jump of more than 3000 characters is not counted). A document reaching 99 % is
 // recorded as finished on that day, once.
@@ -51,28 +51,71 @@ struct ListeningDay: Codable, Hashable, Sendable {
 final class ListeningLog {
     static let wordsPerPage = 225.0                  // the vault's A5 page (Orkestra's measure)
 
-    private(set) var days: [String: ListeningDay] = [:]
+    /// The log itself is not observed: it changes every second while a book is read, and every screen that showed
+    /// a number from it was drawn again each time. Readers observe `revision`, which moves at most every
+    /// `publishEvery` seconds while listening and at once when listening starts, pauses or stops. The counting
+    /// itself is untouched: every second and every word still goes into `days` as it happens.
+    @ObservationIgnored private(set) var days: [String: ListeningDay] = [:]
+    private var revision = 0
+    @ObservationIgnored private var published = Date.distantPast
+    private static let publishEvery = 15.0
+
     @ObservationIgnored private var finishedEver: Set<String> = []
     @ObservationIgnored private var lastTick: Date?
     @ObservationIgnored private var lastPlace: (doc: UUID, offset: Int)?
     @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private weak var player: SpeechPlayer?
     @ObservationIgnored private var dirty = false
+    @ObservationIgnored private var loaded = false       // the file has been read (nothing is written before that)
     @ObservationIgnored private var lastSave = Date.distantPast
     @ObservationIgnored private let file: URL
     @ObservationIgnored private let device: String
+    private static let writer = DispatchQueue(label: "voice-reader.listening-save", qos: .utility)
 
     init(device: String) {
         self.device = device
         let dir = URL.applicationSupportDirectory.appending(path: "VoiceReader/listening", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         file = dir.appending(path: "\(device).json")
-        if let data = try? Data(contentsOf: file), let d = try? JSONDecoder().decode([String: ListeningDay].self, from: data) {
-            days = d
-            finishedEver = Set(d.values.flatMap(\.finished))
+        // the log is read off the main thread (it grows with every day listened); what is counted meanwhile
+        // (normally nothing: nothing plays in the first moments) is added to it when it arrives
+        let file = file
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let d = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([String: ListeningDay].self, from: $0) }
+            await self?.adopt(d ?? [:])
         }
-        NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+        let nc = NotificationCenter.default
+        nc.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.save(force: true) }
         }
+        // leaving the screen: the write is waited for, so it is on disk before the app can be suspended
+        nc.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.save(force: true); Self.writer.sync {} }
+        }
+    }
+
+    private func adopt(_ stored: [String: ListeningDay]) {
+        guard !loaded else { return }
+        var merged = stored
+        let known = Set(stored.values.flatMap(\.finished))
+        for (k, d) in days {
+            var m = merged[k] ?? .init()
+            for (id, v) in d.docs {
+                var x = m.docs[id] ?? .init()
+                x.seconds += v.seconds
+                x.words += v.words
+                for r in v.ranges where r.count == 2 { x.heard(r[0], r[1]) }
+                m.docs[id] = x
+            }
+            m.paused += d.paused
+            m.breaks += d.breaks
+            m.finished += d.finished.filter { !known.contains($0) }
+            merged[k] = m
+        }
+        days = merged
+        finishedEver.formUnion(known)
+        loaded = true
+        publish()
     }
 
     static func key(_ d: Date) -> String {
@@ -80,18 +123,49 @@ final class ListeningLog {
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
     }
 
-    /// Starts the once-a-second look at the player.
+    /// Follows the player: the once-a-second look runs only while there is something to count (a reading session,
+    /// playing or paused, or a wait), not from launch for ever.
     func start(_ player: SpeechPlayer) {
-        guard timer == nil else { return }
-        let t = Timer(timeInterval: 1, repeats: true) { [weak self, weak player] _ in
-            MainActor.assumeIsolated {
-                guard let self, let player else { return }
-                self.tick(player)
-            }
+        guard self.player == nil else { return }
+        self.player = player
+        watch()
+    }
+
+    private func watch() {
+        guard let p = player else { return }
+        let live = withObservationTracking {
+            _ = p.isPaused                                   // a pause or a resume shows on screen at once
+            return p.isSpeaking || p.breakEnds != nil
+        } onChange: { [weak self] in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.watch() } }
         }
-        t.tolerance = 0.2
-        RunLoop.main.add(t, forMode: .common)
-        timer = t
+        if live, timer == nil {
+            lastTick = .now                                  // counted from the moment the session began
+            let t = Timer(timeInterval: 1, repeats: true) { [weak self, weak p] _ in
+                MainActor.assumeIsolated {
+                    guard let self, let p else { return }
+                    self.tick(p)
+                }
+            }
+            t.tolerance = 0.2
+            RunLoop.main.add(t, forMode: .common)
+            timer = t
+        } else if !live, timer != nil {
+            timer?.invalidate(); timer = nil
+            lastTick = nil
+            save(force: true)
+        }
+        publish()
+    }
+
+    /// Tells the screens the log changed.
+    private func publish() {
+        published = .now
+        revision += 1
+    }
+
+    private func publishSoon() {
+        if Date.now.timeIntervalSince(published) >= Self.publishEvery { publish() }
     }
 
     private func tick(_ p: SpeechPlayer) {
@@ -111,6 +185,7 @@ final class ListeningLog {
             return
         }
         dirty = true
+        publishSoon()
         save(force: false)
     }
 
@@ -121,6 +196,7 @@ final class ListeningLog {
             finishedEver.insert(id.uuidString)
             days[Self.key(.now), default: .init()].finished.append(id.uuidString)
             dirty = true
+            publish()
         }
         guard let last = lastPlace, last.doc == id else { return }
         let delta = offset - last.offset
@@ -131,25 +207,30 @@ final class ListeningLog {
         days[Self.key(.now), default: .init()].docs[id.uuidString, default: .init()].words += words
         days[Self.key(.now), default: .init()].docs[id.uuidString, default: .init()].heard(last.offset, offset)
         dirty = true
+        publishSoon()
     }
 
+    /// The log is encoded and written on a background queue (in order), never on the main thread.
     func save(force: Bool) {
-        guard dirty, force || Date.now.timeIntervalSince(lastSave) > 30 else { return }
+        guard loaded, dirty, force || Date.now.timeIntervalSince(lastSave) > 30 else { return }
         dirty = false
         lastSave = .now
-        guard let data = try? JSONEncoder().encode(days) else { return }
-        try? data.write(to: file, options: .atomic)
-        let device = device
-        Task.detached { await VaultMirror.shared.writeListening(data, device: device) }
+        let days = days, file = file, device = device
+        Self.writer.async {
+            guard let data = try? JSONEncoder().encode(days) else { return }
+            try? data.write(to: file, options: .atomic)
+            Task.detached { await VaultMirror.shared.writeListening(data, device: device) }
+        }
     }
 
     // MARK: reading the log
 
-    func day(_ d: Date) -> ListeningDay { days[Self.key(d)] ?? .init() }
+    func day(_ d: Date) -> ListeningDay { _ = revision; return days[Self.key(d)] ?? .init() }
 
     /// The first day with anything in the log.
     var firstDay: Date? {
-        days.keys.sorted().first.flatMap { k in
+        _ = revision
+        return days.keys.sorted().first.flatMap { k in
             let p = k.split(separator: "-").compactMap { Int($0) }
             return p.count == 3 ? Calendar.current.date(from: DateComponents(year: p[0], month: p[1], day: p[2])) : nil
         }
@@ -157,6 +238,7 @@ final class ListeningLog {
 
     /// All days from `from` to `to` (inclusive), summed.
     func total(from: Date, to: Date) -> ListeningDay {
+        _ = revision
         var out = ListeningDay()
         var d = Calendar.current.startOfDay(for: from)
         let end = Calendar.current.startOfDay(for: to)

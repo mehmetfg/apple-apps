@@ -67,6 +67,11 @@ public struct PDMEvent: Codable, Hashable, Sendable {
     }
 
     /// ISO 8601 in UTC, seconds precision: `2026-10-15T14:30:00Z`.
+    /// An app id is a folder name under `_bus/events/`: lower-case letters, digits and "-".
+    public static func isSafeApp(_ id: String) -> Bool {
+        !id.isEmpty && id.count <= 40 && id.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
+    }
+
     public static func timestamp(_ d: Date) -> String {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]

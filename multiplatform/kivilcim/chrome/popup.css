@@ -1,0 +1,31 @@
+:root { --bg:#fbf8f3; --fg:#22201c; --soluk:#7a746a; --cizgi:#e5ded2; --vurgu:#e8833a; --kart:#fff; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1d1b18; --fg:#ece6dc; --soluk:#9b958a; --cizgi:#38342e; --kart:#26231f; } }
+* { box-sizing: border-box; }
+body { width: 360px; margin: 0; padding: 14px; background: var(--bg); color: var(--fg);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+header img { width: 22px; height: 22px; border-radius: 6px; }
+.ad { font-weight: 600; flex: 1; }
+.cip { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--vurgu); color: #fff; }
+input, textarea { width: 100%; border: 1px solid var(--cizgi); background: var(--kart); color: var(--fg);
+  border-radius: 8px; padding: 7px 9px; font: inherit; }
+input { font-weight: 600; }
+textarea { height: 76px; resize: vertical; margin-top: 8px; }
+.site { color: var(--soluk); font-size: 11px; margin: 4px 2px 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--vurgu); background: var(--kart);
+  border-radius: 0 8px 8px 0; max-height: 90px; overflow: auto; font-style: italic; }
+.ozet { color: var(--soluk); font-size: 11px; }
+.ses { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.ses audio { height: 28px; flex: 1; }
+button { font: inherit; border: 1px solid var(--cizgi); background: var(--kart); color: var(--fg); border-radius: 8px;
+  padding: 6px 10px; cursor: pointer; }
+button.kayitta { background: #c0392b; color: #fff; border-color: #c0392b; }
+button.ana { width: 100%; background: var(--vurgu); color: #fff; border: 0; padding: 9px; font-weight: 600; }
+button.ana:disabled { opacity: .6; }
+kbd { font: 10px inherit; opacity: .8; margin-left: 6px; }
+.durum { min-height: 16px; margin-top: 6px; font-size: 12px; color: var(--soluk); text-align: center; }
+.durum.iyi { color: #2e9d5b; } .durum.kotu { color: #c0392b; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--soluk); margin: 12px 0 4px; }
+ol { margin: 0; padding-left: 18px; } li { margin: 4px 0; }
+li a { color: var(--fg); text-decoration: none; font-weight: 500; } li a:hover { text-decoration: underline; }
+li small { display: block; color: var(--soluk); }

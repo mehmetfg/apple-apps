@@ -1,10 +1,12 @@
 // General settings, from the gear at the top left of the library: one place that opens every settings panel
 // (appearance, voice, sound and music) and shows where iCloud sync stands.
 import SwiftUI
+import PDMBus
 
 struct GeneralSettingsSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("readingCard") private var readingCard = true
     @State private var page: Page?
     @State private var syncStatus = ""
     @State private var syncing = false
@@ -31,6 +33,13 @@ struct GeneralSettingsSheet: View {
                 Section("Okuma") {
                     row("Görsel ayarlar", detail: "Yazı tipi, renkler, konuşma imleci", symbol: "textformat.size") { page = .visual }
                     row("Ses ayarları", detail: "Hız, dil, ses, müzik · \(model.currentVoiceName)", symbol: "speaker.wave.2") { page = .audio }
+                    Toggle(isOn: $readingCard) {
+                        Text("Kilit ekranında okuma kartı")
+                        Text("Oku, işaretle, sesli not. Okuma durduktan 10 dakika sonra kalkar.")
+                    }
+                    .onChange(of: readingCard) { _, on in
+                        if on { ReadingCard.shared.sync(model) } else { ReadingCard.shared.end() }
+                    }
                 }
                 Section {
                     LabeledContent("Durum", value: syncStatus)
@@ -66,6 +75,7 @@ struct GeneralSettingsSheet: View {
                 } header: { Text("PDM vault (Mac ve Claude)") } footer: {
                     Text("Kaldığın yer, işaretler, notlar ve yer imleri vault'ta _araçlar/voice-reader/durum klasörüne de yazılır; Mac'teki PDM Ağı ve Claude oradan okur. Dosyalar › iCloud Drive › Obsidian › Personel Data Management klasörünü seç.")
                 }
+                PDMSettingsSection(bus: model.bus, selectsVault: false)
                 // the system file importer (a UIDocumentPicker wrapped in a sheet over this sheet never called back:
                 // "seçici açıldı" and then nothing, 2026-10-20)
                 .fileImporter(isPresented: $pickingVault, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in

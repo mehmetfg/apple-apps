@@ -206,6 +206,7 @@ final class Tezgah: ObservableObject {
         guard o != nil else { return }
         let t = Date().timeIntervalSince1970 * 1000
         if o!.baslangic == 0 { o!.baslangic = t }
+        if !o!.tekrar { SabahSaati.saat.touch() }
         if o!.sonDokunus > 0, t - o!.sonDokunus < Tezgah.bosEsik { o!.aktifMs += t - o!.sonDokunus }
         o!.sonDokunus = t
     }
@@ -627,6 +628,7 @@ final class Tezgah: ObservableObject {
         ac(.bitis)
         guard !o!.indi else { kaydet(); return }
         o!.indi = true
+        if !o!.tekrar { SabahSaati.saat.finish() }
         let g = o!.gun.no
         if !o!.tekrar && g > 0 {
             tazele()                                   // hazırlık bitişte CANLI alınır

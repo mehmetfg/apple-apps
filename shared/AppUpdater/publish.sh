@@ -10,7 +10,11 @@ DIST_DIR="${APP_UPDATER_DIR:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/D
 BUILD=$(date +%Y%m%d%H%M%S)
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "$APP/Contents/Info.plist"
 ID=$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)
-codesign --force --deep --sign "${ID:--}" "$APP" >/dev/null 2>&1
+# by name first; if the name does not resolve (e.g. non-ASCII in it), use the certificate hash
+if ! codesign --force --deep --sign "${ID:--}" "$APP" >/dev/null 2>&1; then
+  HASH=$(security find-identity -v -p codesigning 2>/dev/null | awk '/Apple Development/{print $2; exit}')
+  codesign --force --deep --sign "${HASH:--}" "$APP" >/dev/null 2>&1
+fi
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 ditto -c -k --keepParent "$APP" "$TMP/$NAME.zip"

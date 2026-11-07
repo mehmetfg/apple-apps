@@ -1,0 +1,282 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXFileReference section */
+		F80000000000000000000004 /* FBS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FBS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXBuildFile section */
+		PD15C0ADC8A3869BE61EF2AB /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PD539AC22E26EEF42D0F4468 /* PDMBus */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F80000000000000000000006 = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FBS.entitlements,
+				Info.plist,
+			);
+			target = F80000000000000000000010;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F80000000000000000000005 /* FBS */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (F80000000000000000000006, ); path = FBS; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F8000000000000000000000A = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				PD15C0ADC8A3869BE61EF2AB /* PDMBus in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F80000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				F80000000000000000000005,
+				F80000000000000000000003,
+			);
+			sourceTree = "<group>";
+		};
+		F80000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F80000000000000000000004,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F80000000000000000000010 /* FBS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F80000000000000000000008;
+			buildPhases = (
+				F80000000000000000000009,
+				F8000000000000000000000A,
+				F8000000000000000000000B,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F80000000000000000000005,
+			);
+			name = FBS;
+			packageProductDependencies = (
+				PD539AC22E26EEF42D0F4468 /* PDMBus */,
+			);
+			productName = FBS;
+			productReference = F80000000000000000000004;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F80000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+			};
+			buildConfigurationList = F80000000000000000000007;
+			developmentRegion = tr;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				tr,
+				en,
+				Base,
+			);
+			mainGroup = F80000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PDEFBD883AFFA0EB17E32C96 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F80000000000000000000003;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F80000000000000000000010,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F8000000000000000000000B = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F80000000000000000000009 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F8000000000000000000000C = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F8000000000000000000000D = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				SDKROOT = iphoneos;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F8000000000000000000000E = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FBS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FBS;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				CODE_SIGN_ENTITLEMENTS = FBS/FBS.entitlements;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Fatura, fiş ya da garanti belgesinin fotoğrafını belge arşivine eklemek için.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.fbs;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		F8000000000000000000000F = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FBS/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FBS;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				CODE_SIGN_ENTITLEMENTS = FBS/FBS.entitlements;
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Fatura, fiş ya da garanti belgesinin fotoğrafını belge arşivine eklemek için.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks");
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.fbs;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F80000000000000000000007 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F8000000000000000000000C,
+				F8000000000000000000000D,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F80000000000000000000008 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F8000000000000000000000E,
+				F8000000000000000000000F,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PDEFBD883AFFA0EB17E32C96 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PD539AC22E26EEF42D0F4468 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDEFBD883AFFA0EB17E32C96 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = F80000000000000000000001 /* Project object */;
+}

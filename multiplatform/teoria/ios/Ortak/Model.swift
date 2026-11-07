@@ -227,6 +227,12 @@ enum OlayTuru: String, Codable {
     case morningStep    // a step of the morning session finished (rol: contact · marks · recall · review), metin: what was written
     case morningCard    // an active-recall card answered (hedef: card id, not: 1…4)
     case morningDone    // the day's session closed (metin: "2026-10-24,2026-10-26")
+    // Sabah time box (Kurultay decision 2026-11-05): hedef = day, shared by the Mac and the iPhone
+    case zamanBasla     // the 60-minute review box started (first opening of Sabah that day)
+    case zamanUzat      // the box was extended once (sure = minutes)
+    // İkinci dikkat (2026-11-05): hedef = item id, metin = day · afternoonDone: hedef = day, metin = "seen/total"
+    case afternoonItem
+    case afternoonDone
 }
 
 struct Olay: Codable, Identifiable, Hashable {
@@ -292,11 +298,30 @@ enum Tarih {
     static func gun(_ d: Date) -> String { gunBicim.string(from: d) }
     static func isoSaat(_ d: Date) -> String { bicimler[0].string(from: d) }
 
+    private static let iso = ISO8601DateFormatter()
+    private static let onbellekKilidi = NSLock()
+    private static var onbellek: [String: Date?] = [:]
+
+    /// Parses a date string once. The feed, the widget snapshot and the notification planner ask for the same few
+    /// hundred strings inside sort and filter closures; the second time the answer comes from the cache.
     static func coz(_ s: String?) -> Date? {
-        guard var s, !s.isEmpty else { return nil }
+        guard let s, !s.isEmpty else { return nil }
+        onbellekKilidi.lock()
+        if let d = onbellek[s] { onbellekKilidi.unlock(); return d }
+        onbellekKilidi.unlock()
+        let d = ayristir(s)
+        onbellekKilidi.lock()
+        if onbellek.count > 20_000 { onbellek.removeAll(keepingCapacity: true) }
+        onbellek[s] = d
+        onbellekKilidi.unlock()
+        return d
+    }
+
+    private static func ayristir(_ ham: String) -> Date? {
+        var s = ham
         if let r = s.range(of: "+"), s.count > 19 { s = String(s[..<r.lowerBound]) }
         for f in bicimler { if let d = f.date(from: String(s.prefix(19))) { return d } }
-        return ISO8601DateFormatter().date(from: s)
+        return iso.date(from: s)
     }
 
     static func goreli(_ d: Date, simdi: Date = Date()) -> String {

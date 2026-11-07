@@ -260,16 +260,31 @@ final class ElevenLabs {
         guard let k = key() else { throw ElevenError.noKey }
         guard !voiceID.isEmpty else { throw ElevenError.noVoice }
         let voice = voiceID, mdl = model, q = quality, limit = Int64(limitMB) * 1_000_000
-        let ck = ElevenCache.key(voice: voice, model: mdl.rawValue, quality: q.rawValue, text: text)
-        if let clip = await Task.detached(priority: .userInitiated, operation: { ElevenCache.find(ck) }).value {
+        // Kararlı ölçü asks the model itself for a steady reading (high stability, no style); such a paragraph is
+        // stored under its own key. A paragraph already stored the plain way is used as it is (no credits again).
+        let steady = UserDefaults.standard.object(forKey: "a.steadyCloud") as? Bool ?? true
+        let plainKey = ElevenCache.key(voice: voice, model: mdl.rawValue, quality: q.rawValue, text: text)
+        let ck = steady ? ElevenCache.key(voice: voice, model: mdl.rawValue + "|steady", quality: q.rawValue, text: text) : plainKey
+        if let clip = await Task.detached(priority: .userInitiated, operation: { ElevenCache.find(ck) ?? ElevenCache.find(plainKey) }).value {
             count(cached: text.count)
             return clip
         }
         var body: [String: Any] = ["text": text, "model_id": mdl.rawValue]
         if mdl.forcesLanguage { body["language_code"] = "tr" }
         let path = "/v1/text-to-speech/\(voice.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? voice)/with-timestamps"
-        let data = try await request(path, query: [URLQueryItem(name: "output_format", value: q.rawValue)],
-                                     body: try JSONSerialization.data(withJSONObject: body), key: k)
+        let query = [URLQueryItem(name: "output_format", value: q.rawValue)]
+        var data: Data
+        if steady {
+            var steadyBody = body
+            steadyBody["voice_settings"] = ["stability": 0.9, "similarity_boost": 0.8, "style": 0.0, "use_speaker_boost": true]
+            do { data = try await request(path, query: query, body: try JSONSerialization.data(withJSONObject: steadyBody), key: k) }
+            catch ElevenError.server(let code, _) where (400..<500).contains(code) && code != 401 && code != 429 {
+                // the server would not take these settings for this voice or model: the plain request, as before
+                data = try await request(path, query: query, body: try JSONSerialization.data(withJSONObject: body), key: k)
+            }
+        } else {
+            data = try await request(path, query: query, body: try JSONSerialization.data(withJSONObject: body), key: k)
+        }
         let clip = try await Task.detached(priority: .userInitiated) { () throws -> ElevenClip in
             let a = try JSONDecoder().decode(SynthesisAnswer.self, from: data)
             guard let mp3 = Data(base64Encoded: a.audio_base64), !mp3.isEmpty else { throw ElevenError.undecodable }
@@ -459,8 +474,14 @@ enum ElevenCache {
 
     /// A stored paragraph's audio from `start` (a UTF-16 offset in the spoken text) at `speed`: 48 kHz samples and word
     /// starts, word ranges relative to the spoken text. Nil when the file is unreadable.
-    static func render(_ clip: ElevenClip, from start: Int, speed: Double, boost: Double) -> RenderedSpeech? {
+    static func render(_ clip: ElevenClip, from start: Int, speed: Double, boost: Double, steady: Bool = false) -> RenderedSpeech? {
         guard var samples = StudioPack.decode(clip.file), !samples.isEmpty else { return nil }
+        // Kararlı ölçü, on the whole paragraph at its natural pace (durations stay, so the word times stay):
+        // the melody narrowed toward 3.7 semitones, then the level of the phrases evened
+        if steady, samples.count > 24_000 {
+            if let m = Steady.melody(samples) { samples = PitchShift.flatten(samples, keep: Steady.keep(for: m.spread)) }
+            samples = Steady.even(samples)
+        }
         var words: [(sample: Int, range: NSRange)] = clip.record.words.map {
             (Int($0.seconds * 48_000), NSRange(location: $0.location, length: $0.length))
         }

@@ -21,6 +21,7 @@ struct ReaderScreen: View {
     @State private var popover: Popover?
     @State private var searching = false
     @State private var noteSheet: NoteSheetItem?
+    @State private var expand: ExpandSource?
     @State private var goTo: GoToKind?
     @State private var goToText = ""
     @State private var chromeHidden = false
@@ -79,6 +80,7 @@ struct ReaderScreen: View {
         .animation(.smooth(duration: 0.25), value: model.recorder.isRecording)
         .animation(.smooth(duration: 0.25), value: model.noteToast)
         .sheet(item: $noteSheet) { NoteSheet(item: $0).presentationDetents([.medium, .large]) }
+        .sheet(item: $expand) { ExpandPromptView(source: $0) }
         .alert("Kayıt", isPresented: Binding(get: { model.recorder.error != nil }, set: { if !$0 { model.recorder.error = nil } })) {
             Button("Tamam", role: .cancel) { model.recorder.error = nil }
         } message: { Text(model.recorder.error ?? "") }
@@ -104,6 +106,12 @@ struct ReaderScreen: View {
             Task { try? await Task.sleep(for: .milliseconds(350)); noteSheet = .existing(id) }
         }
         .onChange(of: bike) { _, b in if b { goToCursor(); chromeHidden = false } }
+        // a link to a place in the book already open: show it (the reading place stays)
+        .onChange(of: model.revealTick) { _, _ in
+            guard let r = model.revealRequest, r.doc == documentID else { return }
+            model.revealRequest = nil
+            show(r.offset)
+        }
         // starting to read always brings the page back to the voice
         .onChange(of: player.isPlaying) { _, playing in
             keepAwake()
@@ -190,6 +198,7 @@ struct ReaderScreen: View {
                     },
                     onVoiceNote: { r in model.startVoiceNote(anchor: r) },
                     onOpenNote: { id in noteSheet = .existing(id) },
+                    onExpand: { r, t in expand = .passage(doc: documentID, range: r, text: t) },
                     onBookmark: { i in model.addBookmark(at: i) },
                     onPlayFrom: { i in player.moveCursor(to: i, play: true); following = true },
                     onVisibleOffset: { visibleOffset = $0 },
@@ -231,7 +240,7 @@ struct ReaderScreen: View {
                         } else if !following && moving {
                             // the arrow points to where the voice is
                             Button(action: goToCursor) {
-                                Label("Konuşma imlecine git", systemImage: player.cursor < visibleOffset ? "arrow.up.to.line" : "arrow.down.to.line")
+                                Label("Konuşma imlecine git", systemImage: player.shownCursor < visibleOffset ? "arrow.up.to.line" : "arrow.down.to.line")
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 16).padding(.vertical, 11)
@@ -281,6 +290,22 @@ struct ReaderScreen: View {
             }
             Button { goToText = ""; goTo = .percent } label: { Label("Yüzdeye git…", systemImage: "percent") }
             Button { rewindAsked = true } label: { Label("Başa sar", systemImage: "backward.end") }
+        }
+        Section("Yapay zekâyla metin") {
+            Button { expand = .chapter(doc: documentID, offset: player.spokenSentence?.location ?? player.cursor) } label: {
+                Label("Bu bölümden pekiştirme metni", systemImage: "checkmark.bubble")
+            }
+            if let d = doc, !d.highlights.isEmpty {
+                Button { expand = .marks(doc: documentID) } label: {
+                    Label("İşaretlerimden metin (\(d.highlights.count))", systemImage: "square.stack.3d.up")
+                }
+            }
+        }
+        Section("Öteki uygulamalar") {
+            if model.teoriaIDs[documentID] != nil {
+                Button { model.openInTeoria(documentID) } label: { Label("Teoria'da aç", systemImage: "book.pages") }
+            }
+            Button { model.talkAboutBook(documentID) } label: { Label("Bu kitap üzerine konuş", systemImage: "mic") }
         }
         if let d = doc, !d.highlights.isEmpty {
             ShareLink(item: model.highlightsExport(d)) { Label("İşaretleri dışa aktar", systemImage: "square.and.arrow.up") }
@@ -422,7 +447,7 @@ private struct TopBar<Options: View>: View {
                 VStack(spacing: 1) {
                     Text(title).font(.system(size: 16, weight: .semibold)).lineLimit(1)
                         .foregroundStyle(Color(uiColor: theme.text))
-                    if let ch = model.player.chapterTitle(at: model.player.spokenSentence?.location ?? model.player.cursor) {
+                    if let ch = model.player.chapterTitle(at: model.player.spokenSentence?.location ?? model.player.shownCursor) {
                         Text(ch).font(.system(size: 13, weight: .medium)).lineLimit(1)
                             .foregroundStyle(accent.ink)
                             .contentTransition(.opacity)
@@ -484,7 +509,7 @@ private struct BikeTopBar: View {
                 VStack(spacing: 1) {
                     Text(title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                         .foregroundStyle(Color(uiColor: theme.text))
-                    if let ch = model.player.chapterTitle(at: model.player.cursor) {
+                    if let ch = model.player.chapterTitle(at: model.player.shownCursor) {
                         Text(ch).font(.system(size: 12)).lineLimit(1).foregroundStyle(Color(uiColor: theme.text).opacity(0.6))
                     }
                 }
@@ -611,7 +636,7 @@ private struct ProgressRow: View {
     var body: some View {
         let player = model.player
         let len = max(1, player.length)
-        let reading = Double(player.cursor) / Double(len)
+        let reading = Double(player.shownCursor) / Double(len)
         let value = scrubbing ?? browseAt.map { Double($0) / Double(len) } ?? reading
         let total = player.totalSeconds
         let elapsed = total * value
@@ -636,7 +661,7 @@ private struct StatusRow: View {
 
     var body: some View {
         let player = model.player
-        let value = Double(player.cursor) / Double(max(1, player.length))
+        let value = Double(player.shownCursor) / Double(max(1, player.length))
         let unit = model.settings.navigationUnit
         HStack(spacing: 10) {
             Text("%\(Int(value * 100))").monospacedDigit().frame(width: 58, alignment: .leading)
@@ -644,7 +669,7 @@ private struct StatusRow: View {
                 if player.breakEnds != nil {
                     BreakBadge()
                 } else {
-                    Text(player.chapterTitle(at: player.cursor) ?? model.currentDocument?.author ?? "").lineLimit(1)
+                    Text(player.chapterTitle(at: player.shownCursor) ?? model.currentDocument?.author ?? "").lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -669,13 +694,13 @@ private struct StatusRow: View {
     }
 }
 
-/// Quick speed: each tap moves to the next of four speeds (words a minute). The fine setting stays in Ses Ayarları;
+/// Quick speed: each tap moves to the next of five speeds (words a minute). The fine setting stays in Ses Ayarları;
 /// this only sets the same value (for the document when it has its own speed).
 struct SpeedChip: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accent) private var accent
     var large = false
-    static let choices = [260, 330, 380, 430]
+    static let choices = [260, 330, 380, 430, 470]
 
     var body: some View {
         let now = SpeechPlayer.wpm(model.player.speed)
@@ -718,7 +743,7 @@ struct MiniPlayButton: View {
 
     var body: some View {
         let p = model.player
-        let progress = Double(p.cursor) / Double(max(1, p.length))
+        let progress = Double(p.shownCursor) / Double(max(1, p.length))
         Button { p.toggle() } label: {
             ZStack {
                 Circle().stroke(Color.primary.opacity(0.15), lineWidth: 3)

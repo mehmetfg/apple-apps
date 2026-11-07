@@ -15,7 +15,7 @@ struct Ana: View {
                 ZStack(alignment: .bottom) {
                     Group {
                         switch t.gorunum {
-                        case .bugun: BugunGorunum()
+                        case .bugun: SabahCercevesi { BugunGorunum() }
                         case .gecmis: GecmisGorunum()
                         case .dinleme: ListeningView()
                         }

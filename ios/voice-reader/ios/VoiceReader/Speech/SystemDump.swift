@@ -159,10 +159,19 @@ enum SystemDump {
         let text = para + "\n" + para
         let p = model.player
         p.voiceID = AVSpeechSynthesisVoice.speechVoices().first { $0.language.hasPrefix("tr") && $0.name == "Yelda" }?.identifier ?? p.voiceID
+        // -steadytest: the same reading with Cem and Düzlük 40 (the rendered path: PitchShift.flatten on every piece)
+        if CommandLine.arguments.contains("-steadytest") {
+            if let cem = AVSpeechSynthesisVoice.speechVoices().first(where: { $0.language.hasPrefix("tr") && $0.name.hasPrefix("Cem") }) {
+                p.voiceID = cem.identifier
+            }
+            p.voiceTune[p.voiceID] = VoiceTune(pitch: 1, volume: 1, steady: 0.4)
+        }
         p.speed = 330 / SpeechPlayer.wordsAtOneX
+        // -fasttest: the same reading at 470 words a minute through FastSpeech
+        if CommandLine.arguments.contains("-fasttest") { p.fastClear = true; p.speed = 470 / SpeechPlayer.wordsAtOneX }
         p.load(id: UUID(), title: "Atlama sınaması", author: nil, content: DocumentContent(text: text, chapters: [], pages: []), at: 0)
         p.play()
-        var log = ["voice \(p.voiceID) speed \(p.speed) length \((text as NSString).length)"]
+        var log = ["voice \(p.voiceID) speed \(p.speed) steady \(p.voiceTune[p.voiceID]?.steady ?? 0) length \((text as NSString).length)"]
         var last = -1, maxJump = 0, seen: [Int] = []
         let start = Date()
         while Date().timeIntervalSince(start) < 70 {

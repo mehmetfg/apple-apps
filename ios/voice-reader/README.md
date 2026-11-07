@@ -731,3 +731,220 @@ kez üretilip ElevenLabs ile aynı disk önbelleğine yazılır; ses süresi öl
 fazla) göre yayılır. Anahtar Keychain'de `wisepath.cloud.<sağlayıcı>`. Sınama bayrağı `-cloudtest`.
 Sınanan: derleme, SSML işaretleme ve kelime yayma Mac'te, ayar ekranı simülatörde; iPhone'a kuruldu.
 Sınanmayan: üç sağlayıcının gerçek anahtarla yanıtı (anahtar yok).
+
+## 2026-11-04 — Genişlet istemi, son 3 kitap, yeni Kitaplık, Akış, Tara
+
+Kullanıcı isteği (draw.io şeması onaylandı, ＋ekler dahil: "Hepsiyle kur").
+
+- **Bu kısmı genişlet** (`Views/ExpandPrompt.swift`): okuyucuda işarete dokununca ya da seçim menüsünde **Genişlet**; İşaretler sayfasında sola kaydır ya da basılı tut. Bağlam uygulamadan: kitap, yazar, bölüm, kısmın öncesindeki ve sonrasındaki paragraf. Amaç: Derinleştir · Basitçe anlat · Örneklerle · Karşı görüş · Hayatıma uygula · Tarihçe ve bağlam. Uzunluk (330 k/dk): Kısa ≈ 7 dk (2.300 k) · Orta ≈ 15 dk (5.000) · Uzun ≈ 30 dk (10.000). İstem düz TXT ister (yalnız `#`/`##` başlıklar → içindekiler). Uzunda model iki cevapta yazabilir: "1. parçayı sakla" → "devam" kopyala → "2. parçayı ekle"; `DEVAMI VAR` satırı silinir. Cevap kaynak kitabın klasörüne "Genişletme · …" adıyla, yazar satırında kaynak kitapla girer (`AppModel.importExpansion`).
+- **Öteki iki istem:** okuyucunun seçenek menüsünde (⇄) "Bu bölümden pekiştirme metni" (soru-cevaplı, bölümün metni ≤ ≈ 4.000 kelime) ve "İşaretlerimden metin" (işaretler sırayla, bölüm başlıkları ve notlarla, en çok 60); İşaretler sayfasının ✨ düğmesi de ikincisi.
+- **Ana sayfa** (`Views/HomeShelf.swift`): üstte son okunan 3 kitap yan yana (çalan kitap önce, kendi oynat düğmesiyle); altında envanter şeridi (kitap · süren · okunacak · bitti sayıları, dokununca o raf; üç renkli pay çizgisi; dinlenecek süre ve sayfa).
+- **Çubuklar kalktı:** Liste, Izgara, Vitrin, Sıkı liste ve Okumaya devam kartında ilerleme çubuğu yerine `StateLabel`: "%42", mavi "Yeni", yeşil "✓ Bitti". Mini oynatıcının çubuğu ve İstatistik'teki duruyor.
+- **Kitaplık yeniden:** bütün sırtlar 46 × 172 pt; başlık sırtta iki satır, 12,5 pt serif; seri kitapta yalnız mesele (ör. "Arkhe"); üstte etiket (F 04, B 03 ya da başlığın baş harfleri); altta durum (%42 · Yeni · ✓). Dikey ilerleme şeridi kalktı; okunan kitabın kurdelesi ve bitenin altın bandı duruyor.
+- **Akış** (yeni görünüm, `LibraryStyle.flow`): kapaklar yatay akar, ortadaki önden, yanlar 58° döner ve küçülür, altta yansıma; ortadakinin adı, yazarı, durumu, işaret sayısı ve sırası altta. Ortadakine dokunmak açar, yandakine dokunmak ortaya getirir. Dokunma alanları üst üste binmesin diye boşluk 0, yanlar yalnız çizimde içeri çekilir.
+- **Tara** (`Import/ScanImport.swift`): + › Kâğıttan › Tara (VisionKit belge tarayıcı, çok sayfa) ya da Fotoğraftan metin (en çok 30 görüntü). Vision telefonda Türkçe + İngilizce okur; satırlar boşluk ve girintiden paragrafa döner, satır sonu tirelemesi birleşir, üst/alt banttaki sayfa numarası düşer. Önizlemede başlık düzeltilir, sonra TextCleaner yoluyla kitaplığa. `NSCameraUsageDescription` eklendi.
+- Sınama kancası `-expandtest` (ilk işaretli kitabın ilk işaretiyle Genişlet; `-expandtest marks` işaretler).
+
+Sınanan: simülatör derlemesi, ana sayfa (son 3, envanter), yeni Kitaplık, Akış kaydırma, Genişlet ekranı. iPhone'a kuruldu (telefon kilitliydi, açılmadı). Sınanmayan: panodan cevabın eklenmesi (simülatörün yapıştırma izni penceresi sentetik dokunuşu almadı; yol panodan eklemeyle aynı), kamerayla tarama ve gerçek OCR, okuyucudaki menü öğelerine gerçek dokunuş, Akış'ta yan kapağa dokunma (onarımdan sonra yeniden denenmedi). Yedek `_yedek-20261104-genislet/`.
+
+## 2026-11-06 — Yelda uygulamanın kendi ayarında; Kararlı ölçü; kinetik yazıda gündüz ve simgeler
+
+Kullanıcı: "Yelda şu hâliyle kararlı ama iOS'un kendi ayarlarını kullanıyorum, kendi uygulamamda da çalışması gerekiyor";
+ekran kaydı (28 Ekim, Wise Path Yelda ile okuyor): "bu ses tonunu ve stabilitesini çok beğeniyorum, neden beğendiğimi
+anlat; başka bir sesi aynı kararlılıkta denemek istiyorum"; "dinamik fontun açık renk gündüz modunu yap, simgeleri artır".
+
+### Yelda'nın derinliği artık Wise Path'in Kalınlık ayarından (`Speech/SystemPitch.swift`)
+
+Ölçüm bu Mac'te (macOS 27.2; iOS 27 ile aynı motor, 180 Hz'te kesilme aynı) ve iOS 27.2 simülatöründe uygulamanın kendi koduyla:
+
+| `pitchMultiplier` | 1,0 | 0,75 | 0,5 | 0,25 | 0,0 | −0,2 | −0,4 | −0,6 | −1,0 |
+|---|---|---|---|---|---|---|---|---|---|
+| Yelda (Hz) | 207 | 194 | 181 | 168 | 156 | 147 | 137 | 128 | 106 |
+
+- iOS 27'de perde oranı 1'in altında **(3 + p) / 4** olmuş (eskiden (1 + p) / 2). Voice Dream'in Kalınlık 50'si artık p = 0.
+- 181 Hz'teki kesme yalnız `AVSpeechUtterance`'ın dış kapısında (setter 0,5'in altını almıyor). Aynı sayı nesnenin saklı
+  değerine yazılınca motor olduğu gibi alıyor: süre (18,67 sn) ve düzey (−15,7 dBFS) her değerde aynı, ses rengi aynı.
+  iOS'un Seslendirilen İçerik ayarı da bu yüzden 156 Hz'e inebiliyordu.
+- `SystemPitch.apply(k, to:)`: Kalınlık Voice Dream ölçeğinde (0,5 = 50) verilir, iOS 27+ için gereken değere çevrilir
+  (p = 2k − 1) ve 0,5'in altıysa saklı değere yazılır. Saklı değer adı ve türüyle çalışma anında aranır; bulunamazsa
+  eski sınır (0,5) kalır, hiçbir şey bozulmaz. **Herkese açık API değil** (kişisel uygulama; App Store'a gitmez).
+- Kalınlık sürgüsü iOS 27'de **20…200** (20 ≈ 124 Hz), adım 1. Simülatörde (iOS 27.2, `-depthtest`): 100 → 205 Hz,
+  75 → 180, 50 → 154, 40 → 144, 30 → 133, 20 → 124; süre hep 5,16 sn.
+- **Ses Ayarları › Gelişmiş › "Bu tınıyı Wise Path'e al"** (iPhone ayarıyla okurken görünür): Türkçe sesi iPhone'un
+  ayarıyla ve ayarsız duyulmadan okur (≈ 2 sn), perdeyi ölçer, aynı perdeyi veren Kalınlık'ı dener ve iki kez düzeltir;
+  0,5 yarım ton içinde tutarsa Kalınlık'ı (ve iOS o kipte hızı kendi yönetiyorsa hızı) yazar, "iPhone'un seslendirme
+  ayarlarıyla oku"yu kapatır, Net ve gür sesi açık bırakır (düzey aynı kalır). Tutmazsa hiçbir şey değişmez.
+- Kullanıcının kayıttaki sesi **143 Hz** (Kalınlık ≈ 37–40): iOS'taki perde sürgüsü en altta.
+
+### Neden bu ses: ölçü (`studio/stability.py`)
+
+Kayıttan 80 sn, aynı ölçekte öteki sesler (pyin; melodi = perdenin %10–%90 aralığı, yarım ton):
+
+| | perde | melodi | cümleler arası | 400 ms düzey aralığı | konuşma payı | 2,5 kHz üstü |
+|---|---|---|---|---|---|---|
+| Kayıt (Yelda, iOS ayarı, 260 k/dk) | 143 Hz | 3,7 | 0,29 | 2,3 dB | %91 | −26 dB |
+| Yelda sade, aynı metin | 209 | 4,7 | — | 2,3 | %92 | −27 |
+| Yelda Gelişmiş | 203 | 5,8 | 0,4 | 2,8 | %91 | −24 |
+| Cem sade | 121 | 6,4 | — | 2,5 | %92 | −23 |
+| Yapay zekâ anlatıcısı (VoxCPM2) | 136 | 9,2 | 2,25 | 4,7 | %78 | −11 |
+
+Dar ve sabit melodi, her cümlenin aynı yükseklikten başlayıp aynı biçimde inmesi, düzeyin oynamaması, nefes ve uzun
+duraklama olmaması, tizin az olması: ses hiçbir şey "söylemiyor", bu yüzden dikkat sese değil metne gidiyor.
+Bill kaydı (Kıvılcım, 17 sn, Mac mikrofonu, 16 kHz) ölçüme elvermedi: temel frekans yok (hoparlörden kayıt).
+
+### Kararlı ölçü (`Speech/Steady.swift`)
+
+- `Steady.melody` (YIN, medyan + %10–%90), `Steady.keep` (hedef 3,7 yarım ton, en çok %40 daraltma: daha fazlası sesi
+  pürüzlendiriyor), `Steady.even` (400 ms'lik düzeyi medyana çeker, ±6 dB, 150 ms'de; kelimeyi biçimlendirmez).
+  Mac'te bu kodla: yapay zekâ anlatıcısı 9,2 → 4,7 yarım ton, cümleler 2,25 → 0,93, düzey 4,7 → 2,1 dB; Cem 6,4 → 3,0.
+- **iPhone sesleri:** Düzlük kartında **"Kararlı ölçüye getir"**: seçili sesi ölçer, Düzlük'ü kendisi ayarlar; ses
+  kullanıcının ölçülen perdesinden yüksekse Kalınlık'la oraya indirir. Cem'i ya da Gelişmiş sesleri aynı ölçüde denemek için.
+- **Bulut sesleri** (ElevenLabs, Google, Azure, OpenAI): **Kararlı ölçü** anahtarı (varsayılan açık, `a.steadyCloud`):
+  paragraf doğal hızındayken melodi daraltılır ve düzey eşitlenir (süre değişmez, kelime zamanları tutar).
+  ElevenLabs'tan ayrıca `voice_settings` (stability 0,9 · style 0 · similarity 0,8 · speaker boost) istenir; servis
+  kabul etmezse eski istek gider; eskiden saklanan paragraf olduğu gibi kullanılır (yeniden kredi gitmez). OpenAI'ye
+  verilen yönerge "sakin, kararlı, dar tonlama, cümle sonunda inen ses" oldu.
+
+### Kinetik yazı: simgeler, amblem, gündüz
+
+- Simge sözlüğü 61 → **≈ 330 kök ve biçim, 183 simge** (hepsi sistemde var mı diye denetlendi). En uzun kök kazanır;
+  üç harfe kadar kökler yalnız yalın çekimle eşleşir ("ev, evde" ev; "evet, evren" değil; "göre" göz değil).
+  Yıl → takvim, sayı → #, soru → ?, ünlem → !.
+- Her kelime kendi simgesini satırında getirir; simgeli öbekler dört dizgiyi sırayla alır: **amblem** (halka içinde
+  simge, altında kelime), simgeli yığın, dev kelime + arkada soluk simge, eğik/yan.
+- **Gündüz:** Yolda menüsü › Işık: Gece · Gündüz · Otomatik (ekran parlaklığı %75'i geçince gündüz, %55'in altında gece).
+  Yolda'nın bütün renkleri `Ride` paletinden (gece/gündüz); kâğıt zemin, mürekkep yazı, yanık turuncu. Müzik modunda
+  arka plan sırasına **Gündüz** eklendi (`MusicBackdrop.day`).
+
+### Sınanan / sınanmayan
+
+Sınanan: Mac'te perde eğrisi ve Kararlı ölçü (ölçümle), iOS 27.2 simülatöründe `-depthtest`, kinetik yazının gece ve
+gündüz görüntüleri (müzik modu, Yolda Kinetik, Yolda), simge eşleştirmesi 56 kelimeyle; iPhone'a kuruldu ve açıldı
+(ilk açılış bir kez "imza/güven" diye reddedildi, bir dakika sonra açıldı: yeni profilin doğrulanması).
+Sınanmayan: telefonda `-depthtest` (telefon kilitliydi) ve "Bu tınıyı Wise Path'e al"ın gerçek iOS ayarıyla sonucu;
+ElevenLabs ve öteki bulut seslerinde Kararlı ölçü (anahtar yok); Kararlı ölçünün kulakla dinlenmesi; Otomatik ışığın
+gerçek gün ışığında geçişi. Logo adayları: `ios/icon-source/candidates-20261106/` (seçim kullanıcıda).
+Sınama kancası: `-depthtest` → `Documents/depthtest.txt`. Yedek `_yedek-20261106-derin/`.
+
+
+## 2026-11-06 (öğleden sonra) — Kelime geçişleri, Perde görünümü, iOS 27
+
+**Kelime geçişlerindeki kesiklik (Cem ve Düzlük kullanan her ses).** Ölçüldü (Cem, 330 kelime/dk): Düzlük'ün
+perde işlemi (`PitchShift`, TD-PSOLA) perdeyi hiç değiştirmediğinde bile 20 ms'lik dilimlerde sesi 10–13 dB
+oynatıyordu. Sebep: bütün parça tek bir sentez saatiyle yeniden kuruluyordu; her kelime başında ilk ses dilimi
+iki kez basılıyor, kelime yaklaşık 5 ms geç geliyor, bir kopyası öndeki sessizliğe taşıyordu. Yeni işlem yalnız
+sesli (titreşimli) bölümleri yeniden kurar, her bölüm kendi ilk perde işaretinden başlar, dilimler bir önceki
+işaretten bir sonrakine uzanır (iki yarım pencere, toplamı 1); gerisi girişin kendisidir.
+
+| | eski | yeni |
+|---|---|---|
+| Perde değişmeden çıkış − giriş | 20 ms'de 13,6 dB'ye kadar | 0 (örnek örnek aynı) |
+| Cem, Düzlük %11: en büyük düzey oynaması | 14,1 dB | 1,0 dB |
+| Cem (Gelişmiş), Düzlük %40: düzgün titreşimli dilim payı | %41 → %11 | %41 → %37 |
+| Cem (Gelişmiş), melodi (Düzlük %40) | 8,2 → 5,6 yarım ton | 8,2 → 5,6 yarım ton |
+
+Ses dokusu artık bozulmadığı için "Kararlı ölçüye getir"in alt sınırı 0,6'dan 0,45'e indi (melodi en çok %55
+daralır). Cem'in kendi sesinde kelime arası kısa boşluk Yelda'dan biraz fazla (saniyede 3,0'a 2,5); bu sesin
+kendisi, dokunulmadı. **Öteki Türkçe sesleri de getir** (Düzlük kartı): kurulu öteki iPhone seslerini aynı ölçüye
+getirir; kendi ayarı olan sese ve kullanılan sese dokunmaz. Sınama: `-skiptest -steadytest` (Düzlük %40 ile iki
+uzun paragraf sonuna kadar; simülatörde geçti).
+
+**Perde (Mürekkep'in yerine).** İlk yazılan Mürekkep biçimi (her kelimenin her pikselinde gürültü alanı hesaplayan
+gölgelendirici) telefonda verimli çalışmadı ve aynı gün kaldırıldı (kullanıcı: "mürekkebi kaldır, verimli
+çalışmıyor; daha yaratıcı bir alternatif"). Yerine **Perde**: kelime kendi satırına alttan, bir çizginin arkasından
+yükselir; anahtar kelime soldan süpüren bir işaret şeridinin üstüne oturur (yazı sayfa renginde); sahnenin altındaki
+çizgi cümlecik duyuldukça dolar; cümlecik yukarı çekilerek gider. Yalnız kaydırma ve kırpma: bulanıklık, gölge,
+gölgelendirici yok (`Rise`, `Lift`, `Views/KineticType.swift`). Müzik modunda yazı düğmesi Akış → Kinetik → Perde;
+Dinle'de Kinetik ↔ Perde; Yolda › Kinetik'te mod menüsü › Kinetik yazı: Vuruş · Perde. Ayar tek: `v.kineticMask`.
+Hareketi Azalt açıkken kullanılmaz. **Kural:** telefonda kelime başına piksel gölgelendiricisi kullanılmaz.
+
+**iOS 27 (Xcode 27.2 kiti bu Mac'te kurulu).** SDK tarandı; bu uygulamaya yarayanlar uygulandı:
+- Ses oturumu: sistem sesi aldıktan sonra "sürdür" tavsiyesi (`resumptionRecommendationNotification`) ve
+  oturumun neden kapandığı (`didBecomeInactiveNotification`). Okuma yalnız sistem durdurduysa kendiliğinden
+  sürer. Eski hata da giderildi: okuyucu kendisi duraklatmışken gelen arama bitince okuma başlıyordu.
+- Widget: Okuduklarım'a dikey en büyük boyut (`systemExtraLargePortrait`, 12 kitap).
+- Uygulanmayan: konuşma sentezinde iOS 27'de yeni API yok; Apple Intelligence (FoundationModels, model
+  devri) iPhone 13 Pro Max'te çalışmaz; SwiftUI'nin yeni `reorderable`, `TabsPickerStyle`, çapraz geçişi
+  gerek olduğunda.
+
+**Bill.** ElevenLabs'ın herkese açık 5,5 saniyelik İngilizce örneği ölçüldü: 138 Hz, melodi 6,8 yarım ton,
+cümleden cümleye 0,1 yarım ton, düzey 3,6 dB, konuşma payı %84. Mac'te tarifle tasarlanan "bilge anlatıcı"
+(VoxCPM2) + Kararlı ölçü: 143 Hz, 5,9 yarım ton, 0,8, 2,9 dB, %86. Örnekler vault
+`_araçlar/voice-reader/ses-ornekleri/2026-11-06-bilge-anlatici/`. Bill'in sesi kopyalanmadı.
+
+**Bilge sesiyle ilk paket.** Kullanıcı örneği beğendi ("bilgeyi gönder, güzel olmuş"). Başvuru klibi
+`~/.local/share/insan-ses/deneme/vox-bilge.wav` (kendi tasarladığımız ses). *Felsefe 05 · Birinci Gün · Savunma*
+seslendirildi (`studio.py --voice Bilge --reference …/vox-bilge.wav`): 55 parça, 8,3 dk, Whisper doğruluğu ortalama
+%99,3 (en düşük %93). Sonra yeni `studio/pack_steady.py` (uygulamanın kendi `Steady` ve `PitchShift` koduyla,
+`studio/steady/`): her parçanın melodisi **paketin ortak orta perdesine** çekilir (parçalar da aynı yüksekliğe gelir),
+düzey eşitlenir; süre değişmez, kelime zamanları geçerli kalır; dokunulmamış ses pakette `audio-raw/` altında durur
+(telefona gönderilmez). Ölçü: 141 Hz · melodi 11,2 → 5,6 yarım ton · cümleden cümleye 2,0 → 1,0 · düzey 5,2 → 3,2 dB ·
+konuşma payı %89. Telefona gönderildi ve uygulama kütüphaneye aldı. `telefona-gonder.sh`: Xcode 27'de
+`devicectl list devices` sütunları değiştiği için cihaz bulunamıyordu, düzeltildi. Sınanmayan: telefonda dinleme.
+
+**Logo.** Yol dalgasının kitaplı üç biçimi: `ios/icon-source/candidates-20261106/B1…B3`. Kullanıcı B3'ü beğendi, kitabı
+büyük istedi: `B3a-buyuk-kitap.svg`, `B3b-daha-buyuk.svg`. İkon değişmedi (seçim bekliyor).
+
+Sınanan: Mac ölçümleri, iOS 27.2 simülatöründe Perde (gündüz, gece) ve Düzlük okuma sınaması, telefona
+kurulum. Sınanmayan: telefonda kulakla dinleme, gerçek aramayla kesinti, dikey widget'ın görünümü, Perde'nin
+telefondaki akıcılığı.
+
+**Kelime sonu ("tokluk").** Kullanıcının gözlemi: "kelime bitimindeki vurgu ve tokluk, sanki arkadan başka kelime
+gelemeyecek gibi; son heceyi güçlü vurması". `studio/wordend.py` (kelime zamanları Whisper'dan) ile ölçüldü:
+
+| | kelimenin sonu, başına göre | sonu zayıflamayan kelime | cümlecik kapanışı (15 dB düşüş) | son kelimenin perdesi |
+|---|---|---|---|---|
+| Yelda (kullanıcının kaydı, 183 kelime) | +0,2 dB | %58 | 70 ms | −4,6 yarım ton |
+| Cem (330) | +0,9 dB | %66 | (tek örnek) | |
+| Yapay zekâ anlatıcısı (VoxCPM2) | −0,7 dB | %47 | 140 ms | −3,0 |
+| Bilge paket (kararlı ölçüden sonra, 441 kelime) | +1,0 dB | %63 | 130 ms | −3,5 |
+| Bill (5,5 sn İngilizce örnek, 2 kapanış) | −0,2 dB | | 235 ms | −5,7 |
+
+Okuma: Yelda son heceyi öncekinden daha yüksek vurmuyor; son heceyi **düşürmüyor** (kelimenin sonu başı kadar güçlü).
+
+**Düzeltme (aynı gün).** Yukarıdaki "kapanış" sütunu sesleri farklı hızlarda karşılaştırıyordu (Yelda 242, bilge 144,
+anlatıcı 114 kelime/dk). Hece uzunluğuna oranlanınca (`wordend.py` artık bunu da yazar) her ses **kendi doğal hızında
+0,8 hecede** kapanıyor: Yelda 0,79 · Cem 0,80 · bilge 0,79 · anlatıcı 0,78. Fark dinleme hızında çıkıyor: bilge ses
+uygulamanın kendi hızlandırmasıyla (`TimeStretch`, WSOLA) 260 kelime/dk'ya getirilince kapanışı 110 ms = **1,30 hece**
+(Yelda 0,79). Hızlandırma kuyruğu kısaltıyor ama düzeyini düşürmüyor; "sönerek biten" his buradan.
+
+**Tok kapanış** (`studio/close_tight.py`): cümleciğin duraklamaya girdiği yerde, son hecenin tepesinden sonraki düşüş
+dikleştirilir (en çok 2,2 kat, en çok 13 dB; 4 kHz üstü enerjisi baskın yerlerde, yani s, ş, t, k'de daha az). Süre
+değişmez. **Hızlandırmadan sonra** uygulanır. Bilge paket, 260 kelime/dk: kapanış 1,30 → **0,71 hece** (110 → 60 ms),
+Whisper'ın duyduğu kelime 438 → 438, kelime sonu gücü +0,8 → +0,6 dB. Daha sert ayar (2,5 kat, 18 dB) 0,5 heceye
+iniyor, Yelda'yı geçiyor. Dinleme örnekleri: vault `ses-ornekleri/2026-11-06-bilge-anlatici/` 5 ve 6. Henüz
+uygulamada değil (Swift'e taşınmadı); kullanıcının kulağı bekleniyor.
+
+**400–500 kelime/dk denemesi (2026-11-06).** Kullanıcı: "zihnim 430 üstünü anlayabilir ama ses 380'den sonra birbirine
+karışıyor; 400–500 arası daha anlaşılır kılınabilir mi". Türkçede hız hece ile okunur (kelime başına ≈ 2,8 hece):
+380 = 17,7 · 430 = 20 · 500 = 23 hece/sn. Yelda (Kalınlık 37) iki metinde (131 ve 111 kelime) dört yolla üretildi:
+motorun kendi basamakları (325 · 362 · 408 · 467), 325'ten eşit sıkıştırma (uygulamanın `TimeStretch`'i), 325'ten ve
+274'ten **eşit olmayan sıkıştırma** (`studio/fast_speech.py`: duraklamalar 35/100 ms'ye, düz sesli harfler en çok,
+ünsüz ve geçişler en az; ardından `close_tight`). Hakem: Whisper bu hızlarda hiç çalışmıyor (%0–9), bu yüzden ses
+hakem için 200 kelime/dk'ya geri yavaşlatıldı.
+
+| kelime/dk | motor | eşit | eşit olmayan | eşit olmayan (274'ten) |
+|---|---|---|---|---|
+| 325 | %88 · %95 | | | |
+| 380 | | %86 · (çöktü) | %89 · %91 | %90 · %96 |
+| 400–408 | %83 · %92 | %83 · %96 | %86 · %87 | %88 · %92 |
+| 430 | | %81 · %91 | %85 · %90 | %89 · (çöktü) |
+| 467–470 | %83 · (çöktü) | %81 · %90 | %84 · %87 | %74 · %83 |
+| 500 | | %77 · %86 | %81 · (çöktü) | %77 · %87 |
+
+(Her hücre: birinci metin · ikinci metin. "Çöktü" = Whisper bütün dökümü kaybetti, yönteme bağlanamaz.)
+**Sonuç:** kelime bilgisi 430–470'te her yöntemde büyük ölçüde duruyor, 500'de biraz düşüyor. Yöntemler arasındaki
+fark bu ölçümün gürültüsü içinde: ilk metinde eşit olmayan sıkıştırma 3–4 puan öndeydi, ikincisinde değil. Hangisinin
+kulağa daha az "karışık" geldiğini bu hakem söyleyemiyor; karar dinleyerek verilecek. Uygulamaya bir şey eklenmedi.
+Örnekler: vault `ses-ornekleri/2026-11-06-yuksek-hiz/`.
+
+**Yüksek hız kipi (aynı gün, uygulamada).** Kullanıcı örnekleri dinledi: "evet, daha net". `Speech/Neural/FastSpeech.swift`
+(`fast_speech.py` ve `close_tight.py`'nin Swift'i): 385 kelime/dk'nın üstünde iPhone sesi motorun temiz basamağında
+(0,81 = 336 kelime/dk) üretilir, eşit olmayan sıkıştırmayla istenen hıza getirilir, kelime zamanları birlikte taşınır,
+cümlecik sonları yeniden kesin kapatılır (0,8 hece). Ses Ayarları › Gelişmiş › **Yüksek hızda net okuma** (açık;
+`a.fastClear`). Hız sürgüsü 500'e uzadı; hızlı hız düğmesi 260 · 330 · 380 · 430 · 470, Yolda'da 330 · 380 · 430 · 470.
+"iPhone'un seslendirme ayarlarıyla oku" açıkken ve Voice Reader'ın kendi seslerinde devreye girmez. Mac'te Swift
+sürümü Python'la aynı süreyi veriyor (18,20 · 16,65 · 15,63 sn), gerçek zamanın 340–400 katı hızında; ses birebir
+aynı değil (özellik çıkarımı 1024'lük FFT ile). Simülatörde `-skiptest -fasttest`: 470'te iki paragraf 32,9 sn'de
+sonuna kadar (330'da 46 sn), kelime imleci yürüyor. Sınanmayan: telefonda kulakla dinleme, uzun dinlemede yorgunluk.
+

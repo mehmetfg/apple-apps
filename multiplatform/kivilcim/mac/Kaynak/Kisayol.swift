@@ -22,6 +22,7 @@ final class Kisayol {
     static let shared = Kisayol()
     private var ana: EventHotKeyRef?
     private var esc: EventHotKeyRef?
+    private var journalKey: EventHotKeyRef?
     private var isleyici: EventHandlerRef?
     private var basma = Date()
     private var basildigindaKayittaydi = false
@@ -43,6 +44,11 @@ final class Kisayol {
         if let a = ana { UnregisterEventHotKey(a); ana = nil }
         let s = KisayolSecenegi.secili
         RegisterEventHotKey(s.kod, s.mod, EventHotKeyID(signature: OSType(0x4B56_4C43), id: 1), GetApplicationEventTarget(), 0, &ana)
+        // ⌃⌥G: long talk (journal) on / off — no push-to-talk, a talk is long
+        if journalKey == nil {
+            RegisterEventHotKey(UInt32(kVK_ANSI_G), UInt32(controlKey | optionKey), EventHotKeyID(signature: OSType(0x4B56_4C43), id: 3),
+                                GetApplicationEventTarget(), 0, &journalKey)
+        }
     }
 
     func escAc(_ ac: Bool) {
@@ -56,6 +62,7 @@ final class Kisayol {
     private func olay(no: UInt32, basildi: Bool) {
         let k = Kaydedici.shared
         if no == 2 { if basildi { k.vazgec() }; return }
+        if no == 3 { if basildi { k.toggle(.journal) }; return }
         if basildi {
             basma = Date()
             basildigindaKayittaydi = k.kayitta

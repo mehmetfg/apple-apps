@@ -92,12 +92,16 @@ struct GuncelleDugmesi: View {
     var cam = false
 
     var body: some View {
+        SyncAware(status: depo.sync) { durum in dugme(durum.updating) }
+    }
+
+    private func dugme(_ guncelleniyor: Bool) -> some View {
         Button {
             Dokunus.hafif(0.6)
             Task { await depo.guncelle() }
         } label: {
             ZStack {
-                if depo.guncelleniyor {
+                if guncelleniyor {
                     ProgressView().controlSize(.small)
                 } else {
                     Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 15, weight: .semibold))
@@ -110,7 +114,7 @@ struct GuncelleDugmesi: View {
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .disabled(depo.guncelleniyor)
+        .disabled(guncelleniyor)
         .accessibilityLabel("Güncelle")
         .help("Voice Dream'den güncelle: yeni işaretler, okuma yüzdesi, yeni metinler")
     }

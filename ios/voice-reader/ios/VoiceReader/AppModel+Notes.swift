@@ -103,7 +103,8 @@ extension AppModel {
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         AudioServicesPlaySystemSound(1113)
         Task {
-            if await !recorder.start(withMusic: settings.musicMix != .off) {
+            // a start ended by a second press returns false too; by then a newer start may own `pendingNote`
+            if await !recorder.start(withMusic: settings.musicMix != .off), !recorder.isRecording {
                 pendingNote = nil
                 resumeReading()
             }

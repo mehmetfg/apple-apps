@@ -854,6 +854,7 @@ struct BookStudio: View {
             stat("Burada", layout.map { "s. \(current + 1) / \($0.pageCount)" } ?? "—", "book",
                  sub: layout.map { "%\(Int((Double(current + 1) / Double(max(1, $0.pageCount)) * 100).rounded())) okuma konumu" })
         }
+        BookRatingBar(book: entry.id)
         if let i = insight {
             if let c = i.core, c.theme != nil || c.claim != nil || c.idea != nil {
                 card {
@@ -1158,6 +1159,7 @@ struct BookStudio: View {
             } else {
                 Text("\(hs.count) işaret").font(F(.caption)).foregroundStyle(Tema.soluk)
                 ForEach(hs) { h in
+                    HStack(alignment: .top, spacing: 6) {
                     Button { if let p = h.at.first { go(ch: p.ch, b: p.b, quote: h.quote) } } label: {
                         HStack(alignment: .top, spacing: 10) {
                             RoundedRectangle(cornerRadius: 2).fill(Marker.swatch(h.color)).frame(width: 4)
@@ -1176,6 +1178,8 @@ struct BookStudio: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    ExpandToggle(book: entry.id, highlight: h, compact: true).padding(.top, 10)
+                    }
                 }
             }
         }

@@ -159,7 +159,10 @@ final class Calar: NSObject, ObservableObject {
 
     // MARK: Denetim
 
-    func acKapa() { caliyorMu ? durdur() : baslat() }
+    func acKapa() {
+        if Radyo.shared.caliyor { Radyo.shared.durdur(); return }
+        caliyorMu ? durdur() : baslat()
+    }
 
     /// Seçilen listeden çalar; liste kuyruk olur.
     func cal(_ parca: Parca, liste: [Parca]? = nil) {
@@ -189,6 +192,7 @@ final class Calar: NSObject, ObservableObject {
     }
 
     private func baslat(_ parca: Parca, saniye: Double) {
+        Radyo.shared.durdur()   // radyo ile dosya aynı anda çalmaz
         Task {
             await hazirOl()
             guard oturumuAc() else { hata = "Ses oturumu açılamadı."; return }
@@ -455,7 +459,10 @@ final class Calar: NSObject, ObservableObject {
     private func uzaktanKomutlar() {
         let m = MPRemoteCommandCenter.shared()
         m.playCommand.addTarget { [weak self] _ in self?.baslat(); return .success }
-        m.pauseCommand.addTarget { [weak self] _ in self?.durdur(); return .success }
+        m.pauseCommand.addTarget { [weak self] _ in
+            if Radyo.shared.caliyor { Radyo.shared.durdur() } else { self?.durdur() }
+            return .success
+        }
         m.togglePlayPauseCommand.addTarget { [weak self] _ in self?.acKapa(); return .success }
         m.nextTrackCommand.addTarget { [weak self] _ in self?.sonraki(); return .success }
         m.previousTrackCommand.addTarget { [weak self] _ in self?.onceki(); return .success }

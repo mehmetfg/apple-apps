@@ -1,0 +1,55 @@
+name: Perde
+options:
+  bundleIdPrefix: com.fatihgocgun
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: tr
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: EK4WY8PSFE
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Perde:
+    type: application
+    platform: iOS
+    sources:
+      - Perde
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fatihgocgun.perde
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Perde/Info.plist
+      properties:
+        CFBundleDisplayName: Perde
+        CFBundleDevelopmentRegion: tr
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCameraUsageDescription: Perde, ekrandaki film ve dizi adlarını okuyup IMDb puanlarını kameranın üzerinde göstermek için kamerayı kullanır.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  PerdeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - PerdeTests
+    dependencies:
+      - target: Perde
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: com.fatihgocgun.perde.tests
+schemes:
+  Perde:
+    build:
+      targets:
+        Perde: all
+        PerdeTests: [test]
+    test:
+      targets:
+        - PerdeTests

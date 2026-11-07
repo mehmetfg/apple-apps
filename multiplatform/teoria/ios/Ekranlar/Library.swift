@@ -261,22 +261,42 @@ final class LibraryStore: ObservableObject {
         } while syncAgain
     }
 
+    private struct Pulled: Sendable {
+        var changed = Set<String>()             // groups whose local copy was rewritten: index · network · sabah · marks · feedback
+        var insights: [String] = []             // insight files that were rewritten
+        var stamps: [String: FileStamp] = [:]
+    }
+    private var stamps: [String: FileStamp] = [:]   // vault files as last read in this run (unchanged → skipped)
+
     private func syncOnce(_ kasa: Kasa) async {
         let target = local
         let device = Cihaz.ad
-        let ok: Bool? = await kasa.ile { kok in
+        let seen = stamps
+        let pulled: Pulled? = await kasa.ile { kok in
+            var out = Pulled()
             let fm = FileManager.default
             let lib = kok.appendingPathComponent("library", isDirectory: true)
             try fm.createDirectory(at: target.appendingPathComponent("insights"), withIntermediateDirectories: true)
-            let ix = lib.appendingPathComponent("index.json")
-            Kasa.indir(ix)
-            if let v = Kasa.koordineliOku(ix) { try v.write(to: target.appendingPathComponent("index.json"), options: .atomic) }
-            let sb = lib.appendingPathComponent("sabah.json")          // Sabah's plan (veri/sabah.py)
-            Kasa.indir(sb)
-            if let v = Kasa.koordineliOku(sb) { try v.write(to: target.appendingPathComponent("sabah.json"), options: .atomic) }
-            let nw = lib.appendingPathComponent("network.json")
-            Kasa.indir(nw)
-            if let v = Kasa.koordineliOku(nw) { try v.write(to: target.appendingPathComponent("network.json"), options: .atomic) }
+            /// Vault file → local copy, only when it changed: same size and date as last time is not read at all,
+            /// same bytes as the local copy is not written (and nothing is reloaded for it).
+            func pull(_ src: URL, _ dst: URL, _ group: String, wait: Bool = false) throws -> Bool {
+                if wait { Kasa.indir(src) }
+                let key = src.path
+                let stamp = FileStamp.of(src)
+                if let stamp, seen[key] == stamp { return false }
+                guard let v = Kasa.koordineliOku(src) else { return false }
+                if let stamp { out.stamps[key] = stamp }
+                if (try? Data(contentsOf: dst)) == v { return false }
+                try v.write(to: dst, options: .atomic)
+                out.changed.insert(group)
+                return true
+            }
+            _ = try pull(lib.appendingPathComponent("index.json"), target.appendingPathComponent("index.json"), "index", wait: true)
+            // Sabah's plan (veri/sabah.py)
+            _ = try pull(lib.appendingPathComponent("sabah.json"), target.appendingPathComponent("sabah.json"), "sabah", wait: true)
+            // İkinci dikkat (veri/ikinci.py)
+            _ = try pull(lib.appendingPathComponent("ikinci.json"), target.appendingPathComponent("ikinci.json"), "ikinci", wait: true)
+            _ = try pull(lib.appendingPathComponent("network.json"), target.appendingPathComponent("network.json"), "network", wait: true)
             // marks: mine up, the other devices' down
             let mk = lib.appendingPathComponent("marks", isDirectory: true)
             try? fm.createDirectory(at: mk, withIntermediateDirectories: true)
@@ -287,29 +307,66 @@ final class LibraryStore: ObservableObject {
             }
             try? fm.createDirectory(at: target.appendingPathComponent("marks-others"), withIntermediateDirectories: true)
             for f in (try? fm.contentsOfDirectory(atPath: mk.path)) ?? [] where f.hasSuffix(".jsonl") && f != "\(device).jsonl" {
-                if let v = Kasa.koordineliOku(mk.appendingPathComponent(f)) { try? v.write(to: target.appendingPathComponent("marks-others/\(f)"), options: .atomic) }
+                _ = try? pull(mk.appendingPathComponent(f), target.appendingPathComponent("marks-others/\(f)"), "marks")
+            }
+            // feedback (ratings, expand switches): mine up, the other devices' down — same as marks
+            let fbDir = lib.appendingPathComponent("feedback", isDirectory: true)
+            try? fm.createDirectory(at: fbDir, withIntermediateDirectories: true)
+            if let v = try? Data(contentsOf: target.appendingPathComponent("feedback/\(device).jsonl")) {
+                let dst = fbDir.appendingPathComponent("\(device).jsonl")
+                if Kasa.koordineliOku(dst) != v { try? Kasa.koordineliYaz(v, dst) }
+            }
+            try? fm.createDirectory(at: target.appendingPathComponent("feedback-others"), withIntermediateDirectories: true)
+            for f in (try? fm.contentsOfDirectory(atPath: fbDir.path)) ?? [] where f.hasSuffix(".jsonl") && f != "\(device).jsonl" {
+                _ = try? pull(fbDir.appendingPathComponent(f), target.appendingPathComponent("feedback-others/\(f)"), "feedback")
             }
             let ins = lib.appendingPathComponent("insights", isDirectory: true)
             for f in (try? fm.contentsOfDirectory(atPath: ins.path)) ?? [] {
                 if f.hasPrefix("."), f.hasSuffix(".icloud") {
                     try? fm.startDownloadingUbiquitousItem(at: ins.appendingPathComponent(String(f.dropFirst().dropLast(7)))); continue
                 }
-                guard f.hasSuffix(".json"), let v = Kasa.koordineliOku(ins.appendingPathComponent(f)) else { continue }
-                try v.write(to: target.appendingPathComponent("insights/\(f)"), options: .atomic)
+                guard f.hasSuffix(".json") else { continue }
+                if try pull(ins.appendingPathComponent(f), target.appendingPathComponent("insights/\(f)"), "insights") { out.insights.append(f) }
             }
-            return true
+            return out
         }
-        if ok == true {
-            MorningStore.shared.load()
+        guard let pulled else { return }
+        stamps.merge(pulled.stamps) { _, new in new }
+        // Only what changed is read again, and it is decoded off the main actor.
+        if pulled.changed.contains("sabah") { await MorningStore.shared.reload() }
+        if pulled.changed.contains("feedback") { FeedbackStore.shared.load() }
+        if pulled.changed.contains("marks") { loadMarks() }
+        let dir = local
+        if pulled.changed.contains("network"),
+           let n = await Task.detached(operation: { LibraryStore.decode(LibraryNetwork.self, dir.appendingPathComponent("network.json")) }).value {
+            network = n
+        }
+        if !pulled.insights.isEmpty {
+            let files = pulled.insights
+            let fresh = await Task.detached { () -> [String: BookInsight] in
+                var all: [String: BookInsight] = [:]
+                for f in files {
+                    if let x = LibraryStore.decode(BookInsight.self, dir.appendingPathComponent("insights/\(f)")) { all[String(f.dropLast(5))] = x }
+                }
+                return all
+            }.value
+            if !fresh.isEmpty { insights.merge(fresh) { _, new in new } }
+        }
+        if pulled.changed.contains("index"),
+           let i = await Task.detached(operation: { LibraryStore.decode(LibraryIndex.self, dir.appendingPathComponent("index.json")) }).value {
             // a book whose edition changed in the vault is fetched again next time it opens
             let old = Dictionary(index.books.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-            loadLocal()
-            loadMarks()
+            index = i
             for b in index.books where old[b.id].map({ $0.words != b.words || $0.highlights != b.highlights }) ?? false {
                 books[b.id] = nil
                 try? FileManager.default.removeItem(at: local.appendingPathComponent("books/\(b.id).json"))
             }
         }
+    }
+
+    nonisolated private static func decode<T: Decodable>(_ type: T.Type, _ file: URL) -> T? {
+        guard let v = try? Data(contentsOf: file) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: v)
     }
 
     /// The book's reading edition: memory → local copy → vault.
@@ -359,5 +416,178 @@ final class LibraryStore: ObservableObject {
     /// Akış kitap kimliği → kütüphane kaydı (aynı kimlik ya da aynı başlık).
     func entry(forAkis k: OkumaKitabi) -> LibraryEntry? {
         entry(k.id) ?? index.books.first { Dil.normal($0.title) == Dil.normal(k.baslik) }
+    }
+}
+
+// MARK: - Geri bildirim (2026-11-03): book ratings and "burayı genişlet" signals
+
+/// One line of library/feedback/<device>.jsonl. The latest line per (kind, book, target) wins.
+/// rating: value 1 = Orta, 2 = İyi, 0 = cleared · expand: every mark is "expand" until a line with value 0 switches it off.
+/// veri/feedback.py turns all of it (with the marks and the Kür misses) into library/GERIBILDIRIM.md for Claude.
+struct FeedbackEvent: Codable, Hashable {
+    var id: String = UUID().uuidString
+    var kind: String
+    var book: String
+    var target: String?
+    var value: Int
+    var reasons: [String]?
+    var note: String?
+    var quote: String?
+    var ch: Int?
+    var date: String = Tarih.isoSaat(Date())
+}
+
+@MainActor
+final class FeedbackStore: ObservableObject {
+    static let shared = FeedbackStore()
+    @Published private(set) var ratings: [String: FeedbackEvent] = [:]
+    @Published private(set) var closed: Set<String> = []
+
+    private var dir: URL { Paylasim.kapsayici.appendingPathComponent("bookshelf", isDirectory: true) }
+    private var mine: URL { dir.appendingPathComponent("feedback/\(Cihaz.ad).jsonl") }
+
+    init() { load() }
+
+    func load() {
+        var lines: [FeedbackEvent] = []
+        let dec = JSONDecoder()
+        var files = [mine]
+        files += ((try? FileManager.default.contentsOfDirectory(at: dir.appendingPathComponent("feedback-others"), includingPropertiesForKeys: nil)) ?? [])
+        for f in files {
+            guard let t = try? String(contentsOf: f, encoding: .utf8) else { continue }
+            for l in t.split(separator: "\n") { if let e = try? dec.decode(FeedbackEvent.self, from: Data(l.utf8)) { lines.append(e) } }
+        }
+        var r: [String: FeedbackEvent] = [:], c = Set<String>()
+        for e in lines.sorted(by: { $0.date < $1.date }) {
+            if e.kind == "rating" { r[e.book] = e }
+            if e.kind == "expand", let t = e.target { if e.value == 0 { c.insert(t) } else { c.remove(t) } }
+        }
+        ratings = r.filter { $0.value.value > 0 }
+        closed = c
+    }
+
+    private func append(_ e: FeedbackEvent) {
+        try? FileManager.default.createDirectory(at: mine.deletingLastPathComponent(), withIntermediateDirectories: true)
+        guard var line = try? JSONEncoder().encode(e) else { return }
+        line.append(0x0A)
+        if let h = try? FileHandle(forWritingTo: mine) { h.seekToEndOfFile(); h.write(line); try? h.close() }
+        else { try? line.write(to: mine, options: .atomic) }
+    }
+
+    func rate(_ book: String, value: Int, reasons: [String], note: String?) {
+        let e = FeedbackEvent(kind: "rating", book: book, value: value, reasons: reasons.isEmpty ? nil : reasons,
+                              note: (note?.isEmpty ?? true) ? nil : note)
+        append(e)
+        if value > 0 { ratings[book] = e } else { ratings[book] = nil }
+    }
+
+    func expands(_ mark: String) -> Bool { !closed.contains(mark) }
+
+    func setExpand(_ on: Bool, mark: String, book: String, quote: String, ch: Int?) {
+        append(FeedbackEvent(kind: "expand", book: book, target: mark, value: on ? 1 : 0, quote: quote, ch: ch))
+        if on { closed.remove(mark) } else { closed.insert(mark) }
+    }
+}
+
+/// Book page: two levels, ★ Orta · ★★ İyi (tap again to clear). Unrated is not positive. The rating steers what the
+/// next texts lean on.
+struct BookRatingBar: View {
+    @EnvironmentObject var depo: Depo
+    @ObservedObject private var fb = FeedbackStore.shared
+    let book: String
+    @State private var note = ""
+
+    private var current: FeedbackEvent? { fb.ratings[book] }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("Değerlendir").font(.caption.weight(.semibold)).foregroundStyle(Tema.ikincil)
+                level(1, "★ Orta")
+                level(2, "★★ İyi")
+                Spacer(minLength: 0)
+            }
+            if let c = current {
+                HStack(spacing: 8) {
+                    reason("rich", "İçerik zengin", c)
+                    reason("fit", "Amaca uygun", c)
+                }
+                TextField("Bir satır not (isteğe bağlı) ↩", text: $note)
+                    .textFieldStyle(.roundedBorder).font(.callout)
+                    .onSubmit { save(c.value, c.reasons ?? []) }
+            }
+            Text(current == nil ? "Puansız kitap olumlu sayılmaz. Puan, sıradaki metinlerin nereye ağırlık vereceğini yönlendirir."
+                                : "Kaydedildi · sıradaki metin yazılırken okunur.")
+                .font(.caption2).foregroundStyle(Tema.soluk).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Tema.yuzey))
+        .onAppear { note = current?.note ?? "" }
+    }
+
+    private func level(_ v: Int, _ t: String) -> some View {
+        let on = current?.value == v
+        return Button { save(on ? 0 : v, current?.reasons ?? []) } label: {
+            Text(t).font(.callout.weight(on ? .semibold : .regular))
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(Capsule().fill(on ? Tema.altin.opacity(0.22) : Tema.yuzey2))
+                .foregroundStyle(on ? Tema.metin : Tema.ikincil)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(on ? "\(t), seçili" : t)
+    }
+
+    private func reason(_ key: String, _ t: String, _ c: FeedbackEvent) -> some View {
+        let on = c.reasons?.contains(key) ?? false
+        return Button {
+            var r = c.reasons ?? []
+            if on { r.removeAll { $0 == key } } else { r.append(key) }
+            save(c.value, r)
+        } label: {
+            Label(t, systemImage: on ? "checkmark.circle.fill" : "circle")
+                .font(.caption).foregroundStyle(on ? Tema.basari : Tema.ikincil)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func save(_ v: Int, _ reasons: [String]) {
+        fb.rate(book, value: v, reasons: v > 0 ? reasons : [], note: v > 0 ? note : nil)
+        if v == 0 { note = "" }
+        Dokunus.secim()
+        LibraryStore.shared.scheduleSync(depo.kasa)
+    }
+}
+
+/// A mark's second job: "burayı genişlet". On by default for every mark; switched off here.
+struct ExpandToggle: View {
+    @EnvironmentObject var depo: Depo
+    @ObservedObject private var fb = FeedbackStore.shared
+    let book: String
+    let highlight: BookHighlight
+    var compact = false
+
+    var body: some View {
+        let on = fb.expands(highlight.id)
+        if compact {
+            Button { set(!on) } label: {
+                Image(systemName: on ? "arrow.up.left.and.arrow.down.right.circle.fill" : "arrow.up.left.and.arrow.down.right.circle")
+                    .foregroundStyle(on ? Tema.vurgu : Tema.soluk)
+            }
+            .buttonStyle(.plain)
+            .help(on ? "Genişlet açık: sonraki metinde bu yer açılır" : "Genişlet kapalı")
+            .accessibilityLabel(on ? "Genişlet açık" : "Genişlet kapalı")
+        } else {
+            Toggle(isOn: Binding(get: { on }, set: { set($0) })) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label("Burayı genişlet", systemImage: "arrow.up.left.and.arrow.down.right")
+                    Text("Sonraki metinde ve Dikkat Metni'nde bu yer açılır").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func set(_ v: Bool) {
+        fb.setExpand(v, mark: highlight.id, book: book, quote: highlight.quote, ch: highlight.at.first?.ch)
+        LibraryStore.shared.scheduleSync(depo.kasa)
     }
 }

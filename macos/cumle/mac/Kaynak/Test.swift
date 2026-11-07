@@ -201,6 +201,9 @@ struct BitisEkrani: View {
         if let o = t.o {
             let rc = t.recallOzeti()
             Sutun {
+                if !o.tekrar && SabahSaati.saat.phase == .done {
+                    TimeBoxDoneCard(clock: SabahSaati.saat) { SabahSaati.teoriayiAc() }
+                }
                 Baslik(metin: "⑥ Modül tamam")
                 Text("Bugünkü hesap").font(.largeTitle.bold())
                 Text("Zorlandığın kelimeler yarının metninde geri gelecek.").foregroundStyle(.secondary)

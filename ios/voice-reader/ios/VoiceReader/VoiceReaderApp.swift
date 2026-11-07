@@ -12,8 +12,8 @@ struct VoiceReaderApp: App {
         WindowGroup {
             LibraryScreen()
                 .environment(model)
-                // the road screen is always dark (the status bar too: its clock and battery stand for the ones the screen dropped)
-                .preferredColorScheme(model.readerOpen && model.settings.bikeMode && model.settings.bikeLook.road ? .dark : model.settings.colorScheme)
+                // the road screen has its own light, Gece or Gündüz (the status bar too: its clock and battery stand for the ones the screen dropped)
+                .preferredColorScheme(model.readerOpen && model.settings.bikeMode && model.settings.bikeLook.road ? (model.rideDay ? .light : .dark) : model.settings.colorScheme)
                 .environment(\.accent, model.settings.accent)
                 .tint(model.settings.accent.ink)
                 .task {
@@ -21,10 +21,16 @@ struct VoiceReaderApp: App {
                     if CommandLine.arguments.contains("-voicedump") { await VoiceDump.run() }
                     if CommandLine.arguments.contains("-sysdump") { await SystemDump.run() }
                     if CommandLine.arguments.contains("-skiptest") { await SkipTest.run(model); return }
+                    // test hook: -depthtest measures Kalınlık 100 … 20 as this device's engine gives it, and the
+                    // phone's Spoken Content sound against Wise Path's own (Documents/depthtest.txt)
+                    if CommandLine.arguments.contains("-depthtest") { await DepthTest.run(); return }
                     // which voices the phone has (Library/voices.txt), so a missing voice can be told from a bug
-                    let list = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("tr") || $0.language.hasPrefix("en") }
-                        .map { "\($0.identifier)\t\($0.name)\t\($0.language)\t\($0.quality.rawValue)" }.joined(separator: "\n")
-                    try? list.write(to: URL.libraryDirectory.appending(path: "voices.txt"), atomically: true, encoding: .utf8)
+                    // (off the main thread: asking iOS for every voice takes tens of milliseconds)
+                    Task.detached(priority: .utility) {
+                        let list = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("tr") || $0.language.hasPrefix("en") }
+                            .map { "\($0.identifier)\t\($0.name)\t\($0.language)\t\($0.quality.rawValue)" }.joined(separator: "\n")
+                        try? list.write(to: URL.libraryDirectory.appending(path: "voices.txt"), atomically: true, encoding: .utf8)
+                    }
                     // test hook: -vaulttest <folder> runs the same steps as picking that folder in Ayarlar › PDM vault
                     if let i = CommandLine.arguments.firstIndex(of: "-vaulttest"), i + 1 < CommandLine.arguments.count {
                         _ = await VaultMirror.shared.choose(URL(fileURLWithPath: CommandLine.arguments[i + 1]))
@@ -70,7 +76,19 @@ struct VoiceReaderApp: App {
                     WidgetFeed.publish(model)
                 }
                 .onChange(of: phase) { _, p in
-                    if p == .active { Task { await model.scanDropFolder(); await model.sync.sync() } } else { model.store.saveNow(); model.saveAutomationProgress(); model.workout.saveNow(); WidgetFeed.publish(model, now: true) }
+                    switch p {
+                    case .active:
+                        Task { await model.scanDropFolder(); await model.sync.sync(); await model.busActivated() }
+                    case .background:
+                        // the full save: the library written before the app can be suspended, the widgets redrawn
+                        model.store.saveNow(); model.saveAutomationProgress(); model.workout.saveNow(); WidgetFeed.publish(model, now: true)
+                        model.indexForSpotlight()
+                    default:
+                        // `.inactive` comes and goes (Control Center, a notification pulled down, the app switcher):
+                        // only what is cheap and keeps the place safe. The journal is written at once; the library
+                        // follows on its own background queue.
+                        model.store.writePlaces(); model.store.saveSoon(); model.saveAutomationProgress()
+                    }
                 }
         }
     }

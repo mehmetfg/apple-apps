@@ -21,6 +21,12 @@ struct Paket: Codable, Hashable, Identifiable {
     var tema: String?
     var sahne_konulari: [String]?
     var sozluk: [Sozcuk]?
+    // Biçim v2 (2026-11-05): uzun dinleme metni (çekirdek cümleler içinde), dönüşüm alıştırmaları (gramer motoru),
+    // aralıklı tekrar kelimeleri, gün yapılarının GramerApp konuları. Eski paketlerde yok.
+    var dinleme: [Parca]?
+    var donusum: [Donusum]?
+    var tekrar: Tekrar?
+    var gramer: [GramerBag]?
 
     var id: Int { gun }
     var ad: String { baslik ?? "Gün \(gun)" }
@@ -57,6 +63,7 @@ struct Bolum: Codable, Hashable, Identifiable {
         case "aciklama": "Açıklama"
         case "metin": "Metin"
         case "kelimeler": "Kelimeler ve yapılar"
+        case "dinleme": "Bütün hikâye"
         default: ad.capitalized
         }
     }
@@ -65,6 +72,7 @@ struct Bolum: Codable, Hashable, Identifiable {
         case "aciklama": "text.bubble"
         case "metin": "text.alignleft"
         case "kelimeler": "character.book.closed"
+        case "dinleme": "book.pages"
         default: "circle"
         }
     }
@@ -77,6 +85,37 @@ struct Satir: Codable, Hashable {
     var baslangic: Double
     var bitis: Double
     var cumle: Int?
+    var parca: Int?             // dinleme bölümü: uzun metnin kaçıncı parçası
+}
+
+/// Uzun dinleme metninin bir parçası. `cumle` varsa çalışma cümlesidir (metin[cumle] ile aynı).
+struct Parca: Codable, Hashable {
+    var en: String?
+    var tr: String?
+    var cumle: Int?
+}
+
+/// Gramer motoru: bir çalışma cümlesini başka biçime çevir.
+struct Donusum: Codable, Hashable {
+    var cumle: Int
+    var konu: String?
+    var istem: String
+    var cevap: String
+    var secenekler: [String]?
+}
+
+/// Aralıklı tekrar: dün (N-1), bir hafta önce (N-7), bir ay önce (N-30) gelen ve hâlâ bilinmeyen kelimeler.
+struct Tekrar: Codable, Hashable {
+    var dun: [String]?
+    var hafta: [String]?
+    var ay: [String]?
+    var hepsi: [String] { (dun ?? []) + (hafta ?? []) + (ay ?? []) }
+}
+
+/// Günün yapısı ↔ GramerApp konusu (disli://konu/<id>).
+struct GramerBag: Codable, Hashable {
+    var konu: String
+    var id: String?
 }
 
 struct Cumle: Codable, Hashable, Identifiable {
@@ -98,7 +137,11 @@ struct Sozcuk: Codable, Hashable, Identifiable {
     var ornek: String?
     var id: String { w }
     var turAdi: String {
-        switch tur { case "yeni": "yeni"; case "yanki": "tekrar"; case "tanidik": "tanıdık"; default: "" }
+        switch tur {
+        case "yeni": "yeni"; case "yanki": "tekrar"; case "tanidik": "tanıdık"
+        case "tekrar-dun": "dün"; case "tekrar-hafta": "7 gün önce"; case "tekrar-ay": "30 gün önce"
+        default: ""
+        }
     }
 }
 
@@ -150,6 +193,7 @@ enum OlayTuru: String, Codable {
     case basladi, bitti   // Mac'te Tezgâh (yalnız okunur)
     case atladi           // «Yaptım, geç»: gün sicile girmez, sıradaki gün açılır (iki cihaz da yazabilir)
     case listened         // one listening stretch (play → pause/finish), partial ones too: seconds + sentences heard (Mac › Dinleme)
+    case oyun             // 2026-11-05: Metin Atölyesi — rol: metin | kelime | gramer | kur; oran: doğru oranı; sure: saniye
 }
 
 struct Olay: Codable, Hashable, Identifiable {
@@ -219,7 +263,7 @@ struct Hazirlik: Hashable {
                 for w in o.takilan ?? [] where !h.takilan.contains(w) { h.takilan.append(w) }
             case .hazirim: h.hazir = true
             case .bitti: h.yazildi = true
-            case .basladi, .takildi, .atladi, .listened: break
+            case .basladi, .takildi, .atladi, .listened, .oyun: break
             }
         }
         if h.dinleme > 0 && h.okuma { h.hazir = true }
@@ -345,7 +389,27 @@ struct WidgetAnlik: Codable {
         anahtarTr: "Cumartesi saat onda, diz ameliyatından sonra halamı ziyaret ettim.",
         dunGun: 21, dunEn: "My prime goal was an old edition of my father's favourite novel.",
         dunTr: "Asıl amacım babamın en sevdiği romanın eski bir baskısıydı.",
-        rota: "artikel — a / an / the")
+        rota: "artikel — a / an / the",
+        sentences: [
+            .init(i: 0, en: "Nora is fond of organic food, and she visits the market every week.", tr: "Nora organik yiyeceği seviyor ve her hafta pazara gidiyor."),
+            .init(i: 1, en: "She likes to interact with the dealer, a kind old man.", tr: "Nazik yaşlı bir adam olan satıcıyla konuşmayı seviyor."),
+            .init(i: 2, en: "This week he has an innovative idea: a small auction for vegetables.", tr: "Bu hafta yenilikçi bir fikri var: sebzeler için küçük bir açık artırma."),
+            .init(i: 3, en: "If only the prices were considerably lower!", tr: "Keşke fiyatlar önemli ölçüde düşük olsaydı!"),
+            .init(i: 4, en: "The dealer says that trucks cause emissions, so he sells only local food.", tr: "Satıcı kamyonların emisyon yaptığını söylüyor, bu yüzden yalnızca yerel yiyecek satıyor."),
+            .init(i: 5, en: "This caused a controversy among the other sellers.", tr: "Bu diğer satıcılar arasında bir tartışma yarattı."),
+            .init(i: 6, en: "A surgeon bought carrots, and he is fond of the dealer's soup.", tr: "Bir cerrah havuç aldı ve satıcının çorbasına düşkün."),
+            .init(i: 7, en: "An invasion of insects came to the garden last year.", tr: "Geçen yıl bahçeye bir böcek istilası geldi."),
+            .init(i: 8, en: "If another invasion came, the dealer would lose his plants.", tr: "Bir istila daha gelse satıcı bitkilerini kaybederdi."),
+            .init(i: 9, en: "He wishes he had a net to protect his organic plants.", tr: "Organik bitkilerini korumak için bir ağı olmasını diliyor."),
+            .init(i: 10, en: "Nora would rather buy fewer vegetables than eat bad ones.", tr: "Nora kötü sebze yemektense daha az sebze almayı tercih eder."),
+            .init(i: 11, en: "If this innovative auction goes well, he will earn more money.", tr: "Bu yenilikçi açık artırma iyi giderse daha çok para kazanacak."),
+            .init(i: 12, en: "On the wall hangs a funny artwork made of vegetables.", tr: "Duvarda sebzelerden yapılmış komik bir sanat eseri asılı."),
+            .init(i: 13, en: "Nora says that people who interact with the dealer feel happy.", tr: "Nora satıcıyla konuşan insanların mutlu olduğunu söylüyor."),
+            .init(i: 14, en: "If it rains, the market will close, but Nora is happy.", tr: "Yağmur yağarsa pazar kapanacak ama Nora mutlu.")
+        ],
+        todayWords: [.init(w: "fond", tr: "düşkün, seven"), .init(w: "interact", tr: "etkileşimde bulunmak"), .init(w: "invasion", tr: "istila"), .init(w: "dealer", tr: "satıcı, tüccar"), .init(w: "organic", tr: "organik"), .init(w: "innovative", tr: "yenilikçi")],
+        yesterdayWords: [.init(w: "considerably", tr: "önemli ölçüde"), .init(w: "surgeon", tr: "cerrah"), .init(w: "controversy", tr: "tartışma, ihtilaf"), .init(w: "emission", tr: "salım, emisyon"), .init(w: "auction", tr: "açık artırma, müzayede"), .init(w: "artwork", tr: "sanat eseri, görsel malzeme")],
+        yesterdayDay: 21)
 }
 
 enum Paylasim {
@@ -381,6 +445,12 @@ enum Paylasim {
         guard let a = oku(), let n = a.sentences?.count, n > 0 else { return }
         let next = ((sentenceIndex(a) + step) % n + n) % n
         ayar.set(next, forKey: sentenceIndexKey)
+        ayar.set(a.gun ?? -1, forKey: sentenceDayKey)
+    }
+    /// Jump to one sentence of the day (the largest widget's list).
+    static func selectSentence(_ position: Int) {
+        guard let a = oku(), let n = a.sentences?.count, n > 0 else { return }
+        ayar.set(min(max(0, position), n - 1), forKey: sentenceIndexKey)
         ayar.set(a.gun ?? -1, forKey: sentenceDayKey)
     }
     static func audioURL(gun: Int) -> URL {

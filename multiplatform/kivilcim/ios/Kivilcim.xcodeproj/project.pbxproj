@@ -7,10 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C300000000000000000B0003 /* KivilcimShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C300000000000000000F0003 /* KivilcimShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C300000000000000000B0001 /* KivilcimWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C300000000000000000F0002 /* KivilcimWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PDDF038908CFB3642E588CFB /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PDEFD6DEB98AD3AF45623CFB /* PDMBus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		C300000000000000000C0003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C300000000000000001F0001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C300000000000000001E0003;
+			remoteInfo = KivilcimShare;
+		};
 		C300000000000000000C0001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C300000000000000001F0001 /* Project object */;
@@ -28,6 +37,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				C300000000000000000B0001 /* KivilcimWidgetExtension.appex in Embed Foundation Extensions */,
+				C300000000000000000B0003 /* KivilcimShare.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -35,11 +45,20 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C300000000000000000F0003 /* KivilcimShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KivilcimShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C300000000000000000F0001 /* Kivilcim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kivilcim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C300000000000000000F0002 /* KivilcimWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KivilcimWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C300000000000000001A0003 /* Exceptions for "KivilcimShare" folder in "KivilcimShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				KivilcimShare.entitlements,
+				Info.plist,
+			);
+			target = C300000000000000001E0003 /* KivilcimShare */;
+		};
 		C300000000000000001A0001 /* Exceptions for "Kivilcim" folder in "Kivilcim" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -59,16 +78,25 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		C300000000000000001B0004 /* KivilcimShare */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C300000000000000001A0003 /* Exceptions for "KivilcimShare" folder in "KivilcimShare" target */, ); path = KivilcimShare; sourceTree = "<group>"; };
 		C300000000000000001B0001 /* Kivilcim */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C300000000000000001A0001 /* Exceptions for "Kivilcim" folder in "Kivilcim" target */, ); path = Kivilcim; sourceTree = "<group>"; };
 		C300000000000000001B0002 /* KivilcimWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C300000000000000001A0002 /* Exceptions for "KivilcimWidget" folder in "KivilcimWidgetExtension" target */, ); path = KivilcimWidget; sourceTree = "<group>"; };
 		C300000000000000001B0003 /* Ortak */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Ortak; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C300000000000000001C0003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C300000000000000001C0001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PDDF038908CFB3642E588CFB /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,6 +116,7 @@
 				C300000000000000001B0001 /* Kivilcim */,
 				C300000000000000001B0002 /* KivilcimWidget */,
 				C300000000000000001B0003 /* Ortak */,
+				C300000000000000001B0004 /* KivilcimShare */,
 				C300000000000000001D0002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -97,6 +126,7 @@
 			children = (
 				C300000000000000000F0001 /* Kivilcim.app */,
 				C300000000000000000F0002 /* KivilcimWidgetExtension.appex */,
+				C300000000000000000F0003 /* KivilcimShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -104,6 +134,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C300000000000000001E0003 /* KivilcimShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C300000000000000002E0004 /* Build configuration list for PBXNativeTarget "KivilcimShare" */;
+			buildPhases = (
+				C300000000000000002B0003 /* Sources */,
+				C300000000000000001C0003 /* Frameworks */,
+				C300000000000000002A0003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C300000000000000001B0004 /* KivilcimShare */,
+			);
+			name = KivilcimShare;
+			packageProductDependencies = (
+			);
+			productName = KivilcimShare;
+			productReference = C300000000000000000F0003 /* KivilcimShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		C300000000000000001E0001 /* Kivilcim */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C300000000000000002E0001 /* Build configuration list for PBXNativeTarget "Kivilcim" */;
@@ -117,6 +169,7 @@
 			);
 			dependencies = (
 				C300000000000000002C0001 /* PBXTargetDependency */,
+				C300000000000000002C0003 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C300000000000000001B0001 /* Kivilcim */,
@@ -124,6 +177,7 @@
 			);
 			name = Kivilcim;
 			packageProductDependencies = (
+				PDEFD6DEB98AD3AF45623CFB /* PDMBus */,
 			);
 			productName = Kivilcim;
 			productReference = C300000000000000000F0001 /* Kivilcim.app */;
@@ -168,6 +222,9 @@
 					C300000000000000001E0002 = {
 						CreatedOnToolsVersion = 26.3;
 					};
+					C300000000000000001E0003 = {
+						CreatedOnToolsVersion = 26.3;
+					};
 				};
 			};
 			buildConfigurationList = C300000000000000002E0003 /* Build configuration list for PBXProject "Kivilcim" */;
@@ -180,6 +237,9 @@
 			);
 			mainGroup = C300000000000000001D0001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PDF69EB31683A40ECFFED083 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C300000000000000001D0002 /* Products */;
 			projectDirPath = "";
@@ -187,11 +247,19 @@
 			targets = (
 				C300000000000000001E0001 /* Kivilcim */,
 				C300000000000000001E0002 /* KivilcimWidgetExtension */,
+				C300000000000000001E0003 /* KivilcimShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C300000000000000002A0003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C300000000000000002A0001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -209,6 +277,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C300000000000000002B0003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C300000000000000002B0001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -226,6 +301,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		C300000000000000002C0003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C300000000000000001E0003 /* KivilcimShare */;
+			targetProxy = C300000000000000000C0003 /* PBXContainerItemProxy */;
+		};
 		C300000000000000002C0001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C300000000000000001E0002 /* KivilcimWidgetExtension */;
@@ -234,6 +314,62 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		C300000000000000002D0007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = KivilcimShare/KivilcimShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KivilcimShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Kıvılcım";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "İşaretlediğin sayfaya sesli not eklemek için.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.kivilcim.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C300000000000000002D0008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = KivilcimShare/KivilcimShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = EK4WY8PSFE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KivilcimShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Kıvılcım";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "İşaretlediğin sayfaya sesli not eklemek için.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fatihgocgun.kivilcim.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		C300000000000000002D0001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -252,7 +388,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
@@ -274,7 +410,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -419,6 +555,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C300000000000000002E0004 /* Build configuration list for PBXNativeTarget "KivilcimShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C300000000000000002D0007 /* Debug */,
+				C300000000000000002D0008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C300000000000000002E0001 /* Build configuration list for PBXNativeTarget "Kivilcim" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -447,6 +592,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PDF69EB31683A40ECFFED083 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PDEFD6DEB98AD3AF45623CFB /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PDF69EB31683A40ECFFED083 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C300000000000000001F0001 /* Project object */;
 }

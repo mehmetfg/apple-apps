@@ -10,7 +10,9 @@ final class Kasa: ObservableObject {
     @Published private(set) var klasorAdi = ""
     @Published var hata: String?
 
-    private let anahtar = "kivilcim.kasa.yerimi"
+    /// UserDefaults key of the folder bookmark (the PDM bus reads the same bookmark).
+    nonisolated static let bookmarkKey = "kivilcim.kasa.yerimi"
+    private let anahtar = Kasa.bookmarkKey
     private var kok: URL?
 
     init() {
@@ -43,6 +45,9 @@ final class Kasa: ObservableObject {
             UserDefaults.standard.set(v, forKey: anahtar)
         }
     }
+
+    /// False for the three subfolders veriKlasoru() knows; any other folder is taken as the vault root.
+    nonisolated static func isVaultRoot(_ name: String) -> Bool { !["Kıvılcım", "Fikirler", "05 - Notlar"].contains(name) }
 
     /// Seçilen klasörden Kıvılcım veri klasörünü bulur.
     nonisolated static func veriKlasoru(_ sec: URL) -> URL {

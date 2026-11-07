@@ -1,5 +1,6 @@
 // Kıvılcım — iPhone. Aklına geleni kilidi açmadan söyle: kilit ekranı denetimi → kayıt → Canlı Etkinlik → bitir.
 // Kayıt vault'a gider; Mac'teki Kıvılcım yerel Whisper ile yazıya döker, başlık ve alan/amaç koyar, telefon geri çeker.
+import PDMBus
 import SwiftUI
 import AppIntents
 import AVFoundation
@@ -14,31 +15,69 @@ struct KivilcimApp: App {
     @StateObject private var oy = TelefonOynatici.shared
     @Environment(\.scenePhase) private var evre
     @State private var sekme = 0
+    @State private var isaretSes: BekleyenIsaret?
 
     init() {
         UserDefaults.standard.register(defaults: ["kalite": "dengeli", "dil": "tr", "onDokum": true, "dokunsal": true, "sunucuDokum": false])
         KivilcimKisayollari.updateAppShortcutParameters()
+        TelefonDeposu.preload()     // reads the stored list on a background thread while the app launches
     }
 
     var body: some Scene {
         WindowGroup {
             TabView(selection: $sekme) {
                 Tab("Kaydet", systemImage: "mic.fill", value: 0) { KayitEkrani(sekme: $sekme) }
-                Tab("Arşiv", systemImage: "square.stack.3d.up.fill", value: 1) { ArsivEkrani() }
-                Tab("Ayarlar", systemImage: "gearshape.fill", value: 2) { AyarlarEkrani() }
+                Tab("Merkez", systemImage: "square.grid.2x2.fill", value: 5) { MerkezEkrani() }
+                Tab("İşler", systemImage: "checklist", value: 1) { IslerEkrani() }
+                    .badge(depo.acik.filter { $0.priority == Priority.urgent.rawValue }.count)
+                Tab("Günlük", systemImage: "book.pages.fill", value: 3) { GunlukEkrani() }
+                Tab(value: 4, role: .search) { ArsivEkrani() }
             }
+            .tabBarMinimizeBehavior(.onScrollDown)
             .tint(.kivilcim)
             .environmentObject(merkez).environmentObject(depo).environmentObject(kasa).environmentObject(oy)
             .onOpenURL { u in
-                // kivilcim://kaydet · kivilcim://bitir · kivilcim://arsiv
+                // kivilcim://kaydet · kivilcim://bitir · kivilcim://arsiv · kivilcim://merkez
                 switch u.host {
-                case "kaydet": sekme = 0; Task { await merkez.baslat(kaynak: "adres") }
+                case "kaydet":
+                    // kivilcim://kaydet?topic=<Teoria book id or k:name>: another app starts a recording about a book
+                    let topic = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "topic" }?.value?
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    let konu = topic.flatMap { $0.isEmpty || $0.count > 200 ? nil : $0 }
+                    sekme = 0; Task { await merkez.baslat(kaynak: konu == nil ? "adres" : "adres+konu", topic: konu) }
                 case "bitir": Task { await merkez.bitir() }
-                case "arsiv": sekme = 1
+                case "arsiv", "isler": sekme = 1
+                case "merkez": sekme = 5; MerkezNav.shared.open(u.pathComponents.dropFirst().first)
+                case "tatbik", "akis": sekme = 5; MerkezNav.shared.open(u.host)
+                case "gunluk": sekme = 3
+                case "duzen": if let id = u.pathComponents.dropFirst().first { merkez.hizliDuzen = id }
+                case "isaret-ses":
+                    // Paylaş › Kıvılcım › "İşaretle ve sesli not ekle"
+                    if let id = u.pathComponents.dropFirst().first {
+                        let ay = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "ay" }?.value
+                            ?? String(id.prefix(4)) + "-" + String(id.dropFirst(4).prefix(2))
+                        var m = BekleyenIsaret(id: id, ay: ay)
+                        m.baslik = IsaretSesDeposu.oku(m)?["baslik"] as? String ?? ""
+                        isaretSes = m
+                    }
                 default: break
                 }
             }
-            .onChange(of: evre) { _, e in if e == .active { Task { await depo.gonder() } } }
+            // a Spotlight result: the record's id opens its quick editor
+            .onContinueUserActivity(PDMSpotlight.activityType) { a in
+                if let id = PDMSpotlight.identifier(from: a) { merkez.hizliDuzen = id }
+            }
+            .onChange(of: depo.ogeler) { _, ogeler in KivilcimSystem.indexSoon(ogeler) }
+            .onChange(of: evre) { _, e in
+                if e == .background { KivilcimSystem.scheduleSend() }
+                if e == .active {
+                    // the share sheet could not open the app: the waiting voice note opens here instead
+                    if isaretSes == nil, let m = IsaretSesDeposu.sonBekleyen() { isaretSes = m }
+                    Task { await depo.gonder(); await KivilcimBus.becameActive() }
+                    Task.detached(priority: .utility) { Tani.kirp() }
+                }
+            }
+            .sheet(item: $isaretSes) { m in IsaretSesEkrani(isaret: m).environmentObject(depo) }
             .onReceive(NotificationCenter.default.publisher(for: .kivilcimKisaYol)) { n in
                 guard let tur = n.object as? String else { return }
                 if tur.hasSuffix("kaydet") { sekme = 0; Task { await merkez.baslat(kaynak: "ikon") } } else { sekme = 1 }
@@ -67,6 +106,18 @@ struct KivilcimKisayollari: AppShortcutsProvider {
         ], shortTitle: "Fikir kaydet", systemImageName: "mic.fill")
         AppShortcut(intent: AcVeKaydetNiyeti(), phrases: ["\(.applicationName) aç ve kaydet"],
                     shortTitle: "Aç ve kaydet", systemImageName: "mic.circle")
+        AppShortcut(intent: StartJournalIntent(), phrases: ["\(.applicationName) ile günlük kaydet", "\(.applicationName) günlük"],
+                    shortTitle: "Sesli günlük", systemImageName: "book.pages")
+        AppShortcut(intent: ShowOpenSparksIntent(), phrases: ["\(.applicationName) açık işler", "\(.applicationName) neler açık"],
+                    shortTitle: "Açık işler", systemImageName: "checklist")
+        AppShortcut(intent: EditLastSparkIntent(), phrases: ["\(.applicationName) son kaydı düzenle"],
+                    shortTitle: "Son kıvılcımı düzenle", systemImageName: "slider.horizontal.3")
+        AppShortcut(intent: MarkDoneIntent(), phrases: ["\(.applicationName) yapıldı işaretle"],
+                    shortTitle: "Yapıldı işaretle", systemImageName: "checkmark.circle")
+        AppShortcut(intent: AddNoteIntent(), phrases: ["\(.applicationName) not ekle"],
+                    shortTitle: "Not ekle", systemImageName: "square.and.pencil")
+        AppShortcut(intent: SetPriorityIntent(), phrases: ["\(.applicationName) öncelik ver"],
+                    shortTitle: "Öncelik ver", systemImageName: "flag")
         AppShortcut(intent: KaydiBitirNiyeti(), phrases: ["\(.applicationName) kaydını bitir"],
                     shortTitle: "Kaydı bitir", systemImageName: "stop.fill")
     }
@@ -77,6 +128,11 @@ struct KivilcimKisayollari: AppShortcutsProvider {
 extension Notification.Name { static let kivilcimKisaYol = Notification.Name("kivilcimKisaYol") }
 
 final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions o: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        KivilcimSystem.registerSend()
+        return true
+    }
+
     func application(_ application: UIApplication, configurationForConnecting s: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         let c = UISceneConfiguration(name: nil, sessionRole: s.role)

@@ -204,6 +204,7 @@ struct OkuEkrani: View {
     @State private var tanima = true
     @State private var trAcik = false
     @AppStorage("oku.cumleCumle") private var cumleCumle = false
+    @AppStorage("oku.butunHikaye") private var butunHikaye = true
     @State private var kopyalanan: String?
 
     init() {
@@ -249,6 +250,11 @@ struct OkuEkrani: View {
                     Text(cumleCumle ? "her cümlede: dinle · kopyala · YZ istemi" : "cümleye tıkla → o cümleyi dinle")
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
+                    if o.gun.dinleme != nil && !cumleCumle {
+                        Toggle("Bütün hikâye", isOn: $butunHikaye.animation(.easeInOut(duration: 0.3)))
+                            .toggleStyle(.switch).controlSize(.small)
+                            .help("Ara parçalar hikâyeyi tamamlar; kapatınca yalnız çalışacağın cümleler kalır.")
+                    }
                     Picker("Görünüm", selection: $cumleCumle) {
                         Text("Paragraf").tag(false)
                         Text("Cümle cümle").tag(true)
@@ -271,11 +277,23 @@ struct OkuEkrani: View {
         var a = AttributedString()
         var n = 0
         let isaretli = k.hal == .bitti && k.sonuc != nil
-        for (i, c) in o.gun.cumleler.enumerated() {
+        // v2: uzun hikâye. Çalışma cümleleri hep görünür ve vurgulu; ara parçalar soluk, istenirse katlanır.
+        let parcalar: [GunParca] = (o.gun.dinleme?.isEmpty == false && butunHikaye) ? o.gun.dinleme!
+            : o.gun.cumleler.indices.map { GunParca(en: nil, cumle: $0) }
+        let uzun = parcalar.contains { $0.cumle == nil }
+        for x in parcalar {
+            guard let i = x.cumle, i < o.gun.cumleler.count else {
+                var f = AttributedString((x.en ?? "") + " ")
+                f.foregroundColor = .secondary
+                a += f
+                continue
+            }
+            let c = o.gun.cumleler[i]
             var p = boya(c.en, bas: n, isaretli: isaretli)
             n += Metin.kelimeler(c.en).count
             p.link = URL(string: "cumle://s/\(i)")
             if ses.calanCumle == i { p.backgroundColor = Renk.vurgu.opacity(0.18) }
+            else if uzun { p.backgroundColor = Renk.vurgu.opacity(0.07) }
             a += p
             a += AttributedString(" ")
         }

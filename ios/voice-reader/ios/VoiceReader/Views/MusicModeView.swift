@@ -27,8 +27,12 @@ struct MusicModeView: View {
     @State private var flash = false             // Kinetik: the key word landed
     @State private var wasReading = false        // reading was paused on opening: it goes on (music behind) on closing
 
-    private static let amber = Color(red: 0.98, green: 0.72, blue: 0.30)
-    private static let paper = Color(red: 0.97, green: 0.95, blue: 0.90)
+    /// Gündüz: the page turns to warm paper, the text to ink, the amber to a burnt orange (the road screen's day colours).
+    private var day: Bool { backdropKind == .day }
+    private var amber: Color { day ? Color(red: 0.78, green: 0.36, blue: 0.03) : Color(red: 0.98, green: 0.72, blue: 0.30) }
+    private var paper: Color { day ? Color(red: 0.125, green: 0.105, blue: 0.085) : Color(red: 0.97, green: 0.95, blue: 0.90) }
+    private var page: Color { day ? Color(red: 0.965, green: 0.945, blue: 0.905) : .black }
+    private var chip: Color { day ? Color.black.opacity(0.06) : Color.white.opacity(0.08) }
 
     private var line: MusicLine? { lines.isEmpty ? nil : lines[index % lines.count] }
     private var words: [String] { line.map { $0.text.split(separator: " ").map(String.init) } ?? [] }
@@ -45,7 +49,7 @@ struct MusicModeView: View {
             ZStack {
                 backdrop(g.size)
                 if content == .listen {
-                    KineticListening(size: CGSize(width: g.size.width - 52, height: g.size.height * 0.6), accent: Self.amber, paper: Self.paper)
+                    KineticListening(size: CGSize(width: g.size.width - 52, height: g.size.height * 0.6), accent: amber, paper: paper, glow: !day, mask: model.settings.kineticMask, page: page)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .opacity(model.player.isPlaying ? 1 : 0.45)
                 }
@@ -57,23 +61,24 @@ struct MusicModeView: View {
                     VStack(spacing: 18) {
                         Text(line.label.uppercased())
                             .font(.system(size: 11, weight: .bold, design: .rounded)).tracking(2.4)
-                            .foregroundStyle(line.kind == .mark ? Self.amber : Self.paper.opacity(0.55))
+                            .foregroundStyle(line.kind == .mark ? amber : paper.opacity(0.55))
                             .padding(.horizontal, 10).padding(.vertical, 4)
-                            .background(Capsule().strokeBorder((line.kind == .mark ? Self.amber : Self.paper).opacity(0.35), lineWidth: 1))
+                            .background(Capsule().strokeBorder((line.kind == .mark ? amber : paper).opacity(0.35), lineWidth: 1))
                         if kinetic, let p = phrase {
                             KineticPhraseView(phrase: p, shown: phraseShown,
                                               size: CGSize(width: g.size.width - 52, height: g.size.height * 0.6),
-                                              accent: Self.amber, paper: Self.paper)
+                                              accent: amber, paper: paper, glow: !day, mask: model.settings.kineticMask, page: page)
                                 .id("\(line.id)-\(p.id)")
                                 .transition(.asymmetric(insertion: .opacity,
-                                                        removal: .modifier(active: FlyPast(t: 1), identity: FlyPast(t: 0))))
+                                                        removal: model.settings.kineticMask && !reduceMotion ? Rise.leave
+                                                            : .modifier(active: FlyPast(t: 1), identity: FlyPast(t: 0))))
                         } else if !kinetic {
                         CenterFlow(spacing: size(for: line) * 0.28, lineSpacing: size(for: line) * 0.18) {
                             ForEach(Array(words.prefix(shown).enumerated()), id: \.offset) { i, w in
                                 Text(w)
                                     .font(.system(size: size(for: line), weight: .semibold, design: .serif))
-                                    .foregroundStyle(i >= shown - chunk && !paused ? Self.amber : Self.paper)
-                                    .shadow(color: Self.amber.opacity(i >= shown - chunk ? 0.55 : 0), radius: 14)
+                                    .foregroundStyle(i >= shown - chunk && !paused ? amber : paper)
+                                    .shadow(color: amber.opacity(i >= shown - chunk && !day ? 0.55 : 0), radius: 14)
                                     .transition(reduceMotion ? .opacity : .modifier(active: WordIn(t: 0), identity: WordIn(t: 1)))
                             }
                         }
@@ -85,7 +90,7 @@ struct MusicModeView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .opacity(paused ? 0 : 1)
                 }
-                Self.amber.opacity(flash ? 0.16 : 0).ignoresSafeArea().allowsHitTesting(false)
+                amber.opacity(flash ? (day ? 0.07 : 0.16) : 0).ignoresSafeArea().allowsHitTesting(false)
                 if paused, content == .lines, let line { card(line).transition(.opacity.combined(with: .scale(scale: 0.96))) }
                 chrome
             }
@@ -103,7 +108,7 @@ struct MusicModeView: View {
                 step(v.translation.width < 0 ? 1 : -1)
             })
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(page.ignoresSafeArea())
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .task { await load() }
@@ -160,7 +165,7 @@ struct MusicModeView: View {
     /// the last one stays three beats before the next sentence.
     private func kineticBeat() {
         guard let p = phrase else { step(1); return }
-        let total = p.words.count + (p.symbol != nil && p.layout != .giant ? 1 : 0)
+        let total = p.beats
         if phraseShown < total {
             withAnimation(.spring(duration: 0.34, bounce: 0.38)) { phraseShown += 1 }
             if phraseShown - 1 == p.key, !reduceMotion {
@@ -232,6 +237,10 @@ struct MusicModeView: View {
                     .frame(width: s.width, height: s.width)
                     .opacity(paused ? 0.12 : 0.85)
             case .dusk: dusk(s)
+            case .day:
+                RadialBars(lastBeat: lastBeat, bpm: beat.bpm, level: beat.level, seed: beat.beat, paused: paused || reduceMotion, day: true)
+                    .frame(width: s.width, height: s.width)
+                    .opacity(paused ? 0.15 : 0.9)
             case .aurora: AuroraVisual(input: beatInput)
             case .drop: DropVisual(input: beatInput)
             case .pulse: PulseVisual(input: beatInput)
@@ -298,13 +307,13 @@ struct MusicModeView: View {
             // the quiet top, as on the road screen: clock · battery, the mode and the speed, the book
             HStack(alignment: .top, spacing: 12) {
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(Self.paper.opacity(0.8))
-                        .frame(width: 40, height: 40).background(.white.opacity(0.08), in: Circle())
+                    Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(paper.opacity(0.8))
+                        .frame(width: 40, height: 40).background(chip, in: Circle())
                 }
                 .accessibilityLabel("Müzik modundan çık")
                 Spacer(minLength: 0)
                 RoadStatus(label: model.musicFromBreak ? "Ara · müzik" : "Müzik modu", book: title,
-                           ink: Self.paper.opacity(0.6), dim: Self.paper.opacity(0.4))
+                           ink: paper.opacity(0.6), dim: paper.opacity(0.4))
                     .frame(maxWidth: 230)
                 Spacer(minLength: 0)
                 tempo.fixedSize()
@@ -318,21 +327,32 @@ struct MusicModeView: View {
                     withAnimation(.smooth(duration: 0.5)) { model.settings.musicBackdrop = next.rawValue }
                 } label: {
                     Image(systemName: backdropKind.symbol).font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Self.paper.opacity(0.85))
+                        .foregroundStyle(paper.opacity(0.85))
                         .frame(width: 36, height: 36)
-                        .background(.white.opacity(0.08), in: Circle())
+                        .background(chip, in: Circle())
                 }
                 .accessibilityLabel("Arka plan: \(backdropKind.name). Dokun: sonraki")
                 if !model.musicFromBreak { contentMenu }
-                if content == .lines {
-                    Button { withAnimation(.smooth) { model.settings.musicKinetic.toggle(); phraseIndex = 0; phraseShown = 0; shown = 0; hold = 0 } } label: {
-                        Text(kinetic ? "Kinetik" : "Akış").font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundStyle(Self.paper.opacity(0.85))
+                if content == .lines || content == .listen {
+                    // Akış → Kinetik → Perde (Dinle has no Akış: Kinetik ↔ Perde)
+                    let name = content == .lines && !kinetic ? "Akış" : (model.settings.kineticMask ? "Perde" : "Kinetik")
+                    Button {
+                        withAnimation(.smooth) {
+                            let st = model.settings
+                            if content == .listen { st.kineticMask.toggle() }
+                            else if !st.musicKinetic { st.musicKinetic = true; st.kineticMask = false }
+                            else if !st.kineticMask { st.kineticMask = true }
+                            else { st.musicKinetic = false; st.kineticMask = false }
+                            phraseIndex = 0; phraseShown = 0; shown = 0; hold = 0
+                        }
+                    } label: {
+                        Text(name).font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(paper.opacity(0.85))
                             .padding(.horizontal, 12).frame(height: 36)
-                            .background(.white.opacity(0.08), in: Capsule())
+                            .background(chip, in: Capsule())
                             .fixedSize()
                     }
-                    .accessibilityLabel("Yazı biçimi: \(kinetic ? "Kinetik" : "Akış"). Dokun: değiştir")
+                    .accessibilityLabel("Yazı biçimi: \(name). Dokun: değiştir")
                 }
             }
             .padding(.horizontal, 16)
@@ -350,11 +370,11 @@ struct MusicModeView: View {
                 case .listen:
                     Text(model.player.isPlaying ? "dokun: duraklat" : "dokun: oku")
                     Spacer()
-                    if let ch = model.player.chapterTitle(at: model.player.cursor) { Text(ch).lineLimit(1) }
+                    if let ch = model.player.chapterTitle(at: model.player.shownCursor) { Text(ch).lineLimit(1) }
                 }
             }
             .font(.system(size: 11, weight: .medium, design: .rounded))
-            .foregroundStyle(Self.paper.opacity(0.35))
+            .foregroundStyle(paper.opacity(0.35))
             .padding(.horizontal, 20).padding(.bottom, 10)
         }
     }
@@ -371,9 +391,9 @@ struct MusicModeView: View {
             }
         } label: {
             Image(systemName: content.symbol).font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Self.paper.opacity(0.85))
+                .foregroundStyle(paper.opacity(0.85))
                 .frame(width: 36, height: 36)
-                .background(.white.opacity(0.08), in: Circle())
+                .background(chip, in: Circle())
         }
         .accessibilityLabel("İçerik: \(content.name)")
     }
@@ -384,7 +404,7 @@ struct MusicModeView: View {
             let left = max(0, Int(ends.timeIntervalSince(ctx.date).rounded()))
             Text("\(left / 60):\(String(format: "%02d", left % 60))")
                 .font(.system(size: 15, weight: .semibold, design: .rounded)).monospacedDigit()
-                .foregroundStyle(Self.paper.opacity(0.45))
+                .foregroundStyle(paper.opacity(0.45))
         }
         .frame(maxHeight: .infinity, alignment: .bottom)
         .padding(.bottom, 60)
@@ -395,13 +415,13 @@ struct MusicModeView: View {
     private var tempo: some View {
         Button { beat.tap() } label: {
             HStack(spacing: 6) {
-                Circle().fill(Self.amber).frame(width: 7, height: 7).opacity(bump ? 1 : 0.25)
+                Circle().fill(amber).frame(width: 7, height: 7).opacity(bump ? 1 : 0.25)
                 Image(systemName: beat.source == .microphone ? "mic.fill" : "metronome.fill").font(.system(size: 12, weight: .semibold))
                 Text("\(Int(beat.bpm))").font(.system(size: 14, weight: .bold, design: .rounded)).monospacedDigit()
             }
-            .foregroundStyle(Self.paper.opacity(0.85))
+            .foregroundStyle(paper.opacity(0.85))
             .padding(.horizontal, 12).frame(height: 36)
-            .background(.white.opacity(0.08), in: Capsule())
+            .background(chip, in: Capsule())
         }
         .contextMenu {
             Toggle(isOn: Binding(get: { model.settings.musicMic }, set: { on in
@@ -419,21 +439,21 @@ struct MusicModeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
                     Text(line.label.uppercased()).font(.system(size: 11, weight: .bold, design: .rounded)).tracking(2)
-                        .foregroundStyle(Self.amber)
-                    if let ch = line.chapter { Text("· \(ch)").font(.system(size: 12)).foregroundStyle(Self.paper.opacity(0.5)).lineLimit(1) }
+                        .foregroundStyle(amber)
+                    if let ch = line.chapter { Text("· \(ch)").font(.system(size: 12)).foregroundStyle(paper.opacity(0.5)).lineLimit(1) }
                 }
-                Text(line.text).font(.system(size: 24, weight: .medium, design: .serif)).foregroundStyle(Self.paper)
+                Text(line.text).font(.system(size: 24, weight: .medium, design: .serif)).foregroundStyle(paper)
                     .lineSpacing(5)
                 if let why = line.why {
                     Label { Text(why) } icon: { Image(systemName: "lightbulb") }
-                        .font(.system(size: 15)).foregroundStyle(Self.paper.opacity(0.75))
+                        .font(.system(size: 15)).foregroundStyle(paper.opacity(0.75))
                 }
                 if let core = insight?.core, core.theme != nil || core.claim != nil {
-                    Divider().overlay(Self.paper.opacity(0.15))
+                    Divider().overlay(paper.opacity(0.15))
                     Text("KİTABIN ANA FİKRİ").font(.system(size: 11, weight: .bold, design: .rounded)).tracking(2)
-                        .foregroundStyle(Self.paper.opacity(0.45))
-                    if let t = core.theme { Text(t).font(.system(size: 17, weight: .semibold, design: .serif)).foregroundStyle(Self.paper.opacity(0.9)) }
-                    if let c = core.claim { Text(c).font(.system(size: 15)).foregroundStyle(Self.paper.opacity(0.7)).lineSpacing(3) }
+                        .foregroundStyle(paper.opacity(0.45))
+                    if let t = core.theme { Text(t).font(.system(size: 17, weight: .semibold, design: .serif)).foregroundStyle(paper.opacity(0.9)) }
+                    if let c = core.claim { Text(c).font(.system(size: 15)).foregroundStyle(paper.opacity(0.7)).lineSpacing(3) }
                 }
             }
             .padding(22)
@@ -442,15 +462,15 @@ struct MusicModeView: View {
             .padding(.vertical, 90)
         }
         .scrollIndicators(.hidden)
-        .environment(\.colorScheme, .dark)
+        .environment(\.colorScheme, day ? .light : .dark)
     }
 
     private var empty: some View {
         VStack(spacing: 10) {
-            Image(systemName: "music.note.list").font(.system(size: 34)).foregroundStyle(Self.amber)
-            Text("Bu kitapta gösterilecek cümle yok").font(.headline).foregroundStyle(Self.paper)
+            Image(systemName: "music.note.list").font(.system(size: 34)).foregroundStyle(amber)
+            Text("Bu kitapta gösterilecek cümle yok").font(.headline).foregroundStyle(paper)
             Text("Okurken işaretlediğin cümleler burada müzikle akar. Kitap Teoria'da özetlendiyse can alıcı cümleleri ve ana fikri de gelir (vault klasörü seçili olmalı).")
-                .font(.subheadline).foregroundStyle(Self.paper.opacity(0.6)).multilineTextAlignment(.center)
+                .font(.subheadline).foregroundStyle(paper.opacity(0.6)).multilineTextAlignment(.center)
         }
         .padding(30)
     }
@@ -476,10 +496,11 @@ enum MusicContent: String, CaseIterable, Identifiable {
 }
 
 enum MusicBackdrop: String, CaseIterable {
-    case circle, breath, aurora, drop, pulse, lissajous, tunnel, black, glow, dusk
+    case circle, day, breath, aurora, drop, pulse, lissajous, tunnel, black, glow, dusk
     var name: String {
         switch self {
         case .circle: "Daire"
+        case .day: "Gündüz"
         case .aurora: "Aurora"
         case .drop: "Damla"
         case .pulse: "Nabız"
@@ -494,6 +515,7 @@ enum MusicBackdrop: String, CaseIterable {
     var symbol: String {
         switch self {
         case .circle: "circle.dotted.circle"
+        case .day: "sun.max"
         case .aurora: "water.waves"
         case .drop: "drop.circle"
         case .pulse: "waveform.path.ecg"
@@ -525,8 +547,9 @@ private struct RadialBars: View {
     let level: Double
     let seed: Int
     let paused: Bool
+    var day = false                              // on paper: deeper colours, a dark dot at the bar's end
     private static let count = 64
-    private static let amber = Color(red: 0.98, green: 0.72, blue: 0.30)
+    private var amber: Color { day ? Color(red: 0.78, green: 0.36, blue: 0.03) : Color(red: 0.98, green: 0.72, blue: 0.30) }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1 / 30, paused: paused)) { ctx in
@@ -544,12 +567,12 @@ private struct RadialBars: View {
         let maxLen: CGFloat = size.width * 0.26
         // the core breathes with the beat: a warm light inside the ring
         let core = Path(ellipseIn: CGRect(x: cx - r0, y: cy - r0, width: r0 * 2, height: r0 * 2))
-        g.fill(core, with: .radialGradient(Gradient(colors: [Self.amber.opacity(0.05 + 0.22 * decay), .clear]),
+        g.fill(core, with: .radialGradient(Gradient(colors: [amber.opacity(0.05 + 0.22 * decay), .clear]),
                                            center: CGPoint(x: cx, y: cy), startRadius: 0, endRadius: r0))
         var halo = g
         halo.addFilter(.blur(radius: 6 + 10 * decay))
-        halo.stroke(core, with: .color(Self.amber.opacity(0.3 + 0.5 * decay)), lineWidth: 4)
-        g.stroke(core, with: .color(Self.amber.opacity(0.45 + 0.45 * decay)), lineWidth: 1.5)
+        halo.stroke(core, with: .color(amber.opacity(0.3 + 0.5 * decay)), lineWidth: 4)
+        g.stroke(core, with: .color(amber.opacity(0.45 + 0.45 * decay)), lineWidth: 1.5)
         let spin = t * 0.05                                         // the crown turns slowly
         let half = Self.count / 2
         // each bar twice: blurred (the glow), then sharp; a short echo of it reaches inwards
@@ -566,13 +589,13 @@ private struct RadialBars: View {
             path.move(to: CGPoint(x: cx + CGFloat(cos(a)) * inner, y: cy + CGFloat(sin(a)) * inner))
             path.addLine(to: CGPoint(x: cx + CGFloat(cos(a)) * outer, y: cy + CGFloat(sin(a)) * outer))
             // low bars warm amber, high ones turn to rose and violet
-            let color = Color(hue: 0.08 - 0.2 * v + (v > 0.6 ? 1 : 0), saturation: 0.8, brightness: 1).opacity(0.6 + 0.4 * v)
+            let color = Color(hue: 0.08 - 0.2 * v + (v > 0.6 ? 1 : 0), saturation: day ? 0.9 : 0.8, brightness: day ? 0.72 : 1).opacity(0.6 + 0.4 * v)
             glow.stroke(path, with: .color(color.opacity(0.7)), style: StrokeStyle(lineWidth: 9, lineCap: .round))
             g.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 4.5, lineCap: .round))
             // the tip: a bright dot that flies a little further on the beat
             let tip = outer + 10 * CGFloat(decay)
             let dot = CGPoint(x: cx + CGFloat(cos(a)) * tip, y: cy + CGFloat(sin(a)) * tip)
-            g.fill(Path(ellipseIn: CGRect(x: dot.x - 2, y: dot.y - 2, width: 4, height: 4)), with: .color(.white.opacity(0.35 + 0.6 * v)))
+            g.fill(Path(ellipseIn: CGRect(x: dot.x - 2, y: dot.y - 2, width: 4, height: 4)), with: .color((day ? Color.black : Color.white).opacity(0.35 + 0.6 * v)))
             var echo = Path()
             echo.move(to: CGPoint(x: cx + CGFloat(cos(a)) * (r0 - 6), y: cy + CGFloat(sin(a)) * (r0 - 6)))
             echo.addLine(to: CGPoint(x: cx + CGFloat(cos(a)) * (r0 - 6 - maxLen * 0.3 * CGFloat(v)), y: cy + CGFloat(sin(a)) * (r0 - 6 - maxLen * 0.3 * CGFloat(v))))

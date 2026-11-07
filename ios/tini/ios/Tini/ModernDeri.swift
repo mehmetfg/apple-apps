@@ -4,6 +4,7 @@ struct ModernDeri: View {
     @EnvironmentObject var calar: Calar
     @EnvironmentObject var ses: Ses
     @EnvironmentObject var gezinti: Gezinti
+    @ObservedObject private var radyo = Radyo.shared
 
     var body: some View {
         ZStack {
@@ -69,11 +70,17 @@ struct ModernDeri: View {
 
     private var bilgi: some View {
         VStack(spacing: 5) {
-            Text(calar.simdiki?.baslik ?? "Kitaplıktan bir parça seç")
-                .font(.title3.weight(.semibold)).lineLimit(1)
-            Text(calar.simdiki.map { "\($0.sanatci) — \($0.album)" } ?? " ")
-                .font(.subheadline).opacity(0.7).lineLimit(1)
-            if let p = calar.simdiki {
+            if radyo.caliyor, let i = radyo.istasyon {
+                Text(radyo.simdiCalan ?? i.ad).font(.title3.weight(.semibold)).lineLimit(1)
+                Text("Radyo · \(i.ad)").font(.subheadline).opacity(0.7).lineLimit(1)
+                BicimRozeti(bicim: "CANLI")
+            } else {
+                Text(calar.simdiki?.baslik ?? "Kitaplıktan bir parça seç")
+                    .font(.title3.weight(.semibold)).lineLimit(1)
+                Text(calar.simdiki.map { "\($0.sanatci) — \($0.album)" } ?? " ")
+                    .font(.subheadline).opacity(0.7).lineLimit(1)
+            }
+            if !radyo.caliyor, let p = calar.simdiki {
                 HStack(spacing: 6) {
                     BicimRozeti(bicim: p.bicim)
                     if p.yuksekCozunurluk { BicimRozeti(bicim: "Hi-Res") }
@@ -93,7 +100,7 @@ struct ModernDeri: View {
             Button { calar.onceki() } label: { Image(systemName: "backward.fill").font(.title) }.accessibilityLabel("Önceki parça")
             Spacer()
             Button { calar.acKapa() } label: {
-                Image(systemName: calar.caliyorMu ? "pause.circle.fill" : "play.circle.fill")
+                Image(systemName: calar.caliyorMu || radyo.caliyor ? "pause.circle.fill" : "play.circle.fill")
                     .font(.system(size: 66)).symbolRenderingMode(.hierarchical)
                     .contentTransition(.symbolEffect(.replace))
             }.accessibilityLabel(calar.caliyorMu ? "Duraklat" : "Çal")

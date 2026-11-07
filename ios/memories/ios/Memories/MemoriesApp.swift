@@ -4,27 +4,39 @@
 import SwiftUI
 import UserNotifications
 import BackgroundTasks
+import AppIntents
 
 enum Sekme: String, Hashable { case bugun, dinle, oku, kaydet, ayarlar }
 
 final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     static let gorev = "com.fatihgocgun.memories.esitle"
-    @MainActor static weak var depo: Depo?
+    /// The process-wide store. Not a reference set by the window: a background launch (widget recording,
+    /// background refresh) has no window, and found nil here.
+    @MainActor static var depo: Depo? { Depo.shared }
     @MainActor static var rota: ((String) -> Void)?
     @MainActor static var bekleyenRota: String?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions o: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        // The on-device generator was removed on 2026-11-06. Its model (about 1 GB) has no screen any more.
+        DispatchQueue.global(qos: .utility).async {
+            if let g = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.fatihgocgun.memories") {
+                try? FileManager.default.removeItem(at: g.appendingPathComponent("qwen", isDirectory: true))
+            }
+        }
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.gorev, using: nil) { gorev in
             guard let g = gorev as? BGAppRefreshTask else { gorev.setTaskCompleted(success: false); return }
             Self.planla()
+            let bitis = BackgroundCompletion(g)
             let is_ = Task { @MainActor in
-                guard let depo = UygulamaTemsilcisi.depo else { g.setTaskCompleted(success: false); return }
+                guard let depo = UygulamaTemsilcisi.depo else { bitis.finish(false); return }
                 let sonuc = await depo.esitleSimdi()
-                if let gun = sonuc.yeniCozum, let c = depo.cozumler[gun] { await Bildirim.cozumGeldi(c) }
-                g.setTaskCompleted(success: true)
+                if !Task.isCancelled, let gun = sonuc.yeniCozum, let c = depo.cozumler[gun] { await Bildirim.cozumGeldi(c) }
+                bitis.finish(!Task.isCancelled)
             }
-            g.expirationHandler = { is_.cancel() }
+            // Time is up: stop the sync (its vault waits are cancellable) and hand the task back now, even if a
+            // file coordination call is still blocked.
+            g.expirationHandler = { is_.cancel(); bitis.finish(false) }
         }
         return true
     }
@@ -48,10 +60,35 @@ final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate, UNUserNotificat
     }
 }
 
+/// Completes a background task exactly once: by the sync when it ends, or by the expiration handler.
+final class BackgroundCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: BGTask?
+    init(_ t: BGTask) { task = t }
+    func finish(_ success: Bool) {
+        lock.lock()
+        let t = task
+        task = nil
+        lock.unlock()
+        t?.setTaskCompleted(success: success)
+    }
+}
+
+struct MemoriesShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(intent: OpenMemoriesIntent(.dinle), phrases: ["\(.applicationName) bugünü dinle", "\(.applicationName) dinle"],
+                    shortTitle: "Bugünü dinle", systemImageName: "headphones")
+        AppShortcut(intent: OpenMemoriesIntent(.oku), phrases: ["\(.applicationName) cümleleri oku", "\(.applicationName) oku"],
+                    shortTitle: "Cümleleri oku", systemImageName: "text.book.closed")
+        AppShortcut(intent: OpenMemoriesIntent(.kaydet), phrases: ["\(.applicationName) metni kaydet"],
+                    shortTitle: "Metni kaydet", systemImageName: "doc.text")
+    }
+}
+
 @main
 struct MemoriesApp: App {
     @UIApplicationDelegateAdaptor(UygulamaTemsilcisi.self) var temsilci
-    @StateObject private var depo = Depo()
+    @StateObject private var depo = Depo.shared
     @StateObject private var oynatici = Oynatici()
     @Environment(\.scenePhase) private var faz
     @State private var sekme: Sekme = .bugun
@@ -68,6 +105,10 @@ struct MemoriesApp: App {
                 KayitEkrani().tabItem { Label("Metin", systemImage: "doc.text") }.tag(Sekme.kaydet)
                 AyarlarEkrani().tabItem { Label("Ayarlar", systemImage: "gearshape") }.tag(Sekme.ayarlar)
             }
+            // The local cache is read off the main thread at launch: until it is in, the screens stay hidden
+            // (no flash of "no package yet").
+            .opacity(depo.loaded ? 1 : 0)
+            .allowsHitTesting(depo.loaded)
             .environmentObject(depo)
             .environmentObject(oynatici)
             .tint(Tema.vurgu)
@@ -102,9 +143,9 @@ struct MemoriesApp: App {
             .onOpenURL { git($0.host() ?? "") }
             .onAppear {
                 oynatici.depo = depo
-                UygulamaTemsilcisi.depo = depo
                 UygulamaTemsilcisi.rota = { git($0) }
                 if let r = UygulamaTemsilcisi.bekleyenRota { UygulamaTemsilcisi.bekleyenRota = nil; git(r) }
+                bekleyenNiyet()
             }
             .task {
                 await depo.esitleSimdi()
@@ -113,10 +154,12 @@ struct MemoriesApp: App {
             .onChange(of: faz) { _, yeni in
                 switch yeni {
                 case .active:
+                    bekleyenNiyet()
                     let eski = Set(depo.cozumler.keys)
                     Task {
                         await depo.esitleSimdi()
                         if let g = Set(depo.cozumler.keys).subtracting(eski).max(), let c = depo.cozumler[g] { await Bildirim.cozumGeldi(c) }
+                        await depo.syncBus(opened: true)
                     }
                 case .background:
                     UygulamaTemsilcisi.planla()
@@ -127,7 +170,18 @@ struct MemoriesApp: App {
         }
     }
 
+    /// A system action (Siri, Control Center) left a route for us.
+    private func bekleyenNiyet() {
+        guard let r = Paylasim.ayar.string(forKey: "w.rota") else { return }
+        Paylasim.ayar.removeObject(forKey: "w.rota")
+        git(r)
+    }
+
     private func git(_ rota: String) {
+        guard depo.loaded else {        // a link that opened the app: wait for the packages
+            Task { await depo.whenLoaded(); git(rota) }
+            return
+        }
         switch rota {
         case "dinle":
             sekme = .dinle

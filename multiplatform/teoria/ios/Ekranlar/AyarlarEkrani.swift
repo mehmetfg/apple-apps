@@ -97,13 +97,19 @@ struct AyarlarEkrani: View {
 
                 Section {
                     LabeledContent("Vault", value: kasa.bagli ? kasa.klasorAdi : "bağlı değil")
-                    if let s = depo.sonEsitleme { LabeledContent("Son eşitleme", value: Tarih.goreli(s)) }
+                    SyncAware(status: depo.sync) { d in
+                        if let s = d.lastSync { LabeledContent("Son eşitleme", value: Tarih.goreli(s)) }
+                    }
                     #if os(iOS)
                     Button(kasa.bagli ? "Klasörü değiştir" : "Vault klasörünü seç") { klasorSec = true }
                     #endif
-                    Button(depo.guncelleniyor ? "Güncelleniyor…" : "Akışı güncelle") { Task { await depo.guncelle() } }
-                        .disabled(depo.guncelleniyor)
-                    Button("Şimdi eşitle") { Task { await depo.esitleSimdi() } }.disabled(!kasa.bagli || depo.esitleniyor)
+                    SyncAware(status: depo.sync) { d in
+                        Button(d.updating ? "Güncelleniyor…" : "Akışı güncelle") { Task { await depo.guncelle() } }
+                            .disabled(d.updating)
+                    }
+                    SyncAware(status: depo.sync) { d in
+                        Button("Şimdi eşitle") { Task { await depo.esitleSimdi() } }.disabled(!kasa.bagli || d.syncing)
+                    }
                     if let h = kasa.hata { Text(h).font(.footnote).foregroundStyle(Tema.uyari) }
                     if depo.bozukSatir > 0 {
                         Text("\(depo.bozukSatir) bozuk satır atlandı (yarım yazılmış olabilir); kalan her şey okundu.")

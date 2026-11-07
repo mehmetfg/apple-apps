@@ -54,14 +54,27 @@ enum Bildirim {
         return tk.dateComponents([.year, .month, .day, .hour, .minute], from: hedef)
     }
 
+    @MainActor private static var lastPlan: String?
+
     /// Bekleyen bütün Memories bildirimlerini durumdan yeniden kurar. Her açılışta ve her olayda çağrılır.
+    /// - Parameter onlyIfChanged: after an event — skip the work when the plan would come out the same
+    ///   (same package, same "started" state, same settings, same trigger times).
     @MainActor
-    static func planla(_ depo: Depo) async {
+    static func planla(_ depo: Depo, onlyIfChanged: Bool = false) async {
+        await depo.whenLoaded()
         let mrk = UNUserNotificationCenter.current()
         var izinDurumu = await izin()
         if izinDurumu == .sorulmadi, paketAcik || cozumAcik {
             izinDurumu = await izinIste() ? .verildi : .reddedildi
         }
+        let key: String = {
+            guard izinDurumu == .verildi, let p = depo.guncel else { return "-" }
+            let z1 = paketAcik ? sonraki(paketSaat, paketDakika) : nil
+            let z2 = aksamAcik ? sonraki(aksamSaat, 0, bugunOlsun: true) : nil
+            return "\(p.gun)|\(p.ad)|\(p.sure)|\(depo.hazirlik(p.gun).basladi)|\(sesli)|\(String(describing: z1))|\(String(describing: z2))"
+        }()
+        if onlyIfChanged, key == lastPlan { return }
+        lastPlan = key
         let bekleyen = await mrk.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(onek) && !$0.hasPrefix(onek + "cozum") }
         mrk.removePendingNotificationRequests(withIdentifiers: bekleyen)
         guard izinDurumu == .verildi, let p = depo.guncel else { return }

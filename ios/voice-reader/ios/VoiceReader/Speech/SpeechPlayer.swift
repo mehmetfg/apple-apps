@@ -31,7 +31,19 @@ final class SpeechPlayer: NSObject {
     var isPlaying: Bool { isSpeaking && !isPaused }
 
     /// Where reading continues from; follows the spoken word while playing.
-    private(set) var cursor = 0
+    private(set) var cursor = 0 {
+        didSet {
+            guard cursor != shownCursor else { return }
+            // a jump, a pause, the end: at once. Word by word while reading: at most once a second.
+            if !wordStep || Date.now.timeIntervalSince(shownAt) >= 1 { shownCursor = cursor; shownAt = .now }
+        }
+    }
+    /// `cursor` for the views that show progress (bars, per cent, time left, the chapter's name). While the voice
+    /// reads it follows at most once a second, so those views are not evaluated again on every word; any other
+    /// change of the place reaches it at once.
+    private(set) var shownCursor = 0
+    @ObservationIgnored private var shownAt = Date.distantPast
+    @ObservationIgnored private var wordStep = false
     /// The word and the sentence being heard (document offsets), for the reader's highlight.
     private(set) var spokenWord: NSRange? { didSet { if oldValue != spokenWord { onSpokenChange?() } } }
     private(set) var spokenSentence: NSRange? {
@@ -118,9 +130,19 @@ final class SpeechPlayer: NSObject {
     /// Off = played exactly
     /// as the synthesiser makes it, as in Voice Dream.
     var clearVoice = true { didSet { if oldValue != clearVoice { applyBoost(); restartSoon() } } }
+    /// Yüksek hız: above 385 words a minute a system voice is rendered at its clean speed and shortened unevenly
+    /// (FastSpeech), instead of asking the engine for a speed at which its sounds run together.
+    var fastClear = true { didSet { if oldValue != fastClear, fast(voiceID, language: nil) || oldValue { restartSoon() } } }
+    /// Whether a piece in this voice goes through FastSpeech now.
+    private func fast(_ vid: String, language: String?) -> Bool {
+        fastClear && speed * Self.wordsAtOneX > FastSpeech.from && !assistive(language)
+            && VoiceProfile.with(id: vid) == nil && vid != ElevenLabs.readerVoiceID && vid != CloudVoice.readerVoiceID
+    }
     /// Turkish system voices take speed, pitch and equalizer from the phone's Spoken Content settings
     /// (prefersAssistiveTechnologySettings). Measured on iOS 27.0.1, 2026-10-26: Yelda at 156 Hz with a 4.2-semitone
     /// melody and the old Yelda's colour (bands within 1 dB), the depth Voice Dream had; the app's rate is ignored.
+    /// Since 2026-11-06 the same depth comes from Wise Path's own Kalınlık (SystemPitch), with its own speed; this
+    /// mode stays for whoever wants the phone's settings to rule.
     var systemSpeech = true { didSet { if oldValue != systemSpeech { applyBoost(); calibrateAssistive(); restartSoon() } } }
     /// VoiceMaster's level for the system voice: always on with the phone's settings (iOS gives Yelda at −16.4 dBFS,
     /// as raw; "çok zayıf" next to Voice Dream), else only with Net ve gür ses.
@@ -128,10 +150,16 @@ final class SpeechPlayer: NSObject {
     /// Gain that brings a voice read with the phone's settings back to the plain voice's level (see assistiveGain).
     @ObservationIgnored private var assistiveGain = UserDefaults.standard.object(forKey: "a.assistiveGain") as? Float ?? 1
     @ObservationIgnored private var liveGain: Float = 1
+    @ObservationIgnored private var assistiveMeasuredAt = Date.distantPast
 
     /// Measure assistiveGain again (≈ 0.3 s, off the main thread); the next buffers use it.
-    func calibrateAssistive() {
-        guard systemSpeech else { return }
+    func calibrateAssistive(fallback: Bool = false) {
+        // only when a system voice reads: Ema, the studio voice and the cloud voices never use this gain, and the
+        // measurement (a short synthesis) ran at every play, jump and restart for them too. A paragraph such a
+        // voice hands to the system voice asks for it itself (`fallback`, see speakSystem), at most every ten minutes.
+        guard systemSpeech, fallback || !rendersOwnVoice else { return }
+        if fallback, Date.now.timeIntervalSince(assistiveMeasuredAt) < 600 { return }
+        assistiveMeasuredAt = .now
         let id = Voices.voice(voiceID)?.language.hasPrefix("tr") == true ? voiceID
             : AVSpeechSynthesisVoice(language: "tr-TR")?.identifier ?? voiceID
         ProfileRenderer.shared.queue.async { [weak self] in
@@ -172,6 +200,8 @@ final class SpeechPlayer: NSObject {
     private var ducking: Bool { musicMix != .off && musicLevel <= Self.duckBelow }
     /// The open document's Mac-rendered audio (Anlatıcı voice), if it has one; AppModel sets it on opening.
     @ObservationIgnored var studio: StudioPack? { didSet { if voiceID == VoiceProfile.studio.id { restartSoon() } } }
+    /// Kararlı ölçü for the cloud voices (ElevenLabs, Google, Azure, OpenAI): melody narrowed, phrase levels evened.
+    var steadyCloud = true { didSet { if oldValue != steadyCloud, isCloud { restartSoon() } } }
     /// Extra semitones per Voice Reader voice (negative = deeper).
     var voiceDepth: [String: Double] = [:] { didSet { if oldValue != voiceDepth { restartSoon() } } }
 
@@ -279,7 +309,8 @@ final class SpeechPlayer: NSObject {
 
     // MARK: speed
 
-    static let speedRange: ClosedRange<Double> = 0.5...3.6
+    /// Up to 500 words a minute (4.17×): above 385 a system voice reads through FastSpeech (Yüksek hız).
+    static let speedRange: ClosedRange<Double> = 0.5...4.2
 
     /// Words a minute at 1× for the Turkish system voices, as Voice Dream counts them: Yelda at rate 0.5 reads 14.0
     /// characters a second, and Voice Dream's 330 words a minute came out at 39.4 characters a second (≈ 7 a word).
@@ -364,9 +395,15 @@ final class SpeechPlayer: NSObject {
 
     // MARK: control
 
+    /// Reading was stopped by the system (a call, Siri, another app's audio) and not by the reader: only then does it
+    /// go on by itself when the system says so. Any play, pause or resume of the reader's own clears it. Before this
+    /// (2026-11-06) the end of an interruption started reading even when the reader had paused before the call.
+    private var heldBySystem = false
+
     func play() { play(from: cursor) }
 
     func play(from offset: Int, snap: Bool = true) {
+        heldBySystem = false
         guard let id = documentID, !blocks.isEmpty, mayMove?(id, offset) != false else { return }
         var at = min(max(0, offset), max(0, text.length - 1))
         if snap, startAtSentence { at = sentenceStart(before: at + 1) }
@@ -403,6 +440,7 @@ final class SpeechPlayer: NSObject {
     /// lets the session go with notifyOthers: iOS lifts its ducking at once, so Spotify comes up the moment the button
     /// is pressed. Queued audio stays in the player and resumes where it stopped.
     func pause() {
+        heldBySystem = false
         guard isSpeaking, !isPaused else { return }
         player.pause()
         engine.pause()
@@ -427,6 +465,7 @@ final class SpeechPlayer: NSObject {
     }
 
     func resume() {
+        heldBySystem = false
         guard isSpeaking, isPaused else { return }
         if breakEnds != nil { endBreak(); return }
         activateSession()
@@ -507,7 +546,7 @@ final class SpeechPlayer: NSObject {
         let u = AVSpeechUtterance(string: sample)
         u.voice = v
         u.rate = Self.rate(for: speed)
-        u.pitchMultiplier = Float(tune(v.identifier).pitch)
+        SystemPitch.apply(tune(v.identifier).pitch, to: u)
         u.volume = Float(tune(v.identifier).volume)
         u.prefersAssistiveTechnologySettings = assistive(v.language)
         preview.speak(u)
@@ -701,7 +740,7 @@ final class SpeechPlayer: NSObject {
             renderProfile(.emaTok, piece: piece, spoken: spoken, endsParagraph: endsParagraph)
         } else if let profile = VoiceProfile.with(id: vid), profile.isAvailable {
             renderProfile(profile, piece: piece, spoken: spoken, endsParagraph: endsParagraph)
-        } else if tune(vid).steady > 0.01 {
+        } else if tune(vid).steady > 0.01 || fast(vid, language: piece.language) {
             renderSteady(vid, piece: piece, spoken: spoken, endsParagraph: endsParagraph)
         } else {
             speakSystem(vid, piece: piece, spoken: spoken)
@@ -715,7 +754,10 @@ final class SpeechPlayer: NSObject {
         let gen = generation
         let token = cancelToken
         let t = tune(vid)
-        let rate = Self.rate(for: speed)
+        // Yüksek hız: the engine's clean step, and the rest of the speed from FastSpeech
+        let quick = fast(vid, language: piece.language)
+        let rate = Self.rate(for: quick ? FastSpeech.cleanSpeed : speed)
+        let squeeze: (tempo: Double, words: Double)? = quick ? (speed / Self.heard(FastSpeech.cleanSpeed), speed * Self.wordsAtOneX) : nil
         let text = spoken.string
         let id = AVSpeechSynthesisVoice(identifier: vid) != nil ? vid
             : AVSpeechSynthesisVoice(language: piece.language ?? baseLanguage)?.identifier ?? vid
@@ -723,7 +765,7 @@ final class SpeechPlayer: NSObject {
         let gain = settingsVoice ? assistiveGain : 1
         ProfileRenderer.shared.queue.async { [weak self] in
             let r = ProfileRenderer.shared.renderSystem(text, voiceID: id, rate: rate, tune: t, assistive: settingsVoice, gain: gain, clear: clear, boost: boost,
-                                                        cancelled: { token.cancelled })
+                                                        squeeze: squeeze, cancelled: { token.cancelled })
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     guard let self, gen == self.generation, self.isSpeaking else { return }
@@ -806,12 +848,12 @@ final class SpeechPlayer: NSObject {
         synthesizing = true
         let gen = generation
         let from = offset == 0 ? 0 : spoken.spoken(at: offset)
-        let speed = self.speed, boost = renderBoost
+        let speed = self.speed, boost = renderBoost, steady = steadyCloud
         Task { [weak self] in
             do {
                 let clip = cloud ? try await CloudVoice.shared.synthesize(spoken.string) : try await ElevenLabs.shared.synthesize(spoken.string)
                 let r = await withCheckedContinuation { (c: CheckedContinuation<RenderedSpeech?, Never>) in
-                    ProfileRenderer.shared.queue.async { c.resume(returning: ElevenCache.render(clip, from: from, speed: speed, boost: boost)) }
+                    ProfileRenderer.shared.queue.async { c.resume(returning: ElevenCache.render(clip, from: from, speed: speed, boost: boost, steady: steady)) }
                 }
                 guard let self, gen == self.generation, self.isSpeaking else { return }
                 self.synthesizing = false
@@ -893,9 +935,12 @@ final class SpeechPlayer: NSObject {
         u.voice = AVSpeechSynthesisVoice(identifier: vid) ?? AVSpeechSynthesisVoice(language: piece.language ?? baseLanguage)
         u.rate = Self.rate(for: speed)
         let t = tune(vid)
-        u.pitchMultiplier = Float(t.pitch)
+        SystemPitch.apply(t.pitch, to: u)         // Voice Dream's Kalınlık, below 50 too (see SystemPitch)
         u.volume = Float(t.volume)
         u.prefersAssistiveTechnologySettings = assistive(piece.language)
+        // a paragraph one of our own voices hands to the system voice (a cloud voice without network, a sentence in
+        // the other language): the level is measured for it here, since `play` no longer does it for those voices
+        if u.prefersAssistiveTechnologySettings, rendersOwnVoice { calibrateAssistive(fallback: true) }
         liveGain = u.prefersAssistiveTechnologySettings ? assistiveGain : 1
         convertFresh = true
         serial += 1
@@ -911,7 +956,7 @@ final class SpeechPlayer: NSObject {
         let rec = recorder
         let uid = ObjectIdentifier(u)
         liveUtterance = uid
-        rec.reset(uid)
+        rec.reset(uid, generation: gen)
         synth.write(u) { [weak self] buffer in
             guard let pcm = buffer as? AVAudioPCMBuffer else { return }
             guard let at = rec.advance(by: Int64(pcm.frameLength), for: uid) else { return }
@@ -1152,7 +1197,9 @@ final class SpeechPlayer: NSObject {
         let w = NSRange(location: base + local.location, length: local.length)
         if spokenWord != w, w.length > 0 {
             spokenWord = w
+            wordStep = true
             cursor = w.location
+            wordStep = false
             if let s = spokenSentence, NSLocationInRange(w.location, s) {} else {
                 spokenSentence = sentenceRange(around: w.location)
                 // fallback when the next sentence's start was not known in time (not yet synthesised)
@@ -1431,6 +1478,7 @@ final class SpeechPlayer: NSObject {
 
     private func report(force: Bool) {
         guard let id = documentID else { return }
+        if force, shownCursor != cursor { shownCursor = cursor; shownAt = .now }
         if !force, Date.now.timeIntervalSince(lastReported) < 2 { return }
         lastReported = .now
         onPosition?(id, cursor)
@@ -1510,8 +1558,38 @@ final class SpeechPlayer: NSObject {
             let raw = n.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
             let opts = n.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
             MainActor.assumeIsolated {
-                if raw == AVAudioSession.InterruptionType.began.rawValue { self?.pause() }
-                else if AVAudioSession.InterruptionOptions(rawValue: opts).contains(.shouldResume) { self?.resume() }
+                guard let self else { return }
+                if raw == AVAudioSession.InterruptionType.began.rawValue {
+                    let was = self.isPlaying || self.heldBySystem
+                    self.pause()
+                    self.heldBySystem = was
+                } else if AVAudioSession.InterruptionOptions(rawValue: opts).contains(.shouldResume), self.heldBySystem {
+                    self.resume()
+                }
+            }
+        }
+        // iOS 27: the system says in its own words whether to go on after it took the audio away, and why the session
+        // went quiet. Reading follows that: it goes on when recommended (and only if the system had stopped it), and
+        // a session the system closed while reading counts as held, not as the reader's pause.
+        if #available(iOS 27.0, *) {
+            nc.addObserver(forName: AVAudioSession.resumptionRecommendationNotification, object: nil, queue: .main) { [weak self] n in
+                let context = n.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext
+                let go = context?.recommendation == .shouldResume
+                MainActor.assumeIsolated {
+                    guard let self, self.heldBySystem else { return }
+                    Self.log.info("resumption recommendation: \(go ? "resume" : "stay", privacy: .public)")
+                    if go { self.resume() } else { self.heldBySystem = false }
+                }
+            }
+            nc.addObserver(forName: AVAudioSession.didBecomeInactiveNotification, object: nil, queue: .main) { [weak self] n in
+                let context = n.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext
+                guard context?.source == .system else { return }
+                MainActor.assumeIsolated {
+                    guard let self, self.isPlaying else { return }
+                    Self.log.info("session closed by the system while reading")
+                    self.pause()
+                    self.heldBySystem = true
+                }
             }
         }
         nc.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
@@ -1556,24 +1634,23 @@ final class SpeechPlayer: NSObject {
 }
 
 extension SpeechPlayer: AVSpeechSynthesizerDelegate {
+    // The generation is taken here, when the callback arrives (the recorder knows which one the live utterance was
+    // started in), not when the main thread gets to it: read on delivery it always matched, so a word or an end
+    // that was already on its way when reading restarted was taken for the new utterance's.
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, willSpeakRangeOfSpeechString r: NSRange, utterance u: AVSpeechUtterance) {
-        guard let at = recorder.position(of: ObjectIdentifier(u)) else { return }
+        guard let (at, gen) = recorder.position(of: ObjectIdentifier(u)) else { return }
         DispatchQueue.main.async {
-            MainActor.assumeIsolated { self.word(r, at: at, gen: self.generationSnapshot) }
+            MainActor.assumeIsolated { self.word(r, at: at, gen: gen) }
         }
     }
 
     nonisolated func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish u: AVSpeechUtterance) {
         let uid = ObjectIdentifier(u)
+        guard let (_, gen) = recorder.position(of: uid) else { return }
         DispatchQueue.main.async {
-            MainActor.assumeIsolated { self.utteranceFinished(uid, gen: self.generationSnapshot) }
+            MainActor.assumeIsolated { self.utteranceFinished(uid, gen: gen) }
         }
     }
-}
-
-extension SpeechPlayer {
-    /// Word callbacks belong to the paragraph being synthesised now; the recorder already rejects stale utterances.
-    fileprivate var generationSnapshot: Int { generation }
 }
 
 /// Lets a background render notice that its result is no longer wanted.
@@ -1591,12 +1668,16 @@ private final class FrameRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var frames: Int64 = 0
     private var current: ObjectIdentifier?
+    private var generation = 0                       // the player's generation when `current` was started
 
-    func reset(_ id: ObjectIdentifier?) { lock.lock(); frames = 0; current = id; lock.unlock() }
+    func reset(_ id: ObjectIdentifier?, generation g: Int = 0) { lock.lock(); frames = 0; current = id; generation = g; lock.unlock() }
     func advance(by n: Int64, for id: ObjectIdentifier) -> Int64? {
         lock.lock(); defer { lock.unlock() }
         guard id == current else { return nil }
         let at = frames; frames += n; return at
     }
-    func position(of id: ObjectIdentifier) -> Int64? { lock.lock(); defer { lock.unlock() }; return id == current ? frames : nil }
+    func position(of id: ObjectIdentifier) -> (at: Int64, generation: Int)? {
+        lock.lock(); defer { lock.unlock() }
+        return id == current ? (frames, generation) : nil
+    }
 }

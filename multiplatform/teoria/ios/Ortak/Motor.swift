@@ -69,6 +69,10 @@ struct Durum {
     var morningCards: [String: Kart] = [:]        // Sabah's active-recall cards (kept apart from the kür's queue)
     var morningSteps: [String: Set<String>] = [:] // session day → finished steps
     var morningDone: [String: Olay] = [:]         // session day → its closing event (metin: covered listening days)
+    var morningAnswers: [String: [Date]] = [:]    // day → when each active-recall card was answered (oldest first)
+    var afternoonItems: [String: Set<String>] = [:] // day → afternoon items looked at
+    var afternoonDone: [String: Olay] = [:]          // day → the afternoon block's closing event
+    var zamanKutusu: [String: TimeBoxState] = [:] // session day → review time box (start, extension; finish = morningDone)
 
     /// Bir işarete kaç sesli not kaydettin ("2" ya da nil) — akıştaki mikrofonun yanında.
     func sesSayisi(_ hedef: String) -> String? {
@@ -95,6 +99,18 @@ struct Durum {
             let gun = Tarih.gun(Date().gun(-g))
             return kurlar.filter { $0.gun == gun }.reduce(0) { $0 + $1.sure } / 60
         }
+    }
+
+    /// A finished morning session (the daily Kür or Sabah) as session time for the widget's ring and week.
+    /// The day counts when its review step ("review") or its close (morningDone) is in the log and at least one card
+    /// was answered that day. Time is measured, not assumed: 25 s for the first card (the Kür's own per-card estimate)
+    /// plus the gaps between answers, each capped at 90 s (a longer gap is time away from the cards). No levels change.
+    func morningSessionSeconds(_ day: String) -> Double {
+        guard morningSteps[day]?.contains("review") == true || morningDone[day] != nil,
+              let times = morningAnswers[day], !times.isEmpty else { return 0 }
+        var total = 25.0
+        for (a, b) in zip(times, times.dropFirst()) { total += min(max(b.timeIntervalSince(a), 0), 90) }
+        return total
     }
 
     var sonKur: Date? { kurlar.map(\.t).max() }
@@ -140,10 +156,27 @@ struct Durum {
                 if let k = o.hedef, let n = Not(rawValue: o.not ?? 0) {
                     d.morningCards[k] = d.morningCards[k].map { FSRS.tekrar($0, n, an: o.t) } ?? FSRS.yeni(n, an: o.t)
                 }
+                d.morningAnswers[o.gun, default: []].append(o.t)
             case .morningStep:
                 if let h = o.hedef, let r = o.rol { d.morningSteps[h, default: []].insert(r) }
             case .morningDone:
                 if let h = o.hedef { d.morningDone[h] = o }
+            case .afternoonItem:
+                if let h = o.hedef, let day = o.metin { d.afternoonItems[day, default: []].insert(h) }
+            case .afternoonDone:
+                if let h = o.hedef { d.afternoonDone[h] = o }
+            case .zamanBasla:
+                if let h = o.hedef {
+                    var s = d.zamanKutusu[h] ?? TimeBoxState()
+                    s.started = min(s.started ?? o.t, o.t)
+                    d.zamanKutusu[h] = s
+                }
+            case .zamanUzat:
+                if let h = o.hedef {
+                    var s = d.zamanKutusu[h] ?? TimeBoxState()
+                    s.extendedMinutes = max(s.extendedMinutes, Int(o.sure ?? 10))
+                    d.zamanKutusu[h] = s
+                }
             }
         }
         d.sesNotlari.removeAll { silinenSes.contains($0.id) }

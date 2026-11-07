@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		B200000000000000000B0001 /* TeoriaWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B200000000000000000F0002 /* TeoriaWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		PD2AC70A5BCFD30027C7193B /* PDMBus in Frameworks */ = {isa = PBXBuildFile; productRef = PDD5886C5CB0AB4D7EA73206 /* PDMBus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				PD2AC70A5BCFD30027C7193B /* PDMBus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +129,7 @@
 			);
 			name = Teoria;
 			packageProductDependencies = (
+				PDD5886C5CB0AB4D7EA73206 /* PDMBus */,
 			);
 			productName = Teoria;
 			productReference = B200000000000000000F0001 /* Teoria.app */;
@@ -183,6 +186,9 @@
 			);
 			mainGroup = B200000000000000001D0001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				PD50AF67DCA0863E9FDC8289 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B200000000000000001D0002 /* Products */;
 			projectDirPath = "";
@@ -446,6 +452,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		PD50AF67DCA0863E9FDC8289 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../shared/PDMBus;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PDD5886C5CB0AB4D7EA73206 /* PDMBus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = PD50AF67DCA0863E9FDC8289 /* XCLocalSwiftPackageReference "../../../shared/PDMBus" */;
+			productName = PDMBus;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B200000000000000001F0001 /* Project object */;
 }

@@ -44,7 +44,12 @@ final class NoteStore {
         dir = URL.applicationSupportDirectory.appending(path: "VoiceReader/notes", directoryHint: .isDirectory)
         audioDir = dir.appending(path: "audio", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: audioDir, withIntermediateDirectories: true)
-        load()
+        // the log is read off the main thread (it only grows); a note written before it is in stays as written
+        let log = log
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let stored = Self.read(log)
+            await self?.adopt(stored)
+        }
     }
 
     private var log: URL { dir.appending(path: "\(device).jsonl") }
@@ -53,8 +58,9 @@ final class NoteStore {
     func note(_ id: String) -> ReaderNote? { notes.first { $0.id == id } }
     func audioURL(_ n: ReaderNote) -> URL? { n.audio.map { audioDir.appending(path: $0) } }
 
-    private func load() {
-        guard let t = try? String(contentsOf: log, encoding: .utf8) else { return }
+    /// The live notes of a log, newest first (the newest line of an id wins; a deleted one is left out).
+    nonisolated private static func read(_ log: URL) -> [ReaderNote] {
+        guard let t = try? String(contentsOf: log, encoding: .utf8) else { return [] }
         let dec = JSONDecoder()
         var latest: [String: ReaderNote] = [:]
         for l in t.split(separator: "\n") {
@@ -62,7 +68,12 @@ final class NoteStore {
             if let old = latest[n.id], old.stamp > n.stamp { continue }
             latest[n.id] = n
         }
-        notes = latest.values.filter { $0.deleted != true }.sorted { $0.stamp > $1.stamp }
+        return latest.values.filter { $0.deleted != true }.sorted { $0.stamp > $1.stamp }
+    }
+
+    private func adopt(_ stored: [ReaderNote]) {
+        let mine = Set(notes.map(\.id))
+        notes = (notes + stored.filter { !mine.contains($0.id) }).sorted { $0.stamp > $1.stamp }
     }
 
     private func write(_ n: ReaderNote) {

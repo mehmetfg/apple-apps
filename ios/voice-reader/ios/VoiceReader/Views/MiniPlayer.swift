@@ -7,7 +7,7 @@ struct MiniPlayer: View {
 
     var body: some View {
         let p = model.player
-        let progress = Double(p.cursor) / Double(max(1, p.length))
+        let progress = Double(p.shownCursor) / Double(max(1, p.length))
         HStack(spacing: 12) {
             Button(action: open) {
                 HStack(spacing: 11) {

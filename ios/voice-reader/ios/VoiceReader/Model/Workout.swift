@@ -69,7 +69,13 @@ final class WorkoutRecorder: NSObject, CLLocationManagerDelegate {
         manager.activityType = .fitness
         manager.distanceFilter = 3
         manager.pausesLocationUpdatesAutomatically = false
-        loadHistory()
+        // the earlier rides and walks (each file holds its whole route) are read off the main thread; a recording
+        // that starts before they are in reads them at once (`ensureHistory`), as it needs the last one to go on with
+        let dir = folder
+        Task.detached(priority: .utility) { [weak self] in
+            let list = Self.readHistory(dir)
+            await self?.adopt(list)
+        }
     }
 
     // MARK: starting and ending
@@ -78,6 +84,7 @@ final class WorkoutRecorder: NSObject, CLLocationManagerDelegate {
     /// (the app was closed on the way).
     func start(_ kind: MoveKind) {
         if let c = current, c.kind == kind { return }
+        ensureHistory()
         if current != nil { finish() }
         if let open = history.first(where: { $0.end == nil && $0.kind == kind }), Date.now.timeIntervalSince(open.lastAt) < 1800 {
             current = open
@@ -256,9 +263,22 @@ final class WorkoutRecorder: NSObject, CLLocationManagerDelegate {
 
     func saveNow() { if let w = current { save(w) } }
 
-    private func loadHistory() {
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        history = files.compactMap { (try? Data(contentsOf: $0)).flatMap { try? JSONDecoder().decode(Workout.self, from: $0) } }
+    @ObservationIgnored private var historyLoaded = false
+
+    nonisolated private static func readHistory(_ dir: URL) -> [Workout] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        return files.compactMap { (try? Data(contentsOf: $0)).flatMap { try? JSONDecoder().decode(Workout.self, from: $0) } }
             .sorted { $0.start > $1.start }
+    }
+
+    /// The first reading wins (the background one, or `ensureHistory` when a recording could not wait for it).
+    private func adopt(_ list: [Workout]) {
+        guard !historyLoaded else { return }
+        historyLoaded = true
+        history = list
+    }
+
+    private func ensureHistory() {
+        if !historyLoaded { adopt(Self.readHistory(folder)) }
     }
 }

@@ -125,10 +125,10 @@ struct UygulamaAdasi: View {
                 .symbolEffect(.variableColor.iterative, isActive: merkez.kayitta && !merkez.duraklatildi)
             if adali { Spacer(minLength: 0) }
             else if bitis == nil {
-                Dalga(seviyeler: merkez.seviyeler.map(Double.init), duraklatildi: merkez.duraklatildi, adet: 8)
+                MeterWave(meter: merkez.meter, duraklatildi: merkez.duraklatildi, adet: 8)
                     .frame(width: 34, height: 14)
             }
-            Text(Zaman.sure(bitis?.sure ?? merkez.sure))
+            RecordingClock(meter: merkez.meter, fixed: bitis?.sure)
                 .font(.system(adali ? .caption : .subheadline, design: .rounded).weight(.semibold)).monospacedDigit()
                 .foregroundStyle(renk).contentTransition(.numericText())
         }
@@ -146,11 +146,11 @@ struct UygulamaAdasi: View {
                     Text("Kıvılcım").font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.8))
                 }
                 Spacer(minLength: 0)
-                Text(Zaman.sure(merkez.sure))
+                RecordingClock(meter: merkez.meter)
                     .font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
                     .foregroundStyle(.white).contentTransition(.numericText())
             }
-            Dalga(seviyeler: merkez.seviyeler.map(Double.init), duraklatildi: merkez.duraklatildi, adet: 28).frame(height: 22)
+            MeterWave(meter: merkez.meter, duraklatildi: merkez.duraklatildi, adet: 28).frame(height: 22)
             HStack(spacing: 10) {
                 Button { Task { await merkez.vazgec() } } label: {
                     Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(.white.opacity(0.9))
