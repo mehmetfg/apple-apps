@@ -1,1 +1,1 @@
-/Users/mfg/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personel Data Management/_araçlar/kivilcim/dikkat.py
+../../../../../Library/Mobile Documents/iCloud~md~obsidian/Documents/Personel Data Management/_araçlar/kivilcim/dikkat.py
