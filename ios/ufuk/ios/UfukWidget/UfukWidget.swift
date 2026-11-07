@@ -50,26 +50,6 @@ struct ProbText: View {
     var body: some View { Text(Fmt.pct(p)).font(font.monospacedDigit()).foregroundStyle(Palette.rain(p)) }
 }
 
-/// One commute window: "Sabah 07–09 · %91 · çık 08:30".
-struct WindowRow: View {
-    var leg: LegSummary
-    var now: Date
-    var large = false
-    var body: some View {
-        let tomorrow = Calendar.current.isDateInTomorrow(leg.windowStart) && now < leg.windowStart
-        HStack(spacing: 5) {
-            Circle().fill(Palette.rain(leg.maxProb)).frame(width: 6, height: 6)
-            Text("\(leg.kind == .morning ? "Sabah" : "Akşam") \(leg.kind == .morning ? "07–09" : "16–19")\(tomorrow ? " · yarın" : "")")
-                .font((large ? Font.callout : .caption2).weight(.medium)).lineLimit(1)
-            Spacer(minLength: 2)
-            ProbText(p: leg.maxProb, font: large ? .callout.weight(.semibold) : .caption2.weight(.semibold))
-            if let go = leg.bestDeparture {
-                Text("çık \(Fmt.t(go))").font((large ? Font.caption : .system(size: 10)).monospacedDigit()).opacity(0.7)
-            }
-        }
-    }
-}
-
 extension Snapshot {
     /// Both windows, the coming one first (at night that is tomorrow's morning).
     func windows(at d: Date) -> [LegSummary] {
@@ -80,110 +60,209 @@ extension Snapshot {
     }
 }
 
-/// Çıkış: rain now, today's high and low, sunset big in the middle with sunrise and dark beside it,
-/// the morning and evening windows with their best departure in small type.
+/// The three sun times that come next, in order: sunset, dark, sunrise (or sunrise first before dawn).
+struct SunEvent: Identifiable {
+    var id: String { symbol }
+    var symbol: String
+    var name: String
+    var time: Date
+    var tomorrow: Bool
+    var main: Bool
+}
+
+extension Snapshot {
+    func sunEvents(at now: Date) -> [SunEvent] {
+        var list: [SunEvent] = []
+        for (day, isTomorrow) in [(today, false), (tomorrow, true)] {
+            if let t = day.sunrise { list.append(SunEvent(symbol: "sunrise.fill", name: "Doğuş", time: t, tomorrow: isTomorrow, main: false)) }
+            if let t = day.sunset { list.append(SunEvent(symbol: "sunset.fill", name: "Batış", time: t, tomorrow: isTomorrow, main: true)) }
+            if let t = day.dusk { list.append(SunEvent(symbol: "moon.stars.fill", name: "Karanlık", time: t, tomorrow: isTomorrow, main: false)) }
+        }
+        var seen = Set<String>()
+        return list.filter { $0.time > now }.sorted { $0.time < $1.time }.filter { seen.insert($0.symbol).inserted }
+    }
+}
+
+/// Bugün: the one thing to know: between which hours the next ride is dry, the temperature then,
+/// a bar of the window with the dry stretch marked, and the next sunset, dark and sunrise with their symbols.
 struct RideWidgetView: View {
-    @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetFamily) private var envFamily
     var entry: Entry
+    /// Set only by the offscreen preview harness; the system gives the family through the environment.
+    var forced: WidgetFamily? = nil
+    private var family: WidgetFamily { forced ?? envFamily }
 
     var body: some View {
         let s = entry.snap, now = entry.date
-        let sun = s?.lightDay(at: now) ?? SunDay()
-        let rise = (sun.sunrise.map { now < $0 } ?? false) || s?.tomorrow == sun ? sun.sunrise : s?.tomorrow.sunrise
-        let wins = s?.windows(at: now) ?? []
-        let next = wins.first
+        let leg = s?.current(at: now)
+        let dry = leg?.dryWindow(from: now)
+        let sun = s?.sunEvents(at: now) ?? []
         switch family {
         case .accessoryInline:
-            Text("Yağış \(Fmt.pct(s?.nowProb ?? 0)) · batış \(Fmt.t(sun.sunset))")
+            Text("\(dry.map { "Kuru \(Fmt.t($0.start))–\(Fmt.t($0.end))" } ?? "Kuru aralık yok") · batış \(Fmt.t(sun.first { $0.main }?.time))")
         case .accessoryCircular:
-            Gauge(value: s?.nowProb ?? 0) { Image(systemName: "sunset.fill") } currentValueLabel: {
-                Text(Fmt.t(sun.sunset)).font(.system(size: 11, weight: .semibold).monospacedDigit())
+            ZStack {
+                AccessoryWidgetBackground()
+                VStack(spacing: 1) {
+                    Image(systemName: "sunset.fill").font(.system(size: 13))
+                    Text(Fmt.t(sun.first { $0.main }?.time)).font(.system(size: 12, weight: .semibold).monospacedDigit())
+                }
             }
-            .gaugeStyle(.accessoryCircular)
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 1) {
-                Text("Batış \(Fmt.t(sun.sunset)) · karanlık \(Fmt.t(sun.dusk))").font(.system(size: 13, weight: .semibold).monospacedDigit())
-                Text(wins.map { "\($0.kind == .morning ? "Sabah" : "Akşam") \(Fmt.pct($0.maxProb))" }.joined(separator: " · ")).font(.caption2)
-                Text("Şimdi \(Fmt.pct(s?.nowProb ?? 0))\(next?.bestDeparture.map { " · çık \(Fmt.t($0))" } ?? "")").font(.caption2)
-            }
-        case .systemSmall:
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(Fmt.deg(s?.temperature)).font(.headline)
-                    Spacer()
-                    ProbText(p: s?.nowProb ?? 0)
-                }
-                Spacer(minLength: 0)
-                Text("GÜN BATIMI").font(.system(size: 9, weight: .semibold)).opacity(0.7)
-                Text(Fmt.t(sun.sunset)).font(.system(size: 36, weight: .semibold, design: .rounded).monospacedDigit()).minimumScaleFactor(0.7)
-                Text("doğuş \(Fmt.t(rise)) · karanlık \(Fmt.t(sun.dusk))").font(.system(size: 10).monospacedDigit()).opacity(0.75)
-                Spacer(minLength: 0)
-                if let n = next {
-                    HStack(spacing: 4) {
-                        Text(n.kind == .morning ? "Sabah" : "Akşam").font(.system(size: 11, weight: .medium))
-                        ProbText(p: n.maxProb, font: .system(size: 11, weight: .semibold))
-                        Spacer(minLength: 0)
-                        if let go = n.bestDeparture { Text("çık \(Fmt.t(go))").font(.system(size: 10).monospacedDigit()).opacity(0.7) }
+                Label(dry.map { "Kuru \(Fmt.t($0.start))–\(Fmt.t($0.end))" } ?? "Kuru aralık yok", systemImage: "bicycle")
+                    .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                Text(departLine(leg, dry, now)).font(.caption2)
+                HStack(spacing: 6) {
+                    ForEach(sun) { e in
+                        HStack(spacing: 2) { Image(systemName: e.symbol); Text(Fmt.t(e.time)).monospacedDigit() }
                     }
                 }
+                .font(.caption2)
+            }
+        case .systemSmall:
+            VStack(alignment: .leading, spacing: 3) {
+                header(leg, now, size: 10)
+                dryBlock(leg, dry, now, big: 22)
+                if let leg { WindowBar(leg: leg, dry: dry, now: now, height: 8, labels: false) }
+                Spacer(minLength: 0)
+                // sunset large on its own line, the other two under it
+                if let main = sun.first(where: \.main) {
+                    HStack(spacing: 4) {
+                        Image(systemName: main.symbol).symbolRenderingMode(.multicolor)
+                        Text("Batış").font(.system(size: 11)).opacity(0.8)
+                        Spacer(minLength: 0)
+                        Text(Fmt.t(main.time)).font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
+                    }
+                    .font(.system(size: 14))
+                }
+                HStack(spacing: 0) {
+                    ForEach(sun.filter { !$0.main }) { e in
+                        HStack(spacing: 2) {
+                            Image(systemName: e.symbol).symbolRenderingMode(.multicolor)
+                            Text(Fmt.t(e.time)).monospacedDigit()
+                        }
+                        if e.id != sun.filter({ !$0.main }).last?.id { Spacer(minLength: 4) }
+                    }
+                }
+                .font(.system(size: 11, weight: .medium)).lineLimit(1)
             }
             .foregroundStyle(.white)
         case .systemLarge:
             VStack(alignment: .leading, spacing: 14) {
-                nowBlock(s, large: true)
+                header(leg, now, size: 12)
+                dryBlock(leg, dry, now, big: 44)
+                if let leg { WindowBar(leg: leg, dry: dry, now: now, height: 16, labels: true) }
                 Divider().overlay(.white.opacity(0.25))
-                sunBlock(sun, rise: rise, large: true).frame(maxWidth: .infinity)
-                Divider().overlay(.white.opacity(0.25))
-                VStack(spacing: 10) { ForEach(wins, id: \.kind) { WindowRow(leg: $0, now: now, large: true) } }
+                sunList(sun, large: true)
                 Spacer(minLength: 0)
             }
             .foregroundStyle(.white)
         default:
-            VStack(spacing: 8) {
-                HStack(alignment: .center, spacing: 10) {
-                    nowBlock(s, large: false).frame(width: 96, alignment: .leading)
-                    sunBlock(sun, rise: rise, large: false).frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        header(leg, now, size: 10)
+                        dryBlock(leg, dry, now, big: 28)
+                    }
+                    Spacer(minLength: 0)
+                    sunList(sun, large: false).frame(width: 140)
                 }
-                VStack(spacing: 3) { ForEach(wins, id: \.kind) { WindowRow(leg: $0, now: now) } }
+                Spacer(minLength: 0)
+                if let leg { WindowBar(leg: leg, dry: dry, now: now, height: 10, labels: true) }
             }
             .foregroundStyle(.white)
         }
     }
 
-    /// Now: temperature and condition in words, the rain chance this quarter hour, today's high and low.
-    private func nowBlock(_ s: Snapshot?, large: Bool) -> some View {
-        VStack(alignment: .leading, spacing: large ? 4 : 2) {
-            Text("ŞİMDİ").font(.system(size: large ? 11 : 9, weight: .semibold)).opacity(0.7)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(Fmt.deg(s?.temperature)).font(.system(size: large ? 40 : 26, weight: .semibold, design: .rounded))
-                if large { Text(WMO.word(s?.weatherCode)).font(.title3) }
+    /// "AKŞAM ÇIKIŞI" or "YARIN SABAH", with the bicycle.
+    private func header(_ leg: LegSummary?, _ now: Date, size: CGFloat) -> some View {
+        let tomorrow = leg.map { Calendar.current.isDateInTomorrow($0.windowStart) } ?? false
+        let name = leg.map { $0.kind == .morning ? (tomorrow ? "YARIN SABAH" : "SABAH ÇIKIŞI") : (tomorrow ? "YARIN AKŞAM" : "AKŞAM ÇIKIŞI") } ?? "ÇIKIŞ"
+        return Label(name, systemImage: "bicycle").font(.system(size: size, weight: .semibold)).opacity(0.75).lineLimit(1)
+    }
+
+    private func departLine(_ leg: LegSummary?, _ dry: DryWindow?, _ now: Date) -> String {
+        if let d = dry { return "çık \(Fmt.t(d.departure))\(d.temp.map { " · \(Fmt.deg($0))" } ?? "")" }
+        if let w = leg?.leastWet(from: now) { return "en az yağış \(Fmt.t(w.0)) · \(Fmt.pct(w.1))\(w.2.map { " · \(Fmt.deg($0))" } ?? "")" }
+        return "Uygulamayı bir kez aç"
+    }
+
+    /// The dry stretch big, then the departure and the temperature at that moment.
+    private func dryBlock(_ leg: LegSummary?, _ dry: DryWindow?, _ now: Date, big: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(dry == nil ? "Yağmursuz aralık yok" : (dry!.whole ? "Hep kuru" : "Yağmursuz"))
+                .font(.system(size: big * 0.42, weight: .medium)).foregroundStyle(dry == nil ? Palette.rain(0.7) : Palette.rain(0))
+            if let d = dry {
+                Text("\(Fmt.t(d.start))–\(Fmt.t(d.end))").font(.system(size: big, weight: .semibold, design: .rounded).monospacedDigit())
+                    .minimumScaleFactor(0.6).lineLimit(1)
             }
-            if !large { Text(WMO.word(s?.weatherCode)).font(.system(size: 11)).lineLimit(1).opacity(0.85) }
-            HStack(spacing: 4) {
-                Text("yağış").font(.system(size: large ? 14 : 11)).opacity(0.75)
-                ProbText(p: s?.nowProb ?? 0, font: large ? .callout.weight(.semibold) : .system(size: 11, weight: .semibold))
-                if large { Spacer(); hiLo(s, large: true) }
-            }
-            if !large { hiLo(s, large: false) }
+            Text(departLine(leg, dry, now)).font(.system(size: big * 0.42, weight: .medium).monospacedDigit()).opacity(0.85).lineLimit(1).minimumScaleFactor(0.7)
         }
     }
 
-    private func hiLo(_ s: Snapshot?, large: Bool) -> some View {
-        Text("↑\(Fmt.deg(s?.todayMax))  ↓\(Fmt.deg(s?.todayMin))").font(.system(size: large ? 15 : 11, weight: .medium).monospacedDigit())
+    /// Sunset first-class; the three in the order they come, each with its symbol.
+    private func sunList(_ sun: [SunEvent], large: Bool) -> some View {
+        VStack(alignment: .leading, spacing: large ? 10 : 5) {
+            ForEach(sun) { e in
+                HStack(spacing: 6) {
+                    Image(systemName: e.symbol).symbolRenderingMode(.multicolor).frame(width: large ? 26 : 18)
+                    Text(e.name + (large && e.tomorrow ? " · yarın" : "")).font(.system(size: large ? 15 : 11)).opacity(0.8).lineLimit(1).fixedSize()
+                    Spacer(minLength: 2)
+                    Text(Fmt.t(e.time)).monospacedDigit()
+                        .font(.system(size: e.main ? (large ? 30 : 18) : (large ? 18 : 13), weight: e.main ? .bold : .medium, design: .rounded)).fixedSize()
+                }
+                .font(.system(size: e.main ? (large ? 22 : 15) : (large ? 16 : 12)))
+            }
+        }
+    }
+}
+
+/// The commute window as a bar of quarters coloured by rain, past quarters dimmed, the dry stretch
+/// underlined in white and the bicycle on the departure.
+struct WindowBar: View {
+    var leg: LegSummary
+    var dry: DryWindow?
+    var now: Date
+    var height: CGFloat
+    var labels: Bool
+
+    var body: some View {
+        VStack(spacing: 3) {
+            GeometryReader { g in
+                let n = max(1, leg.probs.count), w = g.size.width / CGFloat(n)
+                ZStack(alignment: .topLeading) {
+                    HStack(spacing: 1) {
+                        ForEach(leg.probs.indices, id: \.self) { i in
+                            let past = leg.time(i).addingTimeInterval(900) <= now
+                            RoundedRectangle(cornerRadius: 2).fill(Palette.rain(leg.probs[i])).opacity(past ? 0.25 : 1)
+                        }
+                    }
+                    .frame(height: height)
+                    if let d = dry {
+                        let x0 = CGFloat(d.start.timeIntervalSince(leg.slotStart) / 900) * w
+                        let x1 = CGFloat(d.end.timeIntervalSince(leg.slotStart) / 900) * w
+                        Capsule().fill(.white).frame(width: max(4, x1 - x0), height: 2).offset(x: x0, y: height + 3)
+                        Image(systemName: "bicycle").font(.system(size: max(9, height)))
+                            .offset(x: CGFloat(d.departure.timeIntervalSince(leg.slotStart) / 900) * w - 6, y: -max(9, height) - 3)
+                    }
+                }
+            }
+            .frame(height: height + 6)
+            .padding(.top, dry == nil ? 0 : max(9, height) + 2)
+            if labels {
+                HStack {
+                    ForEach(hourMarks, id: \.self) { h in
+                        Text(Fmt.t(h).prefix(2)).font(.system(size: 9).monospacedDigit()).opacity(0.6)
+                        if h != hourMarks.last { Spacer(minLength: 0) }
+                    }
+                }
+            }
+        }
     }
 
-    /// Sunset in the middle and large; sunrise next to it, dark small underneath.
-    private func sunBlock(_ sun: SunDay, rise: Date?, large: Bool) -> some View {
-        VStack(spacing: large ? 4 : 1) {
-            Text("GÜN BATIMI").font(.system(size: large ? 11 : 9, weight: .semibold)).opacity(0.7)
-            Text(Fmt.t(sun.sunset)).font(.system(size: large ? 72 : 46, weight: .semibold, design: .rounded).monospacedDigit())
-                .minimumScaleFactor(0.6).lineLimit(1)
-            HStack(spacing: large ? 18 : 10) {
-                Label(Fmt.t(rise), systemImage: "sunrise.fill").font(.system(size: large ? 16 : 12, weight: .semibold).monospacedDigit())
-                Label("karanlık \(Fmt.t(sun.dusk))", systemImage: "moon.fill").font(.system(size: large ? 12 : 10).monospacedDigit()).opacity(0.7)
-            }
-            .labelStyle(.titleAndIcon).symbolRenderingMode(.multicolor)
-        }
+    private var hourMarks: [Date] {
+        stride(from: 0, through: leg.probs.count, by: 4).map { leg.time($0) }
     }
 }
 
@@ -358,7 +437,7 @@ struct RideWidget: Widget {
             RideWidgetView(entry: e).containerBackground(for: .widget) { WidgetSky() }
         }
         .configurationDisplayName("Bugün")
-        .description("Şimdiki yağış, bugünün en yüksek ve en düşük sıcaklığı, gün batımı, doğuş ve kararma, sabah ve akşam yağışı.")
+        .description("Sıradaki çıkışta yağmursuz aralık, çıkış saatindeki sıcaklık; gün batımı, kararma ve doğuş.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }

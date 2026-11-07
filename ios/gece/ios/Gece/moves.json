@@ -242,7 +242,15 @@
      "head": 114,
      "d": 1.4
     }
-   ]
+   ],
+   "rank": 2,
+   "priority": "Ekran ve masa başının yükünü en çok boyun taşır; Sleep Foundation yatmadan önce boynu ilk sıraya koyar.",
+   "youtube": {
+    "title": "Neck Pain Relief Stretches – 5 Minute Routine",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=was4RtzpfJs",
+    "length": "8:09"
+   }
   },
   {
    "id": "chin_tuck",
@@ -251,7 +259,7 @@
    "seconds": 60,
    "sides": false,
    "area": "Boyun",
-   "dose": "8–10 tekrar · 2 sn tut",
+   "dose": "5 tekrar · 3–5 sn tut",
    "why": "Masa başında baş öne kayar; boynun derin kaslarını uyandırıp ense gerginliğini alır. Duruşun ilk düzeltmesi.",
    "steps": [
     "Yatağın kenarında dik otur, gözler ileri, omuzlar gevşek.",
@@ -313,7 +321,15 @@
      "head": 97,
      "d": 2.0
     }
-   ]
+   ],
+   "rank": 11,
+   "priority": "Öne kaymış baş duruşunu düzeltir; gevşetmekten çok düzeltici bir hareket.",
+   "youtube": {
+    "title": "Chin Tucks Sitting",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=7rnlAVhAK-8",
+    "length": "0:29"
+   }
   },
   {
    "id": "chest_opener",
@@ -379,7 +395,15 @@
      ],
      "d": 3.0
     }
-   ]
+   ],
+   "rank": 7,
+   "priority": "Masa başının öne yuvarladığı omuzları geri açar.",
+   "youtube": {
+    "title": "Chest Stretches for Tight Muscles",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=NePr1XKRTLU",
+    "length": "3:07"
+   }
   },
   {
    "id": "scapular_squeeze",
@@ -388,7 +412,7 @@
    "seconds": 60,
    "sides": false,
    "area": "Boyun · omuz",
-   "dose": "8 tekrar · 3 sn tut",
+   "dose": "5 tekrar · 3–5 sn tut",
    "why": "Öne düşen omuzları geri toplar, boynun yükünü sırta dağıtır. Duruş bozukluğunun karşı hareketi.",
    "steps": [
     "Yatağın kenarına dik otur, dirsekler 90 derece bükülü.",
@@ -443,7 +467,15 @@
      "head": 92,
      "d": 2.6
     }
-   ]
+   ],
+   "rank": 14,
+   "priority": "Kasları uyandıran bir güçlendirme; gündüz daha yerinde.",
+   "youtube": {
+    "title": "Shoulder Squeezes",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=ouRhQE2iOI8",
+    "length": "0:29"
+   }
   },
   {
    "id": "cat_cow",
@@ -452,7 +484,7 @@
    "seconds": 60,
    "sides": false,
    "area": "Bel · sırt",
-   "dose": "5–6 yavaş tekrar",
+   "dose": "3–5 yavaş tekrar",
    "why": "Omurgayı baştan sona ağrısız açıklıkta hareket ettirir; gün boyu oturmanın sertliğini çözer.",
    "steps": [
     "Dört ayak üstüne gel: eller omuz altında, dizler kalça altında.",
@@ -512,7 +544,15 @@
      ],
      "d": 1.0
     }
-   ]
+   ],
+   "rank": 10,
+   "priority": "Omurgayı yumuşakça hareket ettirir; dinamik olduğu için rutinin başında, yavaş yapılır.",
+   "youtube": {
+    "title": "Cat Stretch",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=Y-s5X4yKPCs",
+    "length": "0:27"
+   }
   },
   {
    "id": "child_pose",
@@ -600,7 +640,15 @@
      ],
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 4,
+   "priority": "Durağan ileri eğilme dinlenme pozu; nefesi kendiliğinden yavaşlatır.",
+   "youtube": {
+    "title": "Prayer Stretch / Child's Pose",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=X-OGH5-gLUs",
+    "length": "0:25"
+   }
   },
   {
    "id": "knee_to_chest",
@@ -609,7 +657,7 @@
    "seconds": 60,
    "sides": true,
    "area": "Bel · kalça",
-   "dose": "Her yan 20 sn",
+   "dose": "Her yan 30 sn",
    "why": "Bel kaslarını ve kalçanın arkasını nazikçe uzatır; yatmadan önce beli gevşetir.",
    "steps": [
     "Sırtüstü yat, dizler bükülü.",
@@ -667,7 +715,15 @@
      "head": 176,
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 3,
+   "priority": "Sırtüstü, belin en kolay gevşediği hareket; Cleveland Clinic'in yatma rutininde var.",
+   "youtube": {
+    "title": "Single Knee to Chest",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=Yd9wY25koVk",
+    "length": "0:27"
+   }
   },
   {
    "id": "pelvic_tilt",
@@ -718,7 +774,15 @@
      ],
      "d": 2.4
     }
-   ]
+   ],
+   "rank": 13,
+   "priority": "Gevşetmekten çok karın-bel kontrolü çalıştırır; yedek.",
+   "youtube": {
+    "title": "Posterior Pelvic Tilt",
+    "channel": "Hope Physical Therapy",
+    "url": "https://www.youtube.com/watch?v=zHfuVboAWVM",
+    "length": "0:24"
+   }
   },
   {
    "id": "hip_flexor",
@@ -727,7 +791,7 @@
    "seconds": 60,
    "sides": true,
    "area": "Kalça · bel",
-   "dose": "Her yan 20 sn",
+   "dose": "Her yan 30 sn",
    "why": "Uzun oturmak kalça önünü kısaltır, beli öne çeker. Bu esnetme beli rahatlatır, duruşu dikleştirir.",
    "steps": [
     "Yarım diz çök: bir diz yerde (altına yastık), öteki ayak önde, diz 90 derece.",
@@ -804,7 +868,15 @@
      ],
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 12,
+   "priority": "Oturanlar için önemli ama yarım diz çökme dik bir duruş; uykuya en az yakın olanlardan.",
+   "youtube": {
+    "title": "Half-Kneeling Hip Flexor Stretch",
+    "channel": "Hospital for Special Surgery",
+    "url": "https://www.youtube.com/watch?v=mzPvzMivukw",
+    "length": "0:24"
+   }
   },
   {
    "id": "figure_four",
@@ -813,7 +885,7 @@
    "seconds": 60,
    "sides": true,
    "area": "Kalça · bel",
-   "dose": "Her yan 20 sn",
+   "dose": "Her yan 30 sn",
    "why": "Kalçanın derin dönücü kaslarını gevşetir; oturmaktan kasılan ve bele, bacağa vuran gerginliği alır.",
    "steps": [
     "Sırtüstü yat, dizler bükülü.",
@@ -898,7 +970,15 @@
      ],
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 6,
+   "priority": "Gün boyu oturmanın sıkıştırdığı kalça arkasını (piriformis) yatarak açar.",
+   "youtube": {
+    "title": "Piriformis Figure 4 Stretch",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=-g0nuyTHMrI",
+    "length": "0:35"
+   }
   },
   {
    "id": "hamstring_towel",
@@ -907,7 +987,7 @@
    "seconds": 60,
    "sides": true,
    "area": "Bacak · diz",
-   "dose": "Her yan 20 sn",
+   "dose": "Her yan 30 sn",
    "why": "Arka bacak kasları gergin olunca leğeni çeker, beli ve dizi zorlar. Havlu, beli korurken esnetir.",
    "steps": [
     "Sırtüstü yat, bir bacak yerde düz.",
@@ -978,7 +1058,15 @@
      ],
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 9,
+   "priority": "Oturmanın kısalttığı arka bacağı yatarak, durağan açar.",
+   "youtube": {
+    "title": "Hamstring Stretch with a Strap, Supine",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=Il1L75v6gq0",
+    "length": "0:39"
+   }
   },
   {
    "id": "heel_slide",
@@ -1026,7 +1114,15 @@
      ],
      "d": 0.6
     }
-   ]
+   ],
+   "rank": 15,
+   "priority": "Rehabilitasyon hareketi; yatma öncesi katkısı az, yalnız yedek.",
+   "youtube": {
+    "title": "Core Exercise: Heel Slide",
+    "channel": "Children's Hospital Colorado",
+    "url": "https://www.youtube.com/watch?v=6-anByqnKp8",
+    "length": "0:59"
+   }
   },
   {
    "id": "diaphragm_breath",
@@ -1104,7 +1200,15 @@
      "bend": 0.0,
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 1,
+   "priority": "Yavaş nefes sinir sistemini dinlenmeye geçirir; uykuya dalmada kanıtı en güçlü olan budur.",
+   "youtube": {
+    "title": "Breathing Exercises for Relaxation",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=-7-CAFhJn78",
+    "length": "4:00"
+   }
   },
   {
    "id": "supine_twist",
@@ -1181,7 +1285,15 @@
      },
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 5,
+   "priority": "Yatarak omurgayı döndürür; uyku öncesi en yaygın kapanış hareketlerinden.",
+   "youtube": {
+    "title": "Trunk Rotation Stretch",
+    "channel": "AskDoctorJo",
+    "url": "https://www.youtube.com/watch?v=PX_tIQQIWu0",
+    "length": "0:28"
+   }
   },
   {
    "id": "legs_up_wall",
@@ -1258,7 +1370,15 @@
      "bend": 0.015,
      "d": 6.0
     }
-   ]
+   ],
+   "rank": 8,
+   "priority": "Tamamen edilgen, çok sakinleştirici; bacak yorgunluğunu alır.",
+   "youtube": {
+    "title": "Legs Up The Wall for Better Sleep",
+    "channel": "Yoga With Adriene",
+    "url": "https://www.youtube.com/watch?v=q8N8jkmJP6o",
+    "length": "7:36"
+   }
   }
  ],
  "slots": [
@@ -1316,35 +1436,35 @@
  ],
  "sets": {
   "A": {
-   "name": "AÇ",
-   "theme": "Göğsü, omurgayı, kalça önünü aç",
+   "name": "TEMEL",
+   "theme": "En önemli beş: boyun, göğüs, bel, kalça, nefes",
    "moves": [
     "neck_stretch",
     "chest_opener",
-    "cat_cow",
-    "hip_flexor",
+    "knee_to_chest",
+    "figure_four",
     "diaphragm_breath"
    ]
   },
   "B": {
-   "name": "BÜK",
-   "theme": "Boynu yana bük, sırtı yuvarla, beli bur",
+   "name": "GEVŞE",
+   "theme": "Yatarak bırak: çocuk pozu, arka bacak, burgu",
    "moves": [
     "neck_stretch",
-    "scapular_squeeze",
+    "chest_opener",
     "child_pose",
-    "figure_four",
+    "hamstring_towel",
     "supine_twist"
    ]
   },
   "C": {
-   "name": "ÇEK",
-   "theme": "Çeneyi, dizi, bacağı çek",
+   "name": "DÜZEL",
+   "theme": "Duruşu düzelt: çene, kürek, omurga, kalça önü, duvar",
    "moves": [
     "chin_tuck",
     "scapular_squeeze",
-    "knee_to_chest",
-    "hamstring_towel",
+    "cat_cow",
+    "hip_flexor",
     "legs_up_wall"
    ]
   }

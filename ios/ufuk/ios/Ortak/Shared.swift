@@ -32,6 +32,50 @@ struct LegSummary: Codable, Hashable, Sendable {
     var windproof: Bool
     var hazards: [String]
     var verdict: String            // one line: "Kuru · 07:45 çık"
+    var temps: [Double]? = nil     // °C per 15 minutes, aligned with `probs` (snapshots before 2026-11-07 have none)
+
+    static let dryLimit = 0.3
+
+    /// The start of quarter i.
+    func time(_ i: Int) -> Date { slotStart.addingTimeInterval(Double(i) * 900) }
+
+    /// The dry stretch to aim for, from `now` on: the one that holds the best departure, otherwise the longest.
+    /// At least 30 minutes; nil when the rest of the window has none.
+    func dryWindow(from now: Date) -> DryWindow? {
+        let first = probs.indices.first { time($0).addingTimeInterval(900) > now } ?? probs.count
+        guard first < probs.count else { return nil }
+        var runs: [Range<Int>] = []
+        var start: Int?
+        for i in first...probs.count {
+            let dry = i < probs.count && probs[i] < Self.dryLimit
+            if dry, start == nil { start = i }
+            if !dry, let s = start { runs.append(s..<i); start = nil }
+        }
+        runs = runs.filter { $0.count >= 2 }
+        let bestIndex = bestDeparture.map { Int(($0.timeIntervalSince(slotStart) / 900).rounded()) }
+        guard let run = runs.first(where: { r in bestIndex.map { r.contains($0) } ?? false }) ?? runs.max(by: { $0.count < $1.count }) else { return nil }
+        let go = bestIndex.flatMap { run.contains($0) ? $0 : nil } ?? run.lowerBound
+        let from = max(time(run.lowerBound), now)
+        return DryWindow(start: from, end: time(run.upperBound), departure: max(time(go), from),
+                         temp: temps.flatMap { go < $0.count ? $0[go] : nil },
+                         whole: run.lowerBound == first && run.upperBound == probs.count)
+    }
+
+    /// When nothing is dry: the least wet departure and its chance.
+    func leastWet(from now: Date) -> (Date, Double, Double?)? {
+        let idx = probs.indices.filter { time($0).addingTimeInterval(900) > now }
+        guard let i = idx.min(by: { probs[$0] < probs[$1] }) else { return nil }
+        return (max(time(i), now), probs[i], temps.flatMap { i < $0.count ? $0[i] : nil })
+    }
+}
+
+/// A rain-free stretch inside a commute window.
+struct DryWindow: Hashable, Sendable {
+    var start: Date
+    var end: Date
+    var departure: Date
+    var temp: Double?
+    var whole: Bool               // the whole rest of the window is dry
 }
 
 /// One hour ahead, for the "next hours" strip in the app and the widget.
@@ -106,7 +150,7 @@ struct Snapshot: Codable, Sendable {
         legs: [LegSummary(kind: .evening, title: "Akşam · eve dönüş", windowStart: .now, windowEnd: .now.addingTimeInterval(10800),
                           slotStart: .now, probs: [0.05, 0.1, 0.2, 0.6, 0.8, 0.4, 0.1, 0.05], bestDeparture: .now.addingTimeInterval(1800),
                           plannedDeparture: .now.addingTimeInterval(3600), maxProb: 0.8, rideFeel: 6, baseLayer: true, windproof: false,
-                          hazards: ["Karanlıkta dönüş"], verdict: "17:30'da çık · sonra yağmur")],
+                          hazards: ["Karanlıkta dönüş"], verdict: "17:30'da çık · sonra yağmur", temps: [12, 12, 11, 11, 10, 10, 9, 9])],
         lunchMinutes: 35, lunchVerdict: "35 dk yürüyüş uygun",
         today: SunDay(dawn: .now, sunrise: .now, sunset: .now.addingTimeInterval(3600), dusk: .now.addingTimeInterval(5400)),
         tomorrow: SunDay(dawn: .now, sunrise: .now.addingTimeInterval(50000), sunset: nil, dusk: nil),

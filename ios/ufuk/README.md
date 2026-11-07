@@ -48,9 +48,12 @@ yolculuk kartları → öğle → Giyim Defteri satırı → ruh hâli. İçlik 
 öğrenilen eşik Ben ve hava'nın en altında duruyor. Dışarı: Bu haftanın planı → Rota → radar → öğle → akşam.
 
 Widget'lar (2026-11-04, simgesiz, sade):
-- **Bugün** (küçük/orta/büyük, kilit ekranı): şimdi sıcaklık + durum + yağış ihtimali, bugünün en yüksek
-  ve en düşüğü; ortada büyük **gün batımı**, yanında doğuş, küçük karanlık; altta Sabah 07–09 ve Akşam
-  16–19 yağış ihtimali, her birinin uygun çıkışı küçük ("çık 07:30"). Sıradaki pencere önde (gece sabah).
+- **Bugün** (2026-11-07, küçük/orta/büyük, kilit ekranı): yalnız sıradaki çıkış (gündüz akşam, 19:00'dan sonra
+  yarın sabah). Büyük: **yağmursuz aralık** ("Yağmursuz 16:00–18:00", yağış ihtimali <%30, en az 30 dk; en iyi çıkışı
+  içeren, yoksa en uzunu), altında "çık 17:30 · 11°" (sıcaklık çıkış saatinin). Pencere çeyrek çeyrek renkli
+  çubuk, kuru aralık beyaz çizgiyle, çıkış bisikletle işaretli. Yanda simgeleriyle sıradaki üç güneş saati
+  sırayla: batış (büyük), karanlık, doğuş. Kuru aralık yoksa "Yağmursuz aralık yok · en az yağış 18:15 · %45".
+  Şimdiki sıcaklık, en yüksek/en düşük ve öteki pencere çıkarıldı.
 - **Saatler** (orta/büyük): önümüzdeki 6 (büyükte 12) saat: sıcaklık, yağış çubuğu ve %, rüzgâr;
   karanlık saatler koyu, çıkış saati çerçeveli; yanında "yağış 17:15'te başlıyor/diniyor", en yüksek
   rüzgâr, karanlık. Bugün widget'ının altına konmak için.

@@ -26,11 +26,30 @@ Dün kaçtıysa ana ekran mini geceyi ister (durak 3 + 5, 2 dk). Ezber sonrası 
 Son 14 gecede iki kez "Ağrıttı" denen hareket, aynı duraktaki ilk uygun yedekle değişir. Başta ağrı ≥7 → mini.
 Kırmızı bayraklar aynı. Referans not: vault `02 - Eudomonia/Beden/Spor/🌙 Gece Beşlileri.md`.
 
-## Animasyon ve video
+## Fotoğraflar, öncelik, YouTube (v3, 2026-11-07)
+
+Kullanıcı: çizgi figür ve video anlaşılmıyor; hareket birkaç fotoğrafla görünsün, YouTube linki olsun,
+fizyoterapistlerin yatma öncesi en önemli saydığı hareketlerden başlansın, ana tema kültür fizik.
+
+- **Fotoğraf:** `veri/photos.py` (Blender, Cycles) `moves.json`'daki pozlarla ahşap bir manken kurar, her harekete
+  2–3 anahtar kare çizer → `ios/Gece/Photos/<id>-<n>.jpg`. Kareler en farklı pozlardan seçilir (`photoFrames` ile elle de verilir).
+  Detayda kaydırılan numaralı fotoğraflar, gece akışında 3 sn'de bir geçen tek büyük fotoğraf (sol taraf aynalı).
+  Animasyonlu figür yalnız fotoğrafı olmayan harekette yedek; MP4 video kaldırıldı.
+  `/Applications/Blender.app/Contents/MacOS/Blender -b -P veri/photos.py -- [id …]`
+- **Öncelik (`rank`, `priority`):** 1 diyafram nefesi · 2 boyun esnetme · 3 tek diz göğse · 4 çocuk pozu · 5 sırtüstü burgu ·
+  6 dört · 7 göğüs açma · 8 bacaklar duvarda · 9 havluyla arka bacak · 10 kedi–inek · 11 çene içe · 12 kalça önü ·
+  13 pelvik tilt · 14 kürek kemiği · 15 topuk kaydırma. Gerekçe: yavaş nefesin uykuya geçişte kanıtı en güçlü
+  (sistematik derleme, AASM 2021 gevşeme önerisi); Sleep Foundation durağan, yavaş esnemeyi ve boynu öne alır;
+  kası uyandıran (güçlendirme, rehabilitasyon) hareketler sona. Esnemenin uykuya etkisinin kanıtı zayıf, sıra bir sentezdir.
+- **Beşliler önem sırasıyla yeniden:** A · TEMEL (boyun, göğüs açma, diz göğse, dört, diyafram nefesi) — ilk üç gece bu;
+  B · GEVŞE (boyun, göğüs açma, çocuk pozu, arka bacak, burgu); C · DÜZEL (çene, kürek, kedi–inek, kalça önü, duvar).
+  Doz: tutuşlar her yan 30 sn, tekrarlılar 3–5 sn tutuşla 5 tekrar.
+- **YouTube:** her harekette `youtube` (çoğu Ask Doctor Jo, fizyoterapist); bağlantılar 2026-11-07'de aramada doğrulandı.
+
+## Animasyon (yedek)
 
 `ios/Gece/moves.json` tek kaynaktır: yandan görünüş, eklem açıları, anahtar kareler.
-`Figure.swift` aynı kinematikle canlı çizer; `MoveVideo.swift` aynı çizimi kare kare MP4'e
-yazar (çevrimdışı, döngülü, paylaş/kaydet). Pozları telefona göndermeden denetlemek için:
+`Figure.swift` aynı kinematikle canlı çizer. Pozları telefona göndermeden denetlemek için:
 
 ```bash
 python3 veri/preview.py /tmp/gece-onizleme.png

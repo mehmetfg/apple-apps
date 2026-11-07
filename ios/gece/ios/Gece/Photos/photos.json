@@ -1,0 +1,119 @@
+{
+ "cat_cow": {
+  "frames": [
+   0,
+   2
+  ],
+  "count": 2
+ },
+ "neck_stretch": {
+  "frames": [
+   0,
+   1,
+   4
+  ],
+  "count": 3
+ },
+ "knee_to_chest": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "chin_tuck": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "chest_opener": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "scapular_squeeze": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "child_pose": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "pelvic_tilt": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "hip_flexor": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "figure_four": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "hamstring_towel": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "heel_slide": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "diaphragm_breath": {
+  "frames": [
+   0,
+   1
+  ],
+  "count": 2
+ },
+ "supine_twist": {
+  "frames": [
+   0,
+   1,
+   2
+  ],
+  "count": 3
+ },
+ "legs_up_wall": {
+  "frames": [
+   0,
+   1
+  ],
+  "count": 2
+ }
+}

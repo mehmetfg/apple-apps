@@ -6,6 +6,14 @@ struct VideoLink: Codable, Hashable {
     var url: String
 }
 
+/// A real physiotherapist's video of the move on YouTube.
+struct YouTubeLink: Codable, Hashable {
+    var title: String
+    var channel: String
+    var url: String
+    var length: String
+}
+
 struct Props: Codable, Hashable {
     var seat: Bool?
     var cushion: Bool?
@@ -38,6 +46,10 @@ struct Move: Identifiable, Hashable {
     var props: Props
     var breath: Breath?
     var video: VideoLink
+    var youtube: YouTubeLink?
+    /// 1 = most important before sleep (breath, then neck, low back…); the library and the sets follow this order.
+    var rank: Int
+    var priority: String
     var frames: [Keyframe]
 
     var loopLength: Double { frames.reduce(0) { $0 + $1.duration } }
@@ -51,7 +63,7 @@ struct Slot: Hashable {
     var pool: [String]
 }
 
-/// A beşli: five moves, one per stop, always in the same order. A·AÇ, B·BÜK, C·ÇEK.
+/// A beşli: five moves, one per stop, always in the same order. A·TEMEL (the five most important), B·GEVŞE, C·DÜZEL.
 struct MoveSet: Hashable {
     var key: String
     var name: String
@@ -97,6 +109,8 @@ final class Catalog: @unchecked Sendable {
     static let order = ["A", "B", "C"]
 
     func move(_ id: String) -> Move? { moves.first { $0.id == id } }
+    /// Every move, most important first.
+    var byPriority: [Move] { moves.sorted { $0.rank < $1.rank } }
     func slot(_ n: Int) -> Slot? { slots.first { $0.n == n } }
     var orderedSets: [MoveSet] { Self.order.compactMap { sets[$0] } }
 
@@ -110,7 +124,7 @@ final class Catalog: @unchecked Sendable {
         moves = raw.moves.map { m in
             Move(id: m.id, name: m.name, slot: m.slot, seconds: m.seconds, sides: m.sides, area: m.area, dose: m.dose,
                  why: m.why, steps: m.steps, cues: m.cues, focus: m.focus, props: m.props ?? Props(), breath: m.breath,
-                 video: m.video, frames: m.frames.map { Keyframe(pose: $0.pose(bases: raw.bases), duration: $0.d) })
+                 video: m.video, youtube: m.youtube, rank: m.rank ?? 99, priority: m.priority ?? "", frames: m.frames.map { Keyframe(pose: $0.pose(bases: raw.bases), duration: $0.d) })
         }
         sets = Dictionary(raw.sets.map { ($0.key, MoveSet(key: $0.key, name: $0.value.name, theme: $0.value.theme, moves: $0.value.moves)) },
                           uniquingKeysWith: { a, _ in a })
@@ -174,6 +188,9 @@ private struct RawMove: Decodable {
     var props: Props?
     var breath: Breath?
     var video: VideoLink
+    var youtube: YouTubeLink?
+    var rank: Int?
+    var priority: String?
     var frames: [RawFrame]
 }
 

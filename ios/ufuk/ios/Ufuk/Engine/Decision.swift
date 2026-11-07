@@ -38,7 +38,8 @@ struct Leg: Sendable, Identifiable {
     func summary() -> LegSummary {
         LegSummary(kind: kind, title: title, windowStart: windowStart, windowEnd: windowEnd, slotStart: slots.first?.time ?? windowStart,
                    probs: slots.map(\.prob), bestDeparture: best, plannedDeparture: planned, maxProb: windowMax, rideFeel: feel,
-                   baseLayer: baseLayer, windproof: windproof, hazards: hazards.filter { $0.level >= .caution }.map(\.text), verdict: verdict)
+                   baseLayer: baseLayer, windproof: windproof, hazards: hazards.filter { $0.level >= .caution }.map(\.text), verdict: verdict,
+                   temps: slots.map(\.temp))
     }
 }
 

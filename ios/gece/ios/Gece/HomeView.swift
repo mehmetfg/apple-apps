@@ -52,7 +52,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(store.tonightDone == nil ? "BU GECE" : "BU GECE · YAPILDI").font(.caption.weight(.semibold)).tracking(1.2)
+                    Text(store.tonightDone == nil ? "BU GECE · KÜLTÜR FİZİK" : "BU GECE · YAPILDI").font(.caption.weight(.semibold)).tracking(1.2)
                         .foregroundStyle(Theme.amber)
                     Text(plan.short ? "Mini gece · \(plan.set.title)" : "Beşli \(plan.set.title)").font(.title2.bold()).foregroundStyle(Theme.ink)
                     Text("\(plan.totalSeconds.minutesText) · \(plan.nightNo). gece · yatış \(store.bedtimeText)").foregroundStyle(Theme.soft)
@@ -77,7 +77,7 @@ struct HomeView: View {
                     ForEach(uniqueMoves(plan), id: \.id) { m in
                         Button { detail = m } label: {
                             VStack(spacing: 6) {
-                                FigureView(move: m).frame(width: 92, height: 72)
+                                MoveThumb(move: m).frame(width: 92, height: 66)
                                     .overlay(alignment: .topLeading) {
                                         Text("\(m.slot)").font(.caption2.bold()).frame(width: 18, height: 18)
                                             .background(Theme.amber, in: Circle()).foregroundStyle(Theme.night)
@@ -145,7 +145,7 @@ struct HomeView: View {
     private var setsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("ÜÇ BEŞLİ · EZBER KARTI").font(.caption.weight(.semibold)).tracking(1.2).foregroundStyle(Theme.amber)
-            Text("Her beşli aynı beş duraktan geçer: 1 boyun · 2 omuz · 3 omurga · 4 kalça-bacak · 5 nefes. İlk ikisi yatağın kenarında oturarak, son üçü yerde. Her hareket 1 dakika.")
+            Text("Baştan ayağa aynı beş durak: 1 boyun · 2 omuz · 3 omurga · 4 kalça-bacak · 5 nefes. İlk ikisi yatağın kenarında oturarak, son üçü yerde, her hareket 1 dakika. TEMEL en önemli beş hareket; ilk geceler onunla başlar.")
                 .font(.footnote).foregroundStyle(Theme.soft)
             ForEach(Catalog.shared.orderedSets, id: \.key) { set in
                 VStack(alignment: .leading, spacing: 6) {
@@ -218,11 +218,14 @@ struct HomeView: View {
 
     private var library: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("BÜTÜN HAREKETLER").font(.caption.weight(.semibold)).tracking(1.2).foregroundStyle(Theme.amber)
-            ForEach(Catalog.shared.moves) { m in
+            Text("BÜTÜN HAREKETLER · ÖNEM SIRASI").font(.caption.weight(.semibold)).tracking(1.2).foregroundStyle(Theme.amber)
+            Text("Fizyoterapi ve uyku kaynaklarına göre yatmadan önce en çok işe yarayandan aza: önce yavaş nefes, sonra boyun ve bel; kası uyandıran hareketler sonda.")
+                .font(.footnote).foregroundStyle(Theme.soft)
+            ForEach(Catalog.shared.byPriority) { m in
                 Button { detail = m } label: {
                     HStack(spacing: 12) {
-                        FigureView(move: m).frame(width: 64, height: 50)
+                        Text("\(m.rank)").font(.callout.bold().monospacedDigit()).foregroundStyle(m.rank <= 5 ? Theme.amber : Theme.soft).frame(width: 22)
+                        MoveThumb(move: m).frame(width: 78, height: 56)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(m.name).font(.headline).foregroundStyle(Theme.ink).multilineTextAlignment(.leading)
                             Text("Durak \(m.slot) · \(m.area)").font(.caption).foregroundStyle(Theme.soft)
@@ -231,7 +234,7 @@ struct HomeView: View {
                         Image(systemName: "chevron.right").foregroundStyle(Theme.soft)
                     }
                 }
-                if m.id != Catalog.shared.moves.last?.id { Divider().overlay(Theme.line) }
+                if m.id != Catalog.shared.byPriority.last?.id { Divider().overlay(Theme.line) }
             }
         }
         .card()
@@ -244,24 +247,30 @@ struct MoveDetail: View {
     let move: Move
     var mirrored = false
     @Environment(\.dismiss) private var dismiss
-    @State private var showVideo = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Picker("Görünüm", selection: $showVideo) {
-                        Text("Animasyon").tag(false)
-                        Text("Video").tag(true)
+                    PhotoGallery(move: move, mirrored: mirrored)
+                    if let y = move.youtube, let u = URL(string: y.url) {
+                        Link(destination: u) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "play.rectangle.fill").font(.title2).foregroundStyle(.red)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("YouTube'da izle").font(.headline).foregroundStyle(Theme.ink)
+                                    Text("\(y.channel) · \(y.length)").font(.caption).foregroundStyle(Theme.soft)
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.up.right").foregroundStyle(Theme.soft)
+                            }
+                            .padding(14).background(Theme.night, in: RoundedRectangle(cornerRadius: 14))
+                        }
                     }
-                    .pickerStyle(.segmented)
-                    Group {
-                        if showVideo { MoveVideoView(move: move, mirrored: mirrored) } else { FigureView(move: move, mirrored: mirrored) }
-                    }
-                    .frame(height: 280)
-                    .background(Theme.night, in: RoundedRectangle(cornerRadius: 18))
-
                     Text(move.dose).font(.headline).foregroundStyle(Theme.amber)
+                    if !move.priority.isEmpty {
+                        Label("Önem sırası \(move.rank): \(move.priority)", systemImage: "list.number").font(.footnote).foregroundStyle(Theme.soft)
+                    }
                     Text(move.why).foregroundStyle(Theme.ink)
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Nasıl").font(.headline).foregroundStyle(Theme.ink)
@@ -281,9 +290,9 @@ struct MoveDetail: View {
                     .card()
                     if let u = URL(string: move.video.url) {
                         Link(destination: u) {
-                            Label(move.video.title, systemImage: "play.rectangle").font(.callout.weight(.semibold))
+                            Label(move.video.title, systemImage: "doc.text").font(.callout.weight(.semibold))
                         }
-                        Text("Gerçek fizyoterapist videosu, hareket ailesinin kaynağı. Sayfa İngilizce.")
+                        Text("Hareketin yazılı kaynağı. Sayfa İngilizce.")
                             .font(.caption).foregroundStyle(Theme.soft)
                     }
                 }

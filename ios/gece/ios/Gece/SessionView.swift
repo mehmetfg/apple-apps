@@ -159,7 +159,7 @@ struct SessionView: View {
                         .background(Theme.amber, in: Capsule()).foregroundStyle(Theme.night)
                 }
             } else {
-                FigureView(move: s.move).frame(height: 160)
+                PhotoPlayer(move: s.move).frame(height: 220)
                 Text(s.move.name).font(.title.bold()).foregroundStyle(Theme.ink)
                 HStack(spacing: 14) {
                     Button { answer(true) } label: { Label("Bildim", systemImage: "checkmark") }.buttonStyle(Pill(color: Theme.sage.opacity(0.3)))
@@ -190,8 +190,8 @@ struct SessionView: View {
             .multilineTextAlignment(.center)
 
             ZStack {
-                FigureView(move: s.move, mirrored: s.mirrored, paused: paused)
-                    .padding(.horizontal, 8)
+                PhotoPlayer(move: s.move, mirrored: s.mirrored, paused: paused)
+                    .padding(.horizontal, 4)
                 if let b = s.move.breath { BreathRing(breath: b, paused: paused) }
             }
             .frame(maxHeight: .infinity)

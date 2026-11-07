@@ -52,7 +52,7 @@ enum HabitPhase: String, Codable, CaseIterable {
             return (k, "Öğrenme: \(k) beşlisinin \(nights % 3 + 1). gecesi")
         }
         let k = order[nights % order.count]
-        if legHeavy && k != "C" { return ("C", "Bugün çok yürüdün ya da pedal çevirdin: ÇEK (bacak) öne alındı") }
+        if legHeavy && k != "C" { return ("C", "Bugün çok yürüdün ya da pedal çevirdin: DÜZEL (kalça önü, bacaklar duvarda) öne alındı") }
         return (k, "Sırası gelen beşli")
     }
 }
