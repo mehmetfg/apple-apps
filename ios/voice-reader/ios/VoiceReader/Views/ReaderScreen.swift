@@ -15,6 +15,9 @@ struct ReaderScreen: View {
     init(documentID: UUID) { initialID = documentID }
 
     @State private var content: DocumentContent?
+    @State private var contentID: UUID?           // the book `content` belongs to (a switch must not show the old text under the new id)
+    @State private var topBarHeight: CGFloat = 92     // the floating bars, measured: the page runs under them
+    @State private var bottomBarHeight: CGFloat = 150
     @State private var following = true
     @State private var scrollRequest = 0
     @State private var backShown = false               // "Eski yere dön" after the progress bar
@@ -81,6 +84,10 @@ struct ReaderScreen: View {
         .animation(.smooth(duration: 0.25), value: model.noteToast)
         .sheet(item: $noteSheet) { NoteSheet(item: $0).presentationDetents([.medium, .large]) }
         .sheet(item: $expand) { ExpandPromptView(source: $0) }
+        .alert("Okuma başlamadı", isPresented: Binding(get: { model.player.problem != nil }, set: { if !$0 { model.player.problem = nil } })) {
+            Button("Ses ayarları") { model.player.problem = nil; popover = .audio }
+            Button("Tamam", role: .cancel) { model.player.problem = nil }
+        } message: { Text(model.player.problem ?? "") }
         .alert("Kayıt", isPresented: Binding(get: { model.recorder.error != nil }, set: { if !$0 { model.recorder.error = nil } })) {
             Button("Tamam", role: .cancel) { model.recorder.error = nil }
         } message: { Text(model.recorder.error ?? "") }
@@ -141,7 +148,9 @@ struct ReaderScreen: View {
         }
         .task(id: documentID) {
             await model.open(documentID)
+            if contentID != documentID { content = nil }
             content = await model.store.content(for: documentID)
+            contentID = documentID
             following = true
             scrollRequest = player.cursor
             if let r = model.revealRequest, r.doc == documentID {
@@ -152,8 +161,35 @@ struct ReaderScreen: View {
         }
     }
 
+    /// The page fills the screen and the bars float over it as glass (2026-11-10): the text runs under them, and it
+    /// no longer jumps when a tap hides or shows the bars, since the page keeps its size.
     private var classic: some View {
+        let bars = bike || !chromeHidden
+        return GeometryReader { g in
+            ZStack {
+                page(top: bars ? topBarHeight : 0, bottom: bars ? bottomBarHeight : 0, safe: g.safeAreaInsets)
+                // the text fades out behind the clock and at the foot of the screen instead of running through them
+                VStack(spacing: 0) {
+                    LinearGradient(stops: [.init(color: Color(uiColor: theme.background), location: 0),
+                                           .init(color: Color(uiColor: theme.background), location: 0.7),
+                                           .init(color: Color(uiColor: theme.background).opacity(0), location: 1)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: g.safeAreaInsets.top + 16)
+                    Spacer(minLength: 0)
+                    LinearGradient(colors: [Color(uiColor: theme.background).opacity(0), Color(uiColor: theme.background)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: g.safeAreaInsets.bottom + 10)
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                barsLayer
+            }
+        }
+    }
+
+    private var barsLayer: some View {
         VStack(spacing: 0) {
+            Group {
             if bike {
                 VStack(spacing: 4) {
                     BikeTopBar(title: doc?.title ?? "", theme: theme, onBack: { dismiss() }, onContents: { bikeContents = true },
@@ -168,7 +204,10 @@ struct ReaderScreen: View {
                        options: { options })
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
-            page
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topBarHeight = $0 }
+            Spacer(minLength: 0).allowsHitTesting(false)
+            Group {
             if bike {
                 BikeBar(theme: theme)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -177,13 +216,16 @@ struct ReaderScreen: View {
                           onJump: jump, onShow: show, onScrub: scrubbed, onSearch: { searching = true })
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bottomBarHeight = $0 }
         }
     }
 
     /// The page, with the "go to speech cursor" pill and, when the bars are hidden, the small play button.
-    private var page: some View {
+    /// `top` and `bottom` are the heights of the bars floating over it (0 when they are hidden).
+    private func page(top: CGFloat, bottom: CGFloat, safe: EdgeInsets) -> some View {
         ZStack(alignment: .bottom) {
-            if let content, let doc {
+            if let content, let doc, contentID == documentID {
                 ReaderTextView(
                     documentID: documentID, text: content.text, style: style, highlights: doc.highlights,
                     notes: model.currentNotes.map { NoteMark(id: $0.id, range: $0.range, voice: $0.hasVoice) }, player: player,
@@ -202,7 +244,9 @@ struct ReaderScreen: View {
                     onBookmark: { i in model.addBookmark(at: i) },
                     onPlayFrom: { i in player.moveCursor(to: i, play: true); following = true },
                     onVisibleOffset: { visibleOffset = $0 },
-                    onScrolling: scrolling)
+                    onScrolling: scrolling,
+                    insets: UIEdgeInsets(top: safe.top + top, left: 0, bottom: safe.bottom + bottom, right: 0))
+                    .ignoresSafeArea(.container, edges: .vertical)
             } else {
                 ProgressView().tint(Color(uiColor: style.foreground)).frame(maxHeight: .infinity)
             }
@@ -231,7 +275,7 @@ struct ReaderScreen: View {
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 16).padding(.vertical, 11)
-                                    .background(accent.ink.opacity(0.78), in: Capsule())
+                                    .modifier(GlassCapsule(tint: accent.ink.opacity(0.78)))
                                     .contentShape(Capsule().inset(by: -10))
                             }
                             .buttonStyle(.plain)
@@ -244,7 +288,7 @@ struct ReaderScreen: View {
                                     .font(.footnote.weight(.semibold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 16).padding(.vertical, 11)
-                                    .background(accent.ink.opacity(0.62), in: Capsule())
+                                    .modifier(GlassCapsule(tint: accent.ink.opacity(0.62)))
                                     .contentShape(Capsule().inset(by: -10))
                             }
                             .buttonStyle(.plain)
@@ -255,13 +299,13 @@ struct ReaderScreen: View {
                     }
                 }
             }
-            .padding(.bottom, 10)
+            .padding(.bottom, 10 + bottom)
             .animation(.smooth(duration: 0.25), value: following)
             .animation(.smooth(duration: 0.25), value: backShown)
             .onChange(of: following) { _, f in if f { backShown = false } }
             .animation(.easeInOut(duration: 0.35), value: moving)
         }
-        .overlay(alignment: .top) { RecordingStrip().padding(.top, 8) }
+        .overlay(alignment: .top) { RecordingStrip().padding(.top, 8 + top) }
     }
 
     private var style: ReaderStyle {
@@ -274,7 +318,9 @@ struct ReaderScreen: View {
             font: s.font, size: bike ? s.fontSize * 1.35 : s.fontSize, lineSpacing: s.lineSpacing, kern: s.characterSpacing,
             background: t.background, foreground: t.text,
             wordColor: s.showSpokenWord ? s.wordColor.uiColor : nil, lineColor: line,
-            focus: s.focusMode, cursorFraction: s.cursorPosition.fraction, bookLayout: s.bookLayout)
+            focus: s.focusMode, cursorFraction: s.cursorPosition.fraction, bookLayout: s.bookLayout,
+            lens: s.wordLens && !UIAccessibility.isReduceMotionEnabled, lensScale: s.lensScale,
+            dim: s.pageDim, dimStrength: s.pageDimStrength)
     }
 
     /// The boxed button's menu: what is not a setting but an action on this document.
@@ -463,9 +509,8 @@ private struct TopBar<Options: View>: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 6)
-        .padding(.bottom, 4)
-        .background(Color(uiColor: theme.chrome).ignoresSafeArea(edges: .top))
-        .overlay(alignment: .bottom) { Rectangle().fill(Color(uiColor: theme.hairline)).frame(height: 0.5) }
+        .padding(.vertical, 4)
+        .modifier(ReaderBarGlass(theme: theme, edge: .top))
     }
 
     private func glyph(_ name: String) -> some View {
@@ -510,7 +555,7 @@ private struct BikeTopBar: View {
                     Text(title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                         .foregroundStyle(Color(uiColor: theme.text))
                     if let ch = model.player.chapterTitle(at: model.player.shownCursor) {
-                        Text(ch).font(.system(size: 12)).lineLimit(1).foregroundStyle(Color(uiColor: theme.text).opacity(0.6))
+                        Text(ch).font(.system(size: 13, weight: .medium)).lineLimit(1).foregroundStyle(Color(uiColor: theme.text).opacity(0.88))
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -535,9 +580,8 @@ private struct BikeTopBar: View {
         }
         .foregroundStyle(accent.ink)
         .buttonStyle(.plain)
-        .padding(.horizontal, 6).padding(.bottom, 4)
-        .background(Color(uiColor: theme.chrome).ignoresSafeArea(edges: .top))
-        .overlay(alignment: .bottom) { Rectangle().fill(Color(uiColor: theme.hairline)).frame(height: 0.5) }
+        .padding(.horizontal, 6).padding(.vertical, 4)
+        .modifier(ReaderBarGlass(theme: theme, edge: .top))
     }
 }
 
@@ -576,11 +620,10 @@ struct PlayerBar: View {
             StatusRow()
         }
         .padding(.horizontal, 12)
-        .padding(.bottom, 4)
+        .padding(.bottom, 6)
         .foregroundStyle(accent.ink)
         .buttonStyle(.plain)
-        .background(Color(uiColor: theme.chrome).ignoresSafeArea(edges: .bottom))
-        .overlay(alignment: .top) { Rectangle().fill(Color(uiColor: theme.hairline)).frame(height: 0.5) }
+        .modifier(ReaderBarGlass(theme: theme, edge: .bottom))
     }
 
     private func bar(_ name: String, _ label: String, action: @escaping () -> Void) -> some View {
@@ -670,6 +713,7 @@ private struct StatusRow: View {
                     BreakBadge()
                 } else {
                     Text(player.chapterTitle(at: player.shownCursor) ?? model.currentDocument?.author ?? "").lineLimit(1)
+                        .fontWeight(.semibold)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -810,8 +854,7 @@ private struct RoadPill: View {
             .accessibilityLabel("Yolda ekranına dön")
         }
         .padding(.horizontal, 10).padding(.vertical, 4)
-        .background(.regularMaterial, in: Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        .modifier(GlassCapsule(interactive: false, fallback: Color(uiColor: .secondarySystemBackground)))
         .padding(.horizontal, 12)
     }
 }

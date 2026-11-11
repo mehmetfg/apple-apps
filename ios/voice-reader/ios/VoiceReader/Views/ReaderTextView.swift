@@ -25,6 +25,10 @@ struct ReaderStyle: Equatable {
     var focus: Bool
     var cursorFraction: CGFloat
     var bookLayout: Bool
+    var lens = false                             // a glass band over the line being read, the line a touch larger (WordLens)
+    var lensScale: CGFloat = 1.08                // how much larger at most (Settings.lensScale)
+    var dim: PageDim = .off                      // the page around the line being read (PageShade)
+    var dimStrength: CGFloat = 0.5
 }
 
 /// A note's place on the page: a dotted underline, a tap opens it.
@@ -55,6 +59,8 @@ struct ReaderTextView: UIViewRepresentable {
     var onPlayFrom: (Int) -> Void
     var onVisibleOffset: (Int) -> Void
     var onScrolling: (Bool) -> Void = { _ in }   // the finger moves the page (true) / the page has come to rest
+    /// The bars floating over the page (and the safe area): the text runs under them, the reading line stays clear.
+    var insets: UIEdgeInsets = .zero
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -122,6 +128,9 @@ struct ReaderTextView: UIViewRepresentable {
         private var shaping: (range: NSRange, color: HighlightColor)?
         private var pressedAt = Date.distantPast        // the lift of a long press is not a tap
         private var lastScrollRequest = -1
+        private var lastJump: (offset: Int, fraction: CGFloat, at: Date)?
+        /// The page whose marks the player drives now. A reader that opens while another closes must not lose them.
+        private static weak var owner: Coordinator?
         private var userDragging = false
         /// A jump not done yet: it waits until the view has its real size, so a book opens at its place with no
         /// visible run down the page. Until then the text is hidden and following is held.
@@ -134,6 +143,8 @@ struct ReaderTextView: UIViewRepresentable {
         private var tempSentence: NSRange?
         private var bandFrame: CGRect?
         private var spokenDirty = false
+        private var lens: WordLens?
+        private var shade: PageShade?
 
         init(_ p: ReaderTextView) { parent = p }
 
@@ -143,9 +154,11 @@ struct ReaderTextView: UIViewRepresentable {
             band.alpha = 0
             tv.insertSubview(band, at: 0)
             parent.player.onSpokenChange = { [weak self] in self?.spokenChanged() }
+            Self.owner = self
         }
 
         func detach() {
+            guard Self.owner == nil || Self.owner === self else { return }      // another page took the player over
             if parent.player.onSpokenChange != nil { parent.player.onSpokenChange = nil }
         }
 
@@ -155,6 +168,18 @@ struct ReaderTextView: UIViewRepresentable {
             let p = parent
             tv.backgroundColor = p.style.background
             tv.indicatorStyle = p.style.background.isDark ? .white : .black
+            if tv.contentInset != p.insets {
+                let atTop = tv.contentOffset.y <= -tv.contentInset.top + 1
+                tv.contentInset = p.insets
+                tv.verticalScrollIndicatorInsets = p.insets
+                if atTop { tv.contentOffset.y = -p.insets.top }
+                // the bars were measured a moment after the book opened at its place: the place is taken again, so
+                // it is not left under the top bar
+                if let j = lastJump, Date.now.timeIntervalSince(j.at) < 1.5, pendingScroll == nil, tv.bounds.height > 1 {
+                    scroll(tv, to: j.offset, fraction: j.fraction, animated: false)
+                    paintMarks(animated: false, follow: false)
+                }
+            }
             var rebuilt = false
             if let old = builtFor, old.0 == p.documentID, old.1 == p.style, old.2 != p.highlights || old.3 != p.notes,
                tv.textStorage.length > 0, tv.textStorage.length == p.text.utf16.count {
@@ -198,6 +223,7 @@ struct ReaderTextView: UIViewRepresentable {
         func layoutChanged(_ tv: UITextView) {
             if let j = pendingScroll, tv.bounds.height > 1, tv.window != nil {
                 pendingScroll = nil
+                lastJump = (j.offset, j.fraction, .now)
                 scroll(tv, to: j.offset, fraction: j.fraction, animated: false)
                 paintMarks(animated: false, follow: false)
                 if tv.alpha < 1 { UIView.animate(withDuration: 0.15) { tv.alpha = 1 } }
@@ -244,6 +270,8 @@ struct ReaderTextView: UIViewRepresentable {
             bandFrame = nil
             band.alpha = 0
             chips.forEach { $0.isHidden = true }
+            lens?.hide(animated: false)
+            shade?.hide(animated: false)
         }
 
         private static let noteInk = UIColor(red: 0, green: 0.435, blue: 0.706, alpha: 1)       // the progress bar's blue
@@ -340,7 +368,7 @@ struct ReaderTextView: UIViewRepresentable {
             // Text colour: only where the base colour would not read on the chip (a light text on yellow in the dark
             // themes) and, in focus mode, the spoken sentence. The light theme needs no text edit at all while reading.
             let contrast: UIColor? = {
-                guard let w = word, let c = p.style.wordColor else { return nil }
+                guard !p.style.lens, word != nil, let c = p.style.wordColor else { return nil }   // the lens carries its own line
                 let pick: UIColor = luminance(c) > 0.55 ? .black : .white
                 return pick.isDark == p.style.foreground.isDark ? nil : pick
             }()
@@ -366,6 +394,8 @@ struct ReaderTextView: UIViewRepresentable {
             guard let anchor, let g = geometry(in: tv, anchor: anchor, word: word) else {
                 if band.alpha > 0 { UIView.animate(withDuration: 0.12) { self.band.alpha = 0 } }
                 chips.forEach { $0.isHidden = true }
+                lens?.hide(animated: true)
+                shade?.hide(animated: true)
                 bandFrame = nil
                 return
             }
@@ -373,8 +403,13 @@ struct ReaderTextView: UIViewRepresentable {
             // the band: one line, edge to edge. It moves with the word chip, in the same frame, never behind it.
             if let c = p.style.lineColor {
                 band.backgroundColor = c
-                band.layer.removeAllAnimations()
-                band.frame = g.band
+                if band.alpha > 0.5, abs(band.frame.minY - g.band.minY) > 1 {
+                    let to = g.band
+                    LineGlide.run { self.band.frame = to }          // glides with the capsule to the next line
+                } else {
+                    band.layer.removeAllAnimations()
+                    band.frame = g.band
+                }
                 if band.alpha < 1 { UIView.animate(withDuration: 0.15) { self.band.alpha = 1 } }
                 bandFrame = g.band
             } else {
@@ -382,8 +417,40 @@ struct ReaderTextView: UIViewRepresentable {
                 bandFrame = g.band
             }
 
-            // the word: a chip, jumping to each word
-            if let c = p.style.wordColor, word != nil {
+            // Sayfa karartma: the page around the line steps back (faded, dark, a spotlight, a window, dusk). It lies
+            // under the Mercek band and moves only when the line does, like the band.
+            if p.style.dim != .off {
+                let s = shade ?? {
+                    let v = PageShade()
+                    tv.addSubview(v)
+                    shade = v
+                    return v
+                }()
+                s.show(p.style.dim, strength: p.style.dimStrength, clear: g.band, width: tv.bounds.width,
+                       viewport: visibleHeight(tv), paper: p.style.background)
+                if let lens { tv.bringSubviewToFront(lens) }
+            } else {
+                shade?.hide(animated: false)
+            }
+
+            // Mercek: the whole line being read, larger, in a glass lens over it; the spoken word keeps its colour
+            // inside the lens. (First, 2026-11-10, the lens held only the word; the same day: "kelimeyi değil, satırı
+            // büyüt, kelime yine renkle işaretli olsun".)
+            if p.style.lens, g.line.length > 0, NSMaxRange(g.line) <= len {
+                chips.forEach { $0.isHidden = true }
+                let l = lens ?? {
+                    let v = WordLens()
+                    tv.addSubview(v)
+                    lens = v
+                    return v
+                }()
+                let inLine = word.map { NSIntersectionRange($0, g.line) }.flatMap { $0.length > 0 ? NSRange(location: $0.location - g.line.location, length: $0.length) : nil }
+                let face = p.style.font, size = p.style.size
+                l.show((tv.textStorage.string as NSString).substring(with: g.line), word: inLine,
+                       textStart: g.lineStart, band: g.band, font: { face.font(size: size * $0) }, scale: p.style.lensScale,
+                       kern: p.style.kern, paper: p.style.background, ink: p.style.foreground, mark: p.style.wordColor)
+            } else if let c = p.style.wordColor, word != nil {
+                lens?.hide(animated: false)
                 for (i, r) in g.chips.enumerated() {
                     let v = chip(i, in: tv)
                     v.backgroundColor = c
@@ -393,12 +460,14 @@ struct ReaderTextView: UIViewRepresentable {
                 if g.chips.count < chips.count { for v in chips[g.chips.count...] { v.isHidden = true } }
             } else {
                 chips.forEach { $0.isHidden = true }
+                lens?.hide(animated: false)
             }
 
             if follow, p.following, !userDragging, pendingScroll == nil { followBand(tv, g.band) }
         }
 
-        private struct Geometry { var band: CGRect; var chips: [CGRect] }
+        /// `line`: the characters of the line being read; `lineStart`: where its text begins on the page (x).
+        private struct Geometry { var band: CGRect; var chips: [CGRect]; var line: NSRange; var lineStart: CGFloat }
 
         /// Where the line of `anchor` sits, and the rectangles of `word`, in the text view's content coordinates.
         private func geometry(in tv: UITextView, anchor: Int, word: NSRange?) -> Geometry? {
@@ -408,7 +477,9 @@ struct ReaderTextView: UIViewRepresentable {
             let from = max(0, anchor - 300)
             lm.ensureLayout(forCharacterRange: NSRange(location: from, length: min(len - from, 1000)))
             let g = lm.glyphIndexForCharacter(at: anchor)
-            let used = lm.lineFragmentUsedRect(forGlyphAt: g, effectiveRange: nil)
+            var lineGlyphs = NSRange(location: 0, length: 0)
+            let used = lm.lineFragmentUsedRect(forGlyphAt: g, effectiveRange: &lineGlyphs)
+            let line = lm.characterRange(forGlyphRange: lineGlyphs, actualGlyphRange: nil)
             let inset = tv.textContainerInset
             let sp = parent.style.lineSpacing
             // the line's own height plus its spacing, centred on the text, so the band hugs one line
@@ -422,7 +493,7 @@ struct ReaderTextView: UIViewRepresentable {
                     chips.append(CGRect(x: r.minX + inset.left - 1, y: r.minY + inset.top - sp / 2, width: r.width + 2, height: r.height + sp))
                 }
             }
-            return Geometry(band: band, chips: chips)
+            return Geometry(band: band, chips: chips, line: line, lineStart: used.minX + inset.left)
         }
 
         // MARK: scrolling
@@ -716,5 +787,215 @@ final class LayoutReportingTextView: UITextView {
     override func layoutSubviews() {
         super.layoutSubviews()
         onLayout?()
+    }
+}
+
+/// Satır bandı (2026-11-10, last form: "büyüteç kullanışlı değil, resimdeki gibi yuvarlatılmış kenar"): a capsule
+/// with a hairline edge over the line being read, the line at its own size by default (Settings.lensScale 1.0).
+/// Earlier, Mercek (2026-11-10): a glass band lying over the line being read, the line a touch larger on it, the spoken word
+/// in its colour. Nothing slides: the band stands still on its line and only the word's colour steps along it; when
+/// the voice reaches the next line the band is there at once. (Two earlier forms of the same day were dropped by the
+/// user: a lens holding only the word, and a line that slid under the glass, "kayma çirkin gösteriyor".) The line is
+/// enlarged only as far as it still fits the page's width whole. One small view; the page's text is not laid out
+/// again. On iOS 26 and later the band is the system's glass; before that a thin blur.
+/// The glide from one line to the next (2026-11-11, "atlamalı değil, aşağı doğru akıcı geçsin"): the band, the
+/// line band behind it and the page's shade move together, on one curve, in about a third of a second.
+enum LineGlide {
+    static let duration: TimeInterval = 0.32
+    static func run(_ moves: @escaping () -> Void) {
+        UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 0,
+                       options: [.beginFromCurrentState, .allowUserInteraction, .curveEaseInOut], animations: moves)
+    }
+}
+
+final class WordLens: UIView {
+    private let glass = UIVisualEffectView()
+    private let tint = UIView()
+    private let label = UILabel()
+
+    init() {
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        alpha = 0
+        // no shadow: it gathered at the capsule's round ends as a smudge (2026-11-11); only the hairline ring stays
+        if #available(iOS 26.0, *) {
+            glass.effect = UIGlassEffect()
+        } else {
+            glass.effect = UIBlurEffect(style: .systemThinMaterial)
+        }
+        glass.clipsToBounds = true
+        glass.layer.cornerCurve = .circular
+        glass.layer.borderWidth = 1
+        glass.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(glass)
+        tint.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        glass.contentView.addSubview(tint)
+        label.lineBreakMode = .byClipping
+        label.numberOfLines = 1
+        glass.contentView.addSubview(label)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    /// `text`: the line; `word`: the spoken word inside it; `textStart`: where the line's text begins on the page;
+    /// `band`: the line's own band, edge to edge; `font`: the page's type at a given enlargement; `scale`: the
+    /// enlargement asked for (the line gets less when it would not fit).
+    func show(_ text: String, word: NSRange?, textStart: CGFloat, band: CGRect, font: (CGFloat) -> UIFont, scale: CGFloat,
+              kern: CGFloat, paper: UIColor, ink: UIColor, mark: UIColor?) {
+        var shown = text
+        while let c = shown.unicodeScalars.last, CharacterSet.whitespacesAndNewlines.contains(c) { shown.unicodeScalars.removeLast() }
+        let margin: CGFloat = 2, pad: CGFloat = 8
+        let room = max(40, band.width - 2 * margin - 2 * pad)
+        let plain = (shown as NSString).size(withAttributes: [.font: font(1), .kern: kern]).width
+        let k = max(1, min(scale, plain > 1 ? room / plain : scale))
+        let face = font(k)
+        let a = NSMutableAttributedString(string: shown, attributes: [.font: face, .kern: kern * k, .foregroundColor: ink])
+        if let word, let mark, NSMaxRange(word) <= a.length {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+            mark.getRed(&r, green: &g, blue: &b, alpha: nil)
+            a.addAttributes([.backgroundColor: mark, .foregroundColor: 0.299 * r + 0.587 * g + 0.114 * b > 0.55 ? UIColor.black : UIColor.white], range: word)
+        }
+        let height = max(band.height * k, ceil(face.lineHeight)) + 4
+        let frame = CGRect(x: margin, y: band.midY - height / 2, width: max(40, band.width - 2 * margin), height: height)
+        // the enlarged line keeps the middle of the line it covers, and stays inside the band
+        let width = ceil(a.size().width) + 2
+        let middle = textStart + plain / 2 - margin
+        let x = min(max(pad, middle - width / 2), max(pad, frame.width - width - pad))
+        // Within a line nothing moves (only the word's colour steps on). To the next line the capsule glides down
+        // while the old line's text dissolves into the new one (2026-11-11); the text itself never slides sideways.
+        let moving = alpha > 0.5 && abs(self.frame.midY - frame.midY) > 1
+        UIView.performWithoutAnimation {
+            // a capsule: both ends fully round, a hairline edge, the page's own colour a shade lifted
+            let dark = paper.isDark
+            self.tint.backgroundColor = dark ? UIColor(white: 1, alpha: 0.07).blended(over: paper) : paper.withAlphaComponent(0.94)
+            self.glass.layer.cornerRadius = height / 2
+            self.glass.layer.borderColor = (dark ? UIColor(white: 1, alpha: 0.28) : UIColor(white: 0, alpha: 0.14)).cgColor
+            if !moving {
+                self.label.attributedText = a
+                self.frame = frame
+                self.label.frame = CGRect(x: x, y: 0, width: width, height: height)
+            }
+        }
+        if moving {
+            UIView.transition(with: label, duration: LineGlide.duration * 0.8, options: [.transitionCrossDissolve, .beginFromCurrentState]) {
+                self.label.attributedText = a
+            }
+            LineGlide.run {
+                self.frame = frame
+                self.label.frame = CGRect(x: x, y: 0, width: width, height: height)
+            }
+        }
+        superview?.bringSubviewToFront(self)
+        if alpha < 1 { UIView.animate(withDuration: 0.12) { self.alpha = 1 } }
+    }
+
+    func hide(animated: Bool) {
+        guard alpha > 0 else { return }
+        if animated { UIView.animate(withDuration: 0.12) { self.alpha = 0 } } else { alpha = 0 }
+    }
+}
+
+/// Sayfa karartma (2026-11-10, "o bantla beraber arka planı çeşitli biçimlerde karartma"): the page around the line
+/// being read steps back while the line stays clear. Four plain pieces in the text's own coordinates, above the text
+/// and below the Mercek band: a solid shade far above and far below, and a short gradient where each meets the clear
+/// part, so the edge is soft. Plain colour views need no backing store however tall they are; the gradients are
+/// at most a screen high. Like the band, it moves only when the line does, with no animation.
+final class PageShade: UIView {
+    private final class Fade: UIView {
+        override class var layerClass: AnyClass { CAGradientLayer.self }
+        var gradient: CAGradientLayer { layer as! CAGradientLayer }
+    }
+    private let topSolid = UIView(), bottomSolid = UIView()
+    private let topFade = Fade(), bottomFade = Fade()
+
+    init() {
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        alpha = 0
+        for v in [topSolid, topFade, bottomFade, bottomSolid] as [UIView] {
+            v.isUserInteractionEnabled = false
+            addSubview(v)
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    /// `clear`: the line's band, edge to edge, in the text's coordinates; `viewport`: the height of the page on
+    /// screen; `paper`: the page's colour (what "Soluk" and "Pencere" fade the text into).
+    func show(_ kind: PageDim, strength: CGFloat, clear band: CGRect, width: CGFloat, viewport: CGFloat, paper: UIColor) {
+        let ink: UIColor
+        var strength = strength
+        var clear = band
+        var fade: CGFloat = 10                       // a soft edge, not a hard cut
+        var near: CGFloat = 0                        // the shade right at the clear part (spotlight starts lit)
+        switch kind {
+        case .off:
+            hide(animated: false); return
+        case .fade:
+            ink = paper
+        case .dark:
+            ink = .black
+        case .spotlight:
+            ink = .black
+            fade = max(140, viewport * 0.45)
+            near = 0.04
+            strength = min(0.95, strength * 1.2)
+        case .window:
+            ink = paper
+            clear = band.insetBy(dx: 0, dy: -band.height * 0.6)    // the line above and the line below
+            fade = band.height * 0.5
+            strength = min(0.92, strength * 1.15)
+        case .dusk:
+            ink = paper.isDark ? UIColor(red: 0.14, green: 0.07, blue: 0.01, alpha: 1)
+                               : UIColor(red: 0.42, green: 0.24, blue: 0.05, alpha: 1)
+        }
+        let far: CGFloat = 30000
+        let x: CGFloat = -40, w = width + 80
+        let full = ink.withAlphaComponent(strength).cgColor
+        let lit = ink.withAlphaComponent(strength * near).cgColor
+        let target = CGRect(x: x, y: clear.minY - far, width: w, height: clear.height + 2 * far)
+        let moving = alpha > 0.5 && abs(frame.minY - target.minY) > 1
+        if moving { LineGlide.run { self.frame = target } }   // glides with the band; the pieces inside stay put
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        UIView.performWithoutAnimation {
+            if !moving { frame = target }
+            let top = far                            // the clear part's top, in this view
+            let bottom = far + clear.height
+            topSolid.frame = CGRect(x: 0, y: 0, width: w, height: max(0, top - fade))
+            topFade.frame = CGRect(x: 0, y: top - fade, width: w, height: fade)
+            bottomFade.frame = CGRect(x: 0, y: bottom, width: w, height: fade)
+            bottomSolid.frame = CGRect(x: 0, y: bottom + fade, width: w, height: max(0, far - fade))
+            topSolid.backgroundColor = UIColor(cgColor: full)
+            bottomSolid.backgroundColor = UIColor(cgColor: full)
+            // the spotlight darkens slowly near the line, then faster: three stops instead of two
+            let spot = kind == .spotlight
+            let mid = ink.withAlphaComponent(strength * 0.42).cgColor
+            topFade.gradient.colors = spot ? [full, mid, lit] : [full, lit]
+            topFade.gradient.locations = spot ? [0, 0.4, 1] : nil
+            bottomFade.gradient.colors = spot ? [lit, mid, full] : [lit, full]
+            bottomFade.gradient.locations = spot ? [0, 0.6, 1] : nil
+        }
+        CATransaction.commit()
+        if alpha < 1 { UIView.animate(withDuration: 0.25) { self.alpha = 1 } }
+    }
+
+    func hide(animated: Bool) {
+        guard alpha > 0 else { return }
+        if animated { UIView.animate(withDuration: 0.2) { self.alpha = 0 } } else { alpha = 0 }
+    }
+}
+
+
+private extension UIColor {
+    /// This colour laid over `base` (alpha compositing), opaque.
+    func blended(over base: UIColor) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        base.getRed(&br, green: &bg, blue: &bb, alpha: nil)
+        return UIColor(red: r * a + br * (1 - a), green: g * a + bg * (1 - a), blue: b * a + bb * (1 - a), alpha: 1)
     }
 }

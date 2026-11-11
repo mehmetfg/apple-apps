@@ -258,7 +258,7 @@ struct RideView: View {
                     }
                 }
                 .padding(.top, 96)
-                .padding(.bottom, 220)
+                .padding(.bottom, 244)
                 .frame(width: w)
                 .allowsHitTesting(false)
                 MarkBurst(tick: state.falling, from: state.markPoint, to: CGPoint(x: g.size.width * 0.86, y: g.size.height - 150),
@@ -447,7 +447,8 @@ private struct RideTint: View {
     }
 }
 
-/// The book and the chapter, quiet, above the progress line. A tap opens the contents.
+/// The chapter being heard, easy to read on the dark page, and the book under it. A tap opens the contents.
+/// (2026-11-10: the chapter's name was the dimmest grey on black; it is the line's first voice now.)
 private struct RideBookLine: View {
     @Environment(AppModel.self) private var model
     let title: String
@@ -455,56 +456,75 @@ private struct RideBookLine: View {
 
     var body: some View {
         let player = model.player
+        let found = player.chapterTitle(at: player.spokenSentence?.location ?? player.shownCursor)
+        let chapter = found == title ? nil : found           // a first heading that only repeats the book's name
         Button(action: onContents) {
-            HStack(spacing: 6) {
-                Text(title).font(Ride.serif(13, .semibold)).foregroundStyle(Ride.muted)
-                if let ch = player.chapterTitle(at: player.spokenSentence?.location ?? player.shownCursor) {
-                    Text("·").foregroundStyle(Ride.dim)
-                    Text(ch).font(.system(size: 12)).foregroundStyle(Ride.dim)
+            VStack(alignment: .leading, spacing: 2) {
+                if let chapter {
+                    Text(chapter).font(Ride.serif(16, .semibold)).foregroundStyle(Ride.paper.opacity(0.92))
+                        .contentTransition(.opacity)
                 }
-                Spacer(minLength: 0)
+                Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(Ride.muted)
             }
             .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("İçindekiler: \(title)")
+        .accessibilityLabel("İçindekiler: \(chapter.map { $0 + ", " } ?? "")\(title)")
     }
 }
 
-/// The chapter's and the book's progress and the time left in the chapter (follows the place once a second).
+/// The whole book: how far it is, how long was heard and how long is left (follows the place once a second).
+/// 2026-11-10: the line, the percentage and both times are the book's, not the chapter's ("bölümle değil, kitabın
+/// bütünüyle ilgileniyorum"); the chapters are only small ticks on the line.
 private struct RideProgress: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         let player = model.player
         let at = player.shownCursor
-        let ch = player.chapters.lastIndex { $0.offset <= at }
-        let start = ch.map { player.chapters[$0].offset } ?? 0
-        let end = ch.flatMap { $0 + 1 < player.chapters.count ? player.chapters[$0 + 1].offset : nil } ?? player.length
-        let inChapter = Double(at - start) / Double(max(1, end - start))
-        let whole = Double(at) / Double(max(1, player.length))
-        VStack(spacing: 5) {
+        let len = max(1, player.length)
+        let whole = min(1, max(0, Double(at) / Double(len)))
+        let total = player.totalSeconds
+        let heard = total * whole, left = max(0, total - heard)
+        let starts = player.chapters.filter { $0.level <= 1 && $0.offset > 0 }.map { Double($0.offset) / Double(len) }
+        VStack(spacing: 7) {
             GeometryReader { g in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Ride.track)
-                    Capsule().fill(Ride.amber).frame(width: max(3, g.size.width * min(1, max(0, inChapter))))
+                    Capsule().fill(Ride.amber).frame(width: max(5, g.size.width * whole))
                         .shadow(color: Ride.amber.opacity(0.7), radius: 6)
+                    if starts.count <= 80 {
+                        Canvas { c, size in
+                            for s in starts {
+                                let x = size.width * s
+                                c.fill(Path(CGRect(x: x - 0.5, y: 0, width: 1, height: size.height)),
+                                       with: .color(s <= whole ? Ride.oled.opacity(0.55) : Ride.muted.opacity(0.7)))
+                            }
+                        }
+                        .allowsHitTesting(false)
+                    }
                 }
             }
-            .frame(height: 2)
-            HStack {
-                Text("bölüm %\(Int(inChapter * 100))")
-                Spacer()
-                Text("kitap %\(Int(whole * 100))")
-                Spacer()
-                Text("bölümde \(Format.duration(Double(max(0, end - at)) / (player.charsPerSecond * player.speed))) kaldı")
+            .frame(height: 5)
+            HStack(alignment: .firstTextBaseline) {
+                Text(heard < 60 ? "yeni başladı" : "\(Format.duration(heard)) geçti")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("%\(Int(whole * 100))")
+                    .font(Ride.mono(19, .bold)).foregroundStyle(Ride.paper)
+                    .contentTransition(.numericText(value: whole * 100))
+                Text(left < 30 ? "bitti sayılır" : "\(Format.duration(left)) kaldı")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .font(Ride.mono(11))
-            .foregroundStyle(Ride.dim)
+            .font(Ride.mono(13, .medium))
+            .foregroundStyle(Ride.muted)
+            .lineLimit(1).minimumScaleFactor(0.8)
         }
         .animation(.linear(duration: 0.4), value: at)
         .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Kitabın yüzde \(Int(whole * 100))'i. \(Format.duration(left)) kaldı")
     }
 }
 

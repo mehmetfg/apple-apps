@@ -29,6 +29,7 @@ final class AppModel {
     var importMessage: String?              // shown as an alert after an import with failures
     var finishedPrompt: FinishedPrompt?     // play / a jump was asked on a finished book: start a new reading?
     var marksSheetDoc: UUID?                // the library's quick look at a book's marks
+    var bookSearchDoc: UUID?                // "Kitapta ara" from a book's card, without opening it (BookSearch.swift)
     var musicModeShown = false              // Müzik modu: the book's sentences with the music, no voice
     var musicFromBreak = false              // Müzik modu opened by an active wait or a music break (closes with it)
     var switchRequest: UUID?                // Yolda's quick switch: the reader opens this book (and reads on)
@@ -61,6 +62,7 @@ final class AppModel {
             self?.automationTick()
         }
         listening.start(player)
+        listening.onSave = { [weak self] days in self?.listeningSaved(days) }   // Akşam tekrarı (AppModel+Evening)
         player.onFinished = { [weak self] id in self?.documentFinished(id) }
         ElevenLabs.shared.onChange = { [weak self] in self?.player.elevenChanged() }
         CloudVoice.shared.onChange = { [weak self] in self?.player.elevenChanged() }
@@ -296,6 +298,7 @@ final class AppModel {
 
     /// The app came to the front (after its own sync): today's opening, then the events waiting go to the vault.
     func busActivated() async {
+        listening.republish()           // Akşam tekrarı: a session closed in Teoria meanwhile takes the reminder away
         _ = await VaultMirror.shared.connect()
         let bus = bus
         busQueue.async { bus.emitOpenedToday() }
@@ -362,7 +365,9 @@ final class AppModel {
         if let id = settings.voiceByLanguage[l], id == ElevenLabs.readerVoiceID || id == CloudVoice.readerVoiceID || (VoiceProfile.with(id: id)?.isAvailable ?? (Voices.voice(id) != nil)) {
             return id
         }
-        if l == "tr" { return VoiceProfile.emaTok.id }
+        // Ema Tok only when its model is on the device: without it every piece came out empty, and the book ran to
+        // its end in silence (2026-11-10); then the best installed Turkish voice reads
+        if l == "tr", VoiceProfile.emaTok.isAvailable { return VoiceProfile.emaTok.id }
         return Voices.defaultVoice(for: l, chosen: [:])?.identifier ?? ""
     }
 
@@ -872,7 +877,12 @@ final class AppModel {
         var words = 0
         text.enumerateSubstrings(in: text.startIndex..., options: [.byWords, .substringNotRequired]) { _, _, _, _ in words += 1 }
         store.replaceContent(id, with: content, wordCount: words)
-        store.update(id) { $0.partsApplied = ($0.partsApplied ?? 0) + pages.count }
+        // new pages on a finished book: it is being read again from where it stood (the finish stays in its history),
+        // otherwise the pages could only be reached by starting a counted second reading
+        store.update(id) {
+            $0.partsApplied = ($0.partsApplied ?? 0) + pages.count
+            if $0.finishedAt != nil { $0.finishedAt = nil }
+        }
         if player.documentID == id { player.extend(content) }
     }
 

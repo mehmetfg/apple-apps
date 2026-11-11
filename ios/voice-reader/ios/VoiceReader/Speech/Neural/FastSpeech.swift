@@ -25,6 +25,8 @@ enum FastSpeech {
         var samples: [Float]
         /// Input positions and where they went, both in samples, rising: to move word times.
         var marks: [(from: Int, to: Int)]
+        /// Where the real pauses began before they were shortened (input samples): the phrase ends `tighten` closes.
+        var phraseEnds: [Int] = []
 
         func moved(_ i: Int) -> Int {
             guard var lo = marks.indices.first else { return i }
@@ -49,12 +51,14 @@ enum FastSpeech {
         let (c, pause) = protect(x, sr: sr, hop: hop, window: W)
         let n = c.count
         var rate = [Double](repeating: 1, count: n)
+        var phraseEnds: [Int] = []
         var i = 0
         while i < n {
             guard pause[i] else { i += 1; continue }
             var j = i
             while j < n, pause[j] { j += 1 }
             let length = Double(j - i) * Double(hop) / sr
+            if length >= 0.15, i > 0 { phraseEnds.append(i * hop) }
             let r = max(1, length / (length >= 0.2 ? longPause : shortPause))
             for k in i..<j { rate[k] = r }
             i = j
@@ -119,7 +123,7 @@ enum FastSpeech {
         var out = [Float](repeating: 0, count: length)
         for k in 0..<length { out[k] = y[k] / max(norm[k], 1e-3) }
         marks.append((x.count, length))
-        return Result(samples: out, marks: marks)
+        return Result(samples: out, marks: marks, phraseEnds: phraseEnds)
     }
 
     /// Per 5 ms: how much a place carries the words (0 = a steady vowel, 1 = a consonant or a move between sounds),
@@ -180,7 +184,13 @@ enum FastSpeech {
     /// (never more than 2.2 times, never more than 13 dB of extra cut, and less where the sound is a fricative or a
     /// burst, so the last consonant stays). Nothing moves in time. `target`: seconds for the level to fall 15 dB
     /// (0.8 of a syllable at the speed heard).
-    static func tighten(_ x: [Float], target: Double, sampleRate sr: Double = 48_000, maxFactor: Float = 2.2, maxCut: Float = 13) -> [Float] {
+    ///
+    /// `ends`: samples where a real pause began before `squeeze` shortened it. After the squeeze no pause inside a
+    /// paragraph is longer than 100 ms, so the 150 ms rule below found only the end of the piece and the phrase ends
+    /// in between were left fading (2026-11-10); with `ends` they are closed too, and a stop consonant's short
+    /// silence inside a word is still not taken for an ending.
+    static func tighten(_ x: [Float], target: Double, sampleRate sr: Double = 48_000, maxFactor: Float = 2.2, maxCut: Float = 13,
+                        ends: [Int] = []) -> [Float] {
         let win = Int(sr * 0.01), hop = Int(sr * 0.005)
         guard x.count > Int(sr) / 4 else { return x }
         let n = (x.count - win) / hop + 1
@@ -205,6 +215,15 @@ enum FastSpeech {
         let ref = db.sorted()[min(n - 1, n * 95 / 100)]
         let ms = Double(hop) / sr * 1000, targetMs = target * 1000
         let need = Int(150 / ms)
+        let known = ends.map { $0 / hop }.sorted()
+        /// A quiet run starting at frame `f` is one of the known phrase ends (within 40 ms).
+        func isEnd(_ f: Int) -> Bool {
+            guard !known.isEmpty else { return false }
+            var lo = 0, hi = known.count - 1
+            while lo < hi { let mid = (lo + hi) / 2; if known[mid] < f { lo = mid + 1 } else { hi = mid } }
+            let near = Int(40 / ms)
+            return abs(known[lo] - f) <= near || (lo > 0 && abs(known[lo - 1] - f) <= near)
+        }
         var extra = [Float](repeating: 0, count: n)
         var any = false
         var i = 1
@@ -213,7 +232,7 @@ enum FastSpeech {
             var j = i
             while j < n, db[j] < ref - 32 { j += 1 }
             defer { i = max(j, i + 1) }
-            guard j - i >= need || j == n else { continue }
+            guard j - i >= need || j == n || (j - i >= 4 && isEnd(i)) else { continue }
             let low = max(0, i - Int(250 / ms))
             var q = low
             for k in low..<i where db[k] > db[q] { q = k }

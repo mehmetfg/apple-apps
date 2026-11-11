@@ -100,6 +100,9 @@ struct Scrubber: View {
     var onChanging: (Double) -> Void
     var onEnded: (Double) -> Void
     @State private var dragging = false
+    /// True only while a finger is on the bar; it falls back by itself when the system cancels the drag (an alert, a
+    /// system gesture), where `onEnded` is never called and the bar used to stay frozen at the dragged value.
+    @GestureState private var touching = false
 
     var body: some View {
         GeometryReader { g in
@@ -119,6 +122,7 @@ struct Scrubber: View {
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0)
+                .updating($touching) { _, t, _ in t = true }
                 .onChanged { v in
                     if !dragging { withAnimation(.snappy(duration: 0.15)) { dragging = true } }
                     onChanging(min(max(0, v.location.x / w), 1))
@@ -129,6 +133,9 @@ struct Scrubber: View {
                 })
         }
         .frame(height: 30)
+        .onChange(of: touching) { _, t in
+            if !t, dragging { withAnimation(.snappy(duration: 0.2)) { dragging = false }; onEnded(value) }
+        }
         .accessibilityElement()
         .accessibilityLabel("Konum")
         .accessibilityValue("%\(Int(value * 100))")

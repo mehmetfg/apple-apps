@@ -70,7 +70,10 @@ struct MarkupText {
                 let closing = tag.hasPrefix("/")
                 let name = tag.drop { $0 == "/" }.prefix { !$0.isWhitespace && $0 != "/" && $0 != ">" }.lowercased()
                 let bare = name.split(separator: ":").last.map(String.init) ?? name   // xhtml:p
-                if bare == "title" { inTitle = !closing; if closing { out.title = titleText.trimmingCharacters(in: .whitespacesAndNewlines) }; continue }
+                // a self-closing <title/> opens nothing, and a title left open ends with the head: either one used to
+                // send the whole rest of the file into the title, and the chapter came out empty
+                if inTitle, bare == "head" || bare == "body" { inTitle = false }
+                if bare == "title" { inTitle = !closing && !tag.hasSuffix("/"); if closing { out.title = titleText.trimmingCharacters(in: .whitespacesAndNewlines) }; continue }
                 if skipTags.contains(bare) {
                     if closing { if bare == skipName { skipDepth = max(0, skipDepth - 1); if skipDepth == 0 { skipName = "" } } }
                     else if !tag.hasSuffix("/") && (skipName.isEmpty || skipName == bare) { skipName = bare; skipDepth += 1 }

@@ -55,6 +55,7 @@ struct LibraryScreen: View {
     @State private var importerShown = false
     @State private var promptShown = false
     @State private var elevenShown = false
+    @State private var cursorShown = false       // test hook -cursortest: the Konuşma İmleci page
     @State private var cloudShown = false
     @State private var newFolderShown = false
     @State private var newFolderName = ""
@@ -84,14 +85,19 @@ struct LibraryScreen: View {
                     if model.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                         home
                     } else {
-                        DocumentCollection(docs: model.documents(in: .all, applyFilter: false), style: .list, onOpen: open)
-                            .padding(.top, 8)
+                        VStack(alignment: .leading, spacing: 18) {
+                            DocumentCollection(docs: model.documents(in: .all, applyFilter: false), style: .list, onOpen: open)
+                            // the same field also finds sentences inside the books (BookSearch.swift)
+                            LibrarySentenceResults(query: model.searchText) { h in show(h) }
+                        }
+                        .padding(.top, 8)
                     }
                 }
                 .scrollIndicators(.hidden)
+                .softScrollEdges()
             }
             .navigationTitle("Kütüphane")
-            .searchable(text: $model.searchText, prompt: "Başlık ya da yazar")
+            .searchable(text: $model.searchText, prompt: "Kitap, yazar ya da cümle ara")
             .toolbar { settingsButton; statsButton; roadMenu; addMenu }
             .sheet(isPresented: $settingsShown) { GeneralSettingsSheet() }
             .sheet(isPresented: $automationShown) { AutomationSheet() }
@@ -103,6 +109,12 @@ struct LibraryScreen: View {
                         open(doc)
                     }
                     .presentationDetents([.medium, .large])
+                }
+            }
+            .sheet(isPresented: Binding(get: { model.bookSearchDoc != nil }, set: { if !$0 { model.bookSearchDoc = nil } })) {
+                if let id = model.bookSearchDoc, let d = model.store.document(id) {
+                    BookSearchSheet(doc: d) { h in show(h) }
+                        .presentationDetents([.medium, .large])
                 }
             }
             .navigationDestination(for: Route.self) { r in
@@ -127,6 +139,7 @@ struct LibraryScreen: View {
         .modifier(ScanImportModifier(scan: $scanShown, photos: $photosShown, folder: nil))
         .sheet(item: $expandTest) { ExpandPromptView(source: $0) }
         .sheet(isPresented: $elevenShown) { NavigationStack { ElevenSettingsPage() } }
+        .sheet(isPresented: $cursorShown) { NavigationStack { CursorSettingsPage() } }
         .sheet(isPresented: $cloudShown) { NavigationStack { CloudSettingsPage() } }
         .fileImporter(isPresented: $importerShown, allowedContentTypes: Self.importTypes, allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { Task { await model.importFiles(urls) } }
@@ -154,13 +167,14 @@ struct LibraryScreen: View {
         }
         .task {                                   // test hook: -musictest opens the music mode on the last book
             let args = CommandLine.arguments
-            guard args.contains("-musictest") || args.contains("-statstest") || args.contains("-markssheet") || args.contains("-prompttest")
+            guard args.contains("-musictest") || args.contains("-cursortest") || args.contains("-statstest") || args.contains("-markssheet") || args.contains("-prompttest")
                     || args.contains("-eleventest") || args.contains("-cloudtest") || args.contains("-expandtest") else { return }
             try? await Task.sleep(for: .seconds(2))
             if args.contains("-musictest") { model.musicModeShown = true }
             if args.contains("-statstest") { statsTab = args.contains("road") ? .road : .reading }
             if args.contains("-prompttest") { promptShown = true }
             if args.contains("-eleventest") { elevenShown = true }
+            if args.contains("-cursortest") { cursorShown = true }
             if args.contains("-cloudtest") { cloudShown = true }
             if args.contains("-expandtest"), let d = model.store.documents.first(where: { !$0.highlights.isEmpty }), let h = d.highlights.first {
                 expandTest = args.contains("marks") ? .marks(doc: d.id) : .passage(doc: d.id, range: h.range, text: h.text)
@@ -201,6 +215,12 @@ struct LibraryScreen: View {
     private func open(_ id: UUID) {
         if path.last == .reader(id) { return }
         path.append(.reader(id))
+    }
+
+    /// A found place: the book opens showing it; the reading place stays where it was.
+    private func show(_ h: TextHit) {
+        model.revealRequest = (h.doc, h.offset)
+        if path.last == .reader(h.doc) { model.revealTick += 1 } else { open(h.doc) }
     }
 
     /// A quick action or a wisepath:// link: resume · book/<id> · bike · walk · music · stats · road.
@@ -253,8 +273,9 @@ struct LibraryScreen: View {
 
     private var home: some View {
         VStack(alignment: .leading, spacing: 22) {
+            // the books rule the home (2026-11-10: "merkezde kitap hâkimiyeti"): the last three on top, then the
+            // library in the chosen view; the day's numbers come after them, the library's counts are in İstatistik
             RecentBooks(open: open)
-            if !model.store.isEmpty { InventoryStrip() }
             if !model.store.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -268,7 +289,7 @@ struct LibraryScreen: View {
                             Label(model.settings.homeStyle.name, systemImage: model.settings.homeStyle.symbol)
                                 .font(.subheadline.weight(.semibold))
                                 .padding(.horizontal, 12).frame(height: 32)
-                                .background(Color.primary.opacity(0.07), in: Capsule())
+                                .modifier(GlassCapsule())
                         }
                         .padding(.trailing, 20)
                         .accessibilityLabel("Görünüm: \(model.settings.homeStyle.name)")
@@ -277,6 +298,7 @@ struct LibraryScreen: View {
                     homeBooks
                 }
             }
+            if !model.store.isEmpty { TodayCard(onStats: { statsTab = .reading }) }
             DayStrip(onStats: { statsTab = .reading }, onAutomations: { automationShown = true })
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -301,7 +323,7 @@ struct LibraryScreen: View {
                 } description: {
                     Text("Sağ üstteki + ile Dosyalar'dan ya da panodan belge ekle.")
                 } actions: {
-                    Button("Dosyalardan ekle") { importerShown = true }.buttonStyle(.borderedProminent)
+                    Button("Dosyalardan ekle") { importerShown = true }.glassAction()
                 }
             }
         }
@@ -373,11 +395,7 @@ struct LibraryScreen: View {
             }
             .accessibilityLabel(model.automationRun != nil ? "Ayarlar ve Otomasyon, otomasyon çalışıyor" : "Ayarlar ve Otomasyon")
         }
-        // Notlarım: a small key beside the gear instead of a card on the home page (2026-10-28)
-        ToolbarItem(placement: .topBarLeading) {
-            Button { path.append(.notes) } label: { Image(systemName: "waveform") }
-                .accessibilityLabel("Notlarım: \(model.notes.notes.count) not")
-        }
+        // Notlarım is in the gear's menu only (2026-11-10: its own key beside the gear was taken away)
     }
 
     /// The moving modes and the way's record, one key at the top (2026-10-28: the card left the home page, the books
@@ -487,8 +505,10 @@ struct ShelfChips: View {
                 ForEach(folders, id: \.self) { chip($0, $0, tint: FolderScope.named($0).tint) }
             }
             .padding(.horizontal, 20)
+            .padding(.vertical, 4)
         }
         .scrollIndicators(.hidden)
+        .scrollClipDisabled()               // glass inside a clipping scroll view drew a pale band across the screen
     }
 
     private func chip(_ key: String, _ title: String, tint: Color?) -> some View {
@@ -500,7 +520,8 @@ struct ShelfChips: View {
             }
             .font(.subheadline.weight(on ? .semibold : .regular))
             .padding(.horizontal, 13).frame(height: 32)
-            .background(on ? Color.primary.opacity(0.14) : Color.primary.opacity(0.05), in: Capsule())
+            .modifier(GlassCapsule(tint: on ? Color.accentColor.opacity(0.28) : nil,
+                                   fallback: on ? Color.primary.opacity(0.14) : Color.primary.opacity(0.05)))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(on ? .isSelected : [])
@@ -514,17 +535,7 @@ struct DayStrip: View {
     var onAutomations: () -> Void
 
     var body: some View {
-        let today = model.listening.day(.now)
         HStack(spacing: 10) {
-            Button(action: onStats) {
-                Label("Bugün \(StatFormat.minutes(today.seconds / 60)) · \(StatFormat.pages(today.words)) sayfa", systemImage: "chart.bar.xaxis")
-                    .font(.footnote.weight(.semibold))
-                    .lineLimit(1)
-                    .padding(.horizontal, 12).frame(height: 36)
-                    .background(Color.primary.opacity(0.06), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Bugün \(StatFormat.minutes(today.seconds / 60)) dinledin. İstatistik")
             Spacer(minLength: 0)
             automation
         }
@@ -552,7 +563,7 @@ struct DayStrip: View {
                 .lineLimit(1)
                 .padding(.horizontal, 12).frame(height: 36)
                 .foregroundStyle(model.automationRun != nil ? Color.orange : Color.primary)
-                .background(Color.primary.opacity(0.06), in: Capsule())
+                .modifier(GlassCapsule(tint: model.automationRun != nil ? Color.orange.opacity(0.18) : nil))
         }
         .accessibilityLabel("Otomasyon")
     }
@@ -601,7 +612,7 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { g in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.14))
+                Capsule().fill(Color.primary.opacity(0.14))       // white was invisible on the light panels
                 Capsule().fill(value >= 0.99 ? Color.green : Color.accentColor).frame(width: g.size.width * min(1, max(0, value)))
             }
         }
@@ -705,6 +716,10 @@ struct DocumentCollection: View {
             case .grid: grid
             case .list: list
             case .compact: compact
+            case .wall: wall
+            case .cards: cards
+            case .folders: folderRows
+            case .remaining: remaining
             }
         }
         .alert("Yeniden adlandır", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
@@ -815,6 +830,139 @@ struct DocumentCollection: View {
         .padding(.bottom, 24)
     }
 
+    /// Kapak duvarı: nothing but covers, four across, a hairline of progress under each. The most books on a screen.
+    private var wall: some View {
+        GeometryReader { g in
+            let w = (g.size.width - 32 - 30) / 4
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(w), spacing: 10), count: 4), spacing: 12) {
+                ForEach(docs) { d in
+                    Button { onOpen(d.id) } label: {
+                        VStack(spacing: 4) {
+                            CoverView(doc: d, width: w)
+                            if d.isFinished { Capsule().fill(Color.green).frame(height: 3) }
+                            else if d.isUnread { Capsule().fill(Color.accentColor.opacity(0.35)).frame(height: 3) }
+                            else { ProgressBar(value: d.progress).frame(height: 3) }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu { menu(d) }
+                    .accessibilityLabel("\(d.title), \(model.statusText(d))")
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .frame(height: Self.wallHeight(count: docs.count))
+        .padding(.bottom, 24)
+    }
+
+    private static func wallHeight(count: Int) -> CGFloat {
+        let w = (UIScreen.main.bounds.width - 32 - 30) / 4
+        return CGFloat((count + 3) / 4) * (w * 1.5 + 7 + 12)
+    }
+
+    /// Kartlar: one book a card, turned like pages: the cover large, what is left, and a key that reads on.
+    private var cards: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 14) {
+                ForEach(docs) { d in
+                    BookCard(doc: d, open: { onOpen(d.id) })
+                        .contextMenu { menu(d) }
+                        .containerRelativeFrame(.horizontal, count: 1, span: 1, spacing: 14)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
+        .contentMargins(.horizontal, 28, for: .scrollContent)
+        .padding(.bottom, 24)
+    }
+
+    /// Klasör rafları: a row of covers for each folder, pushed sideways.
+    private var folderRows: some View {
+        let groups = Dictionary(grouping: docs) { $0.folder ?? "Klasörsüz" }
+        let names = groups.keys.sorted { a, b in a == "Klasörsüz" ? false : b == "Klasörsüz" ? true : a.localizedCompare(b) == .orderedAscending }
+        return VStack(alignment: .leading, spacing: 20) {
+            ForEach(names, id: \.self) { name in
+                let books = groups[name] ?? []
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Circle().fill(FolderScope.named(name).tint).frame(width: 8, height: 8)
+                        Text(name).font(.headline)
+                        Text("\(books.count)").font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 20)
+                    ScrollView(.horizontal) {
+                        LazyHStack(alignment: .top, spacing: 12) {
+                            ForEach(books) { d in
+                                Button { onOpen(d.id) } label: {
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        CoverView(doc: d, width: 92)
+                                        Text(d.title).font(.caption.weight(.semibold)).lineLimit(2).frame(width: 92, alignment: .leading)
+                                        StateLabel(doc: d)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .contextMenu { menu(d) }
+                                .accessibilityElement(children: .combine)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            }
+        }
+        .padding(.bottom, 24)
+    }
+
+    /// Kalan süre: the books in the order they can be finished, the nearest first; each line is as long as the
+    /// book's listening, its heard part filled. The finished ones stand last.
+    private var remaining: some View {
+        let left: (DocumentRecord) -> TimeInterval = { model.duration(characters: max(0, $0.length - $0.position), speed: $0.speed) }
+        let whole: (DocumentRecord) -> TimeInterval = { model.duration(characters: $0.length, speed: $0.speed) }
+        let open = docs.filter { !$0.isFinished }.sorted { left($0) < left($1) }
+        let done = docs.filter(\.isFinished)
+        let longest = max(1, docs.map(whole).max() ?? 1)
+        return LazyVStack(spacing: 0) {
+            ForEach(open + done) { d in
+                Button { onOpen(d.id) } label: {
+                    HStack(spacing: 12) {
+                        CoverView(doc: d, width: 30, showsPlaying: false)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(d.title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                            GeometryReader { g in
+                                let w = max(14, g.size.width * whole(d) / longest)
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color.primary.opacity(0.12)).frame(width: w)
+                                    Capsule().fill(d.isFinished ? Color.green : Color.accentColor).frame(width: max(d.progress > 0 ? 5 : 0, w * d.progress))
+                                }
+                            }
+                            .frame(height: 6)
+                        }
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(d.isFinished ? "bitti" : Format.duration(left(d)))
+                                .font(.subheadline.weight(.bold).monospacedDigit())
+                                .foregroundStyle(d.isFinished ? Color.green : Color.primary)
+                            if !d.isFinished { Text(d.isUnread ? "yeni" : "%\(Int(d.progress * 100))").font(.caption2).foregroundStyle(.secondary) }
+                        }
+                        .frame(minWidth: 70, alignment: .trailing)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .contextMenu { menu(d) }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(d.title), \(model.statusText(d))")
+                if d.id != (open + done).last?.id { Divider().padding(.leading, 54) }
+            }
+        }
+        .modifier(GlassPanel(cornerRadius: 18))
+        .padding(.horizontal, 14)
+        .padding(.bottom, 24)
+    }
+
     @ViewBuilder private func menu(_ d: DocumentRecord) -> some View {
         Button { renameText = d.title; renaming = d } label: { Label("Yeniden adlandır", systemImage: "pencil") }
         Menu {
@@ -829,6 +977,7 @@ struct DocumentCollection: View {
             }
             if d.flag != nil { Button("Etiketi kaldır") { model.setFlag(d.id, nil) } }
         } label: { Label("Etiket", systemImage: "flag") }
+        Button { model.bookSearchDoc = d.id } label: { Label("Kitapta ara", systemImage: "text.magnifyingglass") }
         if !d.highlights.isEmpty {
             Button { model.marksSheetDoc = d.id } label: { Label("İşaretlere bak (\(d.highlights.count))", systemImage: "highlighter") }
         }
@@ -877,6 +1026,57 @@ struct LibraryRow: View {
         .modifier(GlassPanel(cornerRadius: 18))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(doc.title), \(model.statusText(doc))\(playing ? ", okunuyor" : "")")
+    }
+}
+
+/// Kartlar görünümünün kartı: the cover, the book's name, a ring of how far it is, the time left, and "Devam et".
+struct BookCard: View {
+    @Environment(AppModel.self) private var model
+    let doc: DocumentRecord
+    var open: () -> Void
+
+    private var inPlayer: Bool { model.player.documentID == doc.id }
+
+    var body: some View {
+        let left = model.duration(characters: max(0, doc.length - doc.position), speed: doc.speed)
+        HStack(alignment: .top, spacing: 16) {
+            Button(action: open) { CoverView(doc: doc, width: 118) }.buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(doc.title).font(.system(size: 19, weight: .bold, design: .serif)).lineLimit(3)
+                if let a = doc.author { Text(a).font(.subheadline).foregroundStyle(.secondary).lineLimit(1) }
+                Spacer(minLength: 0)
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle().stroke(Color.primary.opacity(0.12), lineWidth: 5)
+                        Circle().trim(from: 0, to: max(0.003, doc.progress))
+                            .stroke(doc.isFinished ? Color.green : Palette.play, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text(doc.isFinished ? "✓" : "\(Int(doc.progress * 100))").font(.system(size: 13, weight: .bold, design: .rounded)).monospacedDigit()
+                    }
+                    .frame(width: 44, height: 44)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(doc.isFinished ? "Bitti" : doc.isUnread ? "Yeni" : "\(Format.duration(left)) kaldı")
+                            .font(.subheadline.weight(.semibold))
+                        Text("\(StatFormat.pages(doc.wordCount)) sayfa").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Button {
+                    if inPlayer { model.player.toggle() } else { open() }
+                } label: {
+                    Label(inPlayer && model.player.isPlaying ? "Duraklat" : doc.isUnread ? "Başla" : doc.isFinished ? "Aç" : "Devam et",
+                          systemImage: inPlayer && model.player.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity, minHeight: 30)
+                }
+                .glassAction()
+                .tint(Palette.play)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .frame(height: 118 * 1.5 + 32)
+        .modifier(GlassPanel(cornerRadius: 24))
+        .accessibilityElement(children: .contain)
     }
 }
 

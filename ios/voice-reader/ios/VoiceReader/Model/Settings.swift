@@ -78,7 +78,7 @@ enum ReaderTheme: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .light: UIColor(white: 0.941, alpha: 1)                                          // #F0F0F0 (Voice Dream)
         case .sepia: UIColor(red: 0.953, green: 0.914, blue: 0.824, alpha: 1)
-        case .dark: UIColor(red: 0.110, green: 0.114, blue: 0.125, alpha: 1)
+        case .dark: UIColor(red: 0.112, green: 0.112, blue: 0.118, alpha: 1)                 // neutral (2026-11-10)
         case .black: .black
         }
     }
@@ -94,7 +94,7 @@ enum ReaderTheme: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .light: UIColor(white: 0.965, alpha: 1)                                          // #F6F6F6
         case .sepia: UIColor(red: 0.925, green: 0.878, blue: 0.776, alpha: 1)
-        case .dark: UIColor(red: 0.145, green: 0.150, blue: 0.165, alpha: 1)
+        case .dark: UIColor(red: 0.150, green: 0.150, blue: 0.158, alpha: 1)
         case .black: UIColor(white: 0.055, alpha: 1)
         }
     }
@@ -103,7 +103,7 @@ enum ReaderTheme: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .light: .white
         case .sepia: UIColor(red: 0.988, green: 0.965, blue: 0.898, alpha: 1)
-        case .dark: UIColor(red: 0.200, green: 0.208, blue: 0.228, alpha: 1)
+        case .dark: UIColor(red: 0.205, green: 0.205, blue: 0.215, alpha: 1)
         case .black: UIColor(white: 0.13, alpha: 1)
         }
     }
@@ -211,11 +211,52 @@ enum SortOrder: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
-    case spines, flow, shelf, grid, list, compact
+/// Sayfa karartma (2026-11-10): what happens to the page around the line being read. The line itself (and the
+/// Mercek band on it) stays as it is; only the rest of the page steps back. Nothing moves but with the line.
+enum PageDim: String, CaseIterable, Identifiable, Sendable {
+    case off, fade, dark, spotlight, window, dusk
     var id: String { rawValue }
     var name: String {
         switch self {
+        case .off: "Yok"
+        case .fade: "Soluk"
+        case .dark: "Karart"
+        case .spotlight: "Spot ışığı"
+        case .window: "Pencere"
+        case .dusk: "Alacakaranlık"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .off: "circle.slash"
+        case .fade: "text.alignleft"
+        case .dark: "moon.fill"
+        case .spotlight: "light.overhead.right.fill"
+        case .window: "rectangle.split.1x2"
+        case .dusk: "sunset.fill"
+        }
+    }
+    var note: String {
+        switch self {
+        case .off: "Sayfa olduğu gibi kalır."
+        case .fade: "Okunan satır dışındaki yazı kâğıdın rengine doğru solar."
+        case .dark: "Sayfanın geri kalanı düz bir gölgeyle kararır."
+        case .spotlight: "Satırın çevresi aydınlık kalır, uzaklaştıkça koyulaşır; sahne ışığı gibi."
+        case .window: "Okunan satırla bir üst ve bir alt satır açık kalır; geri kalanı solar. Okuma cetveli gibi."
+        case .dusk: "Sayfanın geri kalanı sıcak, kehribar bir gölgeye bürünür; gece okumasına göre."
+        }
+    }
+}
+
+enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
+    case spines, flow, shelf, grid, wall, cards, folders, remaining, list, compact
+    var id: String { rawValue }
+    var name: String {
+        switch self {
+        case .wall: "Kapak duvarı"
+        case .cards: "Kartlar"
+        case .folders: "Klasör rafları"
+        case .remaining: "Kalan süre"
         case .spines: "Kitaplık"
         case .flow: "Akış"
         case .shelf: "Vitrin"
@@ -226,6 +267,10 @@ enum LibraryStyle: String, CaseIterable, Identifiable, Sendable {
     }
     var symbol: String {
         switch self {
+        case .wall: "square.grid.4x3.fill"
+        case .cards: "rectangle.portrait.on.rectangle.portrait.fill"
+        case .folders: "square.stack.3d.down.right.fill"
+        case .remaining: "hourglass"
         case .spines: "books.vertical.fill"
         case .flow: "rectangle.stack.fill"
         case .shelf: "books.vertical"
@@ -271,6 +316,18 @@ final class Settings {
     var lineColor: MarkColor { didSet { d.set(lineColor.rawValue, forKey: "v.lineColor") } }
     var cursorPosition: CursorPosition { didSet { d.set(cursorPosition.rawValue, forKey: "v.cursor") } }
     var focusMode: Bool { didSet { d.set(focusMode, forKey: "v.focus") } }
+    /// Mercek: a glass band over the line being read, the line a touch larger on it, the spoken word in its colour;
+    /// nothing slides (2026-11-10).
+    var wordLens: Bool { didSet { d.set(wordLens, forKey: "v.lens") } }
+    /// How much larger the line is on the band: 1.0 (the band alone) … 1.3 times the page's type; never more than
+    /// still fits the page's width.
+    var lensScale: Double { didSet { d.set(lensScale, forKey: "v.lensScale3") } }
+    /// The page around the line being read: faded, darkened, a spotlight, a reading window … (PageDim).
+    var pageDim: PageDim { didSet { d.set(pageDim.rawValue, forKey: "v.pageDim") } }
+    /// How strong the dimming is: 0.15 (a breath) … 0.85 (nearly gone).
+    var pageDimStrength: Double { didSet { d.set(pageDimStrength, forKey: "v.pageDimStrength") } }
+    /// Minutes of listening aimed at each day (İstatistik and the home card measure the day against it).
+    var dailyGoal: Int { didSet { d.set(dailyGoal, forKey: "s.dailyGoal") } }
     /// Bicycle mode: big text that follows the voice, three big buttons, headphone ⏭ = mark, ⏮ = voice note.
     var bikeMode: Bool { didSet { d.set(bikeMode, forKey: "v.bike") } }
     /// The moving mode in use while `bikeMode` is on: on a bicycle or on foot (the same screens, its own record).
@@ -378,6 +435,11 @@ final class Settings {
         lineColor = MarkColor(rawValue: d.string(forKey: "v.lineColor") ?? "") ?? .paper
         cursorPosition = CursorPosition(rawValue: d.string(forKey: "v.cursor") ?? "") ?? .top
         focusMode = d.bool(forKey: "v.focus")
+        wordLens = d.object(forKey: "v.lens") as? Bool ?? true
+        lensScale = min(1.3, max(1.0, d.object(forKey: "v.lensScale3") as? Double ?? 1.0))   // 2026-11-10: no magnifier by default
+        pageDim = PageDim(rawValue: d.string(forKey: "v.pageDim") ?? "") ?? .off
+        pageDimStrength = min(0.85, max(0.15, d.object(forKey: "v.pageDimStrength") as? Double ?? 0.5))
+        dailyGoal = max(5, d.object(forKey: "s.dailyGoal") as? Int ?? 60)
         bikeMode = d.bool(forKey: "v.bike")
         moveKind = MoveKind(rawValue: d.string(forKey: "v.moveKind") ?? "") ?? .bike
         bodyWeight = d.double(forKey: "v.weight")

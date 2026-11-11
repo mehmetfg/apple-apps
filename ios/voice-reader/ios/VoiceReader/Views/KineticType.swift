@@ -3,9 +3,9 @@
 // title sequences: a justified stack (every word as wide as the column), a vertical key word on the side with the rest
 // stacked beside it, a giant key word with the small words spaced above and below, and the stack tilted. Small words
 // (ve, bir, ile…) are set small in capitals with wide spacing; the phrase's key word is the largest and warm-coloured.
-// A word with a known image (akıl, zaman, yol, ışık… about 330 roots and forms) brings its symbol in with it, on its own line;
-// a phrase that has one is often set as an emblem (the image in a ring over the word) or with the image large and
-// faint behind the giant word. Years bring the calendar, a question its mark.
+// A key word with a known image (akıl, zaman, yol, ışık… about 330 roots and forms) may bring its image, but only one
+// phrase in three, never two running, and only large and faint behind the words (2026-11-10). The emblem (the image
+// in a ring) is no longer chosen.
 import SwiftUI
 
 struct KineticPhrase: Identifiable, Hashable {
@@ -17,8 +17,8 @@ struct KineticPhrase: Identifiable, Hashable {
     let symbol: String?                 // the phrase's main image: the key word's, else the first word's that has one
     let marks: [Int: String]            // every word that has an image → its symbol
 
-    /// Beats the phrase takes in Müzik modu: one a word, and one more for the image that lands after the words.
-    var beats: Int { words.count + (layout == .side && symbol != nil ? 1 : 0) }
+    /// Beats the phrase takes in Müzik modu: one a word (the image lies behind the words, it takes no beat of its own).
+    var beats: Int { words.count }
 
     static let small: Set<String> = ["ve", "bir", "bu", "şu", "o", "da", "de", "ile", "ki", "için", "gibi", "ne", "en", "çok", "daha",
         "her", "mi", "mı", "ama", "ya", "olan", "olarak", "değil", "kadar", "sonra", "önce", "hem", "ise", "veya", "the", "a", "an",
@@ -166,33 +166,31 @@ struct KineticPhrase: Identifiable, Hashable {
         if !cur.isEmpty {
             if cur.count == 1, !groups.isEmpty { groups[groups.count - 1] += cur } else { groups.append(cur) }
         }
-        var withImage = 0
+        var withImage = 0, lastImage = -9
         return groups.enumerated().map { i, g in
             var marks: [Int: String] = [:]
             for (j, w) in g.enumerated() { if let s = symbol(for: clean(w)) { marks[j] = s } }
+            let images = marks
             let scored = g.enumerated().map { j, w -> (Int, Int) in
                 let c = clean(w)
                 return (j, small.contains(c) ? -1 : c.count + (marks[j] != nil ? 4 : 0))
             }
             let key = scored.max { $0.1 < $1.1 }?.0 ?? 0
-            // a question or an exclamation brings its mark when no word of the phrase has an image
-            let closing: String? = g.last.flatMap { $0.hasSuffix("?") ? "questionmark" : $0.hasSuffix("!") ? "exclamationmark" : nil }
-            let sym = marks[key] ?? marks.sorted { $0.key < $1.key }.first?.value ?? closing
+            // Fewer images, and only behind the words (2026-11-10: "ikon gösterme sıklığını azalt, gereksiz ikon
+            // çıkıyor; ya da arka planda, daha az görünür"). Only the key word's own image counts (not any word's,
+            // not a question's mark), one phrase in three may show it, never two phrases running, and it lies large
+            // and faint behind the composition. No image stands in line with the words any more.
+            let allowed = (seed * 7 + i) % 3 == 0 && i - lastImage >= 2
+            let sym: String? = allowed ? images[key] : nil
+            if sym != nil { lastImage = i }
             var layout = Layout.allCases[(seed * 3 + i) % 4]              // the four plain compositions in turn
             if layout == .side, clean(g[key]).count < 4 || g.count < 2 { layout = .stack }
             if sym != nil {
-                // Most phrases have an image now, so they take four compositions in turn: the emblem (the image in a
-                // ring over the word, as a mark), the stack with every word's image on its own line, the giant word
-                // with the image large and faint behind it, and the plain turn (tilt or side) with the images in line.
-                switch withImage % 4 {
-                case 0: layout = .emblem
-                case 1: layout = .stack
-                case 2: layout = .giant
-                default: if layout == .giant { layout = .tilt }
-                }
+                // every other image phrase is the giant word, the image vast and faint behind it
+                if withImage % 2 == 0 { layout = .giant }
                 withImage += 1
             }
-            return KineticPhrase(id: i, words: g, key: key, layout: layout, symbol: sym, marks: marks)
+            return KineticPhrase(id: i, words: g, key: key, layout: layout, symbol: sym, marks: [:])
         }
     }
 }
@@ -224,6 +222,16 @@ struct KineticPhraseView: View {
             }
         }
         .frame(width: size.width, height: size.height)
+        .background {
+            // the phrase's image, when it has one: vast, faint, behind the words (the giant word draws its own)
+            if let s = phrase.symbol, phrase.layout != .giant, phrase.layout != .emblem, shown > phrase.key {
+                Image(systemName: s)
+                    .font(.system(size: min(size.width, size.height) * 0.62, weight: .ultraLight))
+                    .foregroundStyle(accent.opacity(glow ? 0.11 : 0.14))
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .accessibilityHidden(true)
+            }
+        }
         .overlay(alignment: .bottomLeading) {
             // Perde: a rule under the stage fills as the phrase is heard
             if mask {
@@ -299,12 +307,6 @@ struct KineticPhraseView: View {
             ForEach(0..<min(shown, phrase.words.count), id: \.self) { i in
                 word(i, width: width, maxSize: 220).transition(land(i))
             }
-            // a question's or an exclamation's mark (no word of the phrase had an image) closes the stack
-            if let s = phrase.symbol, phrase.marks.isEmpty, shown >= phrase.words.count {
-                Image(systemName: s).font(.system(size: width * 0.2, weight: .semibold)).foregroundStyle(accent)
-                    .padding(.top, 12)
-                    .transition(landBig)
-            }
         }
         .frame(width: width, alignment: .leading)
     }
@@ -331,10 +333,6 @@ struct KineticPhraseView: View {
                 ForEach(0..<min(shown, phrase.words.count), id: \.self) { i in
                     if i != phrase.key { word(i, width: size.width - colW - 10, maxSize: 130).transition(land(i)) }
                 }
-                if let s = phrase.symbol, shown >= phrase.words.count {
-                    Image(systemName: s).font(.system(size: 54, weight: .light)).foregroundStyle(accent).padding(.top, 10)
-                        .transition(.scale.combined(with: .opacity))
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -346,7 +344,7 @@ struct KineticPhraseView: View {
         return ZStack {
             if let s = phrase.symbol, shown > phrase.key {
                 Image(systemName: s).font(.system(size: size.width * 0.7, weight: .ultraLight))
-                    .foregroundStyle(accent.opacity(glow ? 0.16 : 0.2))
+                    .foregroundStyle(accent.opacity(glow ? 0.12 : 0.15))
                     .transition(.scale(scale: 0.4).combined(with: .opacity))
                     .accessibilityHidden(true)
             }

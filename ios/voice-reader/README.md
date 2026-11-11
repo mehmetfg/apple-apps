@@ -948,3 +948,68 @@ sürümü Python'la aynı süreyi veriyor (18,20 · 16,65 · 15,63 sn), gerçek 
 aynı değil (özellik çıkarımı 1024'lük FFT ile). Simülatörde `-skiptest -fasttest`: 470'te iki paragraf 32,9 sn'de
 sonuna kadar (330'da 46 sn), kelime imleci yürüyor. Sınanmayan: telefonda kulakla dinleme, uzun dinlemede yorgunluk.
 
+
+## 2026-11-10 — Kıvılcım notları: istatistik, kitap merkezli ana ekran, cam çubuklar, satır merceği, ses motoru onarımları
+
+Kaynak: Kıvılcım 10 Kasım 17:45 ve 17:52 notları ("Wife" diye dökülen uygulama Wise Path) ve aynı günkü oturumda
+verilen ek istekler. Dört bağımsız kod incelemesi (ses motoru, model, görünümler) ve bir çevrimdışı TTS araştırması yapıldı.
+
+**İstatistik** (`Views/StatsDash.swift`, `Views/StatsViews.swift`). Günlük hedef (`Settings.dailyGoal`, varsayılan 60 dk)
+ve seri (en az 5 dk dinlenen günler) geldi. Sayfanın başı: bugünün halkası, bu hafta günlük çubuklar (arkada geçen
+hafta, hedef çizgisi, dakika/sayfa, haftalar arası gezinme), seri · en uzun seri · en iyi gün, biten kitaplar adıyla
+(bu hafta, geçen hafta, bu ay; kaynak `DocumentRecord.finishes`), 17 haftalık ısı haritası. Altı, Sağlık
+uygulamasının kart düzeninde yeniden yazıldı: dört ölçü kartı (kendi küçük grafiğiyle), dokununca dilimi ortaya alan
+büyük pasta (klasör / kitap), üç halkalı Verim (hedef · düzen · çalma oranı), Üretim, Ortalama, Kitaplar, kütüphane
+pastası (raflar; dilime dokununca ana ekranda o raf).
+
+**Ana ekran.** En üstte son üç kitap ("Kaldığın kitaplar", kalan süreyle), altında Kitaplarım; günün kartı kitaplardan
+sonra. Kütüphane sayıları İstatistik'e taşındı. Dişlinin yanındaki Notlarım düğmesi kalktı (dişli menüsünde duruyor).
+Dört yeni görünüm: Kapak duvarı, Kartlar, Klasör rafları, Kalan süre (toplam on görünüm). Kitaplık sırtları: beyaz
+plaka gitti; altın yaldızlı anahtar ve cetveller, kabartma bantlar, yaldız kenarlı koyu deri etiket, ilerleme için
+altın iplik; rafın arkası ve tahtası gölgeli.
+
+**Okuma ekranı.** Üst ve alt çubuk metnin üstünde yüzen cam (`Views/Glass.swift`: `ReaderBarGlass`, `GlassCapsule`,
+`GlassGroup`, `glassAction`); sayfa ekranı doldurur, çubuklar gizlenince metin yerinden oynamaz
+(`ReaderTextView.insets`). **Mercek**: okunan satırın üstünde cam bir bant durur, satır
+onun üstünde bir tık büyür (sayfanın enine sığdığı kadar), okunan kelime bandın içinde renkle işaretli; hiçbir şey
+kaymaz (aynı gün iki biçim denendi ve bırakıldı: yalnız kelimeyi tutan mercek, camın altında kayan satır). Görsel
+Ayarlar › Konuşma İmleci › Mercek: aç/kapa ve büyüklük (%100–130; `v.lens`, `v.lensScale2`).
+Yolda: çizgi, yüzde, geçen ve kalan süre artık kitabın bütünü; bölümler çizgide çentik; bölüm adı okunur renkte.
+
+**Ses motoru (incelemeden, kodda doğrulanıp düzeltilenler).**
+- Ses hiç üretilemeyince kitap saniyeler içinde sonuna gidip "Bitti" oluyordu (simülatörde görüldü: Ema modeli
+  derlemede yoktu). Artık yer korunur, "Okuma başlamadı" uyarısı çıkar; Ema modeli yoksa Türkçe için kurulu sistem
+  sesi okur (`VoiceProfile.isAvailable`).
+- Duraklatılmışken gelen ses motoru yeniden başlatıyordu (oturum geri alınıyor, müzik yeniden kısılıyordu); motor
+  başlayamazsa parçalar tek tek atlanıyordu. Artık duraklatılmışken motor uyur, başlayamazsa okuma olduğu yerde bekler.
+- Yüksek hızda net okuma: `tighten` sıkıştırmadan sonra paragraf içindeki cümlecik sonlarını bulamıyordu (150 ms
+  kuralı; sıkıştırma duraklamaları 100 ms'ye indiriyor); gerçek duraklama yerleri artık `squeeze`'den geliyor.
+  385 üstünde paragrafın tamamı beklenmeden parça parça üretilir.
+- Düzlük: perde çarpanı sesli harfin ortasındaki kısa boşluklarda 1'e dönüyordu (`PitchShift.flatten` artık
+  toparlanmış izle çalışır). `AppleCapture`: vazgeçilen seslendirmenin geç gelen tamponları yeni parçaya karışmaz.
+- Boş belgede paragraf atlama çökmesi; stüdyo paketinde aralık taşması.
+- **Bilinen, dokunulmayan:** "iPhone'un seslendirme ayarlarıyla oku" açıkken (varsayılan) Yüksek hızda net okuma
+  devreye girmez ve hız motorun basamaklarına yuvarlanır; Ses Ayarları artık 385 üstünde bunu turuncu notla söyler.
+  Müzik sürgüsünün +14 dB vaadi sistem seslerinde uygulanmıyor. Düzey ölçümü her oynatmada yeniden yapılıyor.
+
+**Model.** Dinleme günlüğü tek bozuk günle silinmez (gün gün okunur, okunamayan dosya yanına kopyalanır); ileri
+atlamalar kelime/sayfa sayılmaz; duraklatınca kaydedilir. iCloud'dan inmemiş olay günlüğünün üstüne yazılmaz.
+Biten kitaba sayfa eklenince kitap yeniden "süren" olur. `<title/>` içeren HTML/EPUB bölümü boş çıkmaz.
+
+**Sınanan:** simülatörde (iOS 26.3) derleme; ana ekran, İstatistik'in başı ve dönem kartları, Kitaplık, Kartlar,
+Yolda ilerleme çizgisi, cam çubuklar, mercek bandı, "Okuma başlamadı" uyarısı; `-skiptest` (Yelda, atlama yok),
+`-skiptest -fasttest` (470 kelime/dk, iki paragraf 33,0 sn'de sonuna kadar, en büyük atlama 24 karakter),
+`-skiptest -steadytest` (Düzlük %40, 45,8 sn, en büyük atlama 21 karakter).
+**Sınanmayan:** telefonda hiçbir şey (bu Mac'te `Speech/Neural/Models/` yok: buradan kurulursa Ema ve Supertonic
+sesleri gider); merceğin 400+ kelime/dk'da telefondaki akıcılığı; `tighten` ve `flatten` değişikliklerinin kulakla
+dinlenmesi; koyu temalarda cam çubuklar; İstatistik'in Verim, Üretim, Ortalama, Kitaplar ve Kütüphane kartlarının
+görüntüsü (derlendi, ekranda bakılmadı).
+
+### 2026-11-10 (akşam) — Satır bandı, sayfa karartma, kinetik ikonlar
+- Mercek büyüteç olmaktan çıktı: okunan satırın üstünde iki ucu yuvarlak, ince kenarlı kapsül bant; satır kendi boyunda (lensScale varsayılanı 1.0, anahtar `v.lensScale3`). Ayarda adı "Satır bandı".
+- Sayfa karartma (`PageDim`, `v.pageDim`, `v.pageDimStrength`): Yok · Soluk · Karart · Spot ışığı · Pencere · Alacakaranlık, yoğunluk sürgüsü. `PageShade` metnin üstünde, bandın altında; yalnız satır değişince yer değiştirir. Konuşma İmleci sayfasında önizlemeli kartlar.
+- Kinetik: ikon yalnız anahtar kelimenin kendi simgesi, üç öbekten birinde, art arda iki öbekte asla; satır içi ikonlar ve amblem halkası kalktı, ikon büyük ve soluk arka planda.
+- Test kancası `-cursortest`: Konuşma İmleci sayfasını açar.
+- Simülatörde denendi: dört karartma biçimi açık temada, ayar sayfası, kapsül bant. Denenmedi: koyu temada kapsül, kinetik kipin yeni ikon sıklığı.
+- Koyu temalar sadeleşti (2026-11-10 gece): koyu modda vurgu rengi gümüş-beyaza (`Accent.quiet`, doygunluk %16), ilerleme çubukları soluk gri-maviye çekildi; zeminler (Palette, Koyu tema) mavisiz nötr gri. Beyaz işaret taşıyan dolgular (ses notu düğmesi, öne çıkan düğmeler) için `Accent.solid`: açıkta vurgu, koyuda grafit.
+- Satır geçişi akıcı (2026-11-11): kapsül, arkasındaki satır bandı ve sayfa karartması bir sonraki satıra birlikte ~0,32 sn'lik yumuşak bir eğriyle kayıyor (`LineGlide`); eski satırın yazısı yenisine eriyor, yazı yana kaymıyor. Satır içinde hiçbir şey kımıldamıyor. Kapsülün gölgesi kalktı (uçlarında leke yapıyordu), yalnız ince halka kaldı. Simülatörde videodan kare kare denetlendi.

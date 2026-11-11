@@ -44,6 +44,18 @@ struct ListeningDay: Codable, Hashable, Sendable {
 
     var seconds: Double { docs.values.reduce(0) { $0 + $1.seconds } }
     var words: Int { docs.values.reduce(0) { $0 + $1.words } }
+
+    init() {}
+
+    /// Every field may be missing: a day written by an older or a newer version still reads (2026-11-10: one day
+    /// that failed to decode used to empty the whole history on the next save).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        docs = ((try? c.decodeIfPresent([String: Lossy<ListeningDoc>].self, forKey: .docs)) ?? nil)?.compactMapValues(\.value) ?? [:]
+        paused = (try? c.decodeIfPresent(Double.self, forKey: .paused)) ?? nil ?? 0
+        breaks = (try? c.decodeIfPresent(Double.self, forKey: .breaks)) ?? nil ?? 0
+        finished = (try? c.decodeIfPresent([String].self, forKey: .finished)) ?? nil ?? []
+    }
 }
 
 @MainActor
@@ -62,7 +74,7 @@ final class ListeningLog {
 
     @ObservationIgnored private var finishedEver: Set<String> = []
     @ObservationIgnored private var lastTick: Date?
-    @ObservationIgnored private var lastPlace: (doc: UUID, offset: Int)?
+    @ObservationIgnored private var lastPlace: (doc: UUID, offset: Int, at: Date)?
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private weak var player: SpeechPlayer?
     @ObservationIgnored private var dirty = false
@@ -81,7 +93,14 @@ final class ListeningLog {
         // (normally nothing: nothing plays in the first moments) is added to it when it arrives
         let file = file
         Task.detached(priority: .userInitiated) { [weak self] in
-            let d = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode([String: ListeningDay].self, from: $0) }
+            // day by day: one bad day is left out, the others are kept; a file that cannot be read at all is put
+            // aside under another name before anything is written over it
+            let raw = try? Data(contentsOf: file)
+            let d = raw.flatMap { try? JSONDecoder().decode([String: Lossy<ListeningDay>].self, from: $0) }?.compactMapValues(\.value)
+            if let raw, !raw.isEmpty, d == nil {
+                let aside = file.deletingLastPathComponent().appending(path: "\(file.deletingPathExtension().lastPathComponent).unread-\(Int(Date.now.timeIntervalSince1970)).json")
+                try? raw.write(to: aside, options: .atomic)
+            }
             await self?.adopt(d ?? [:])
         }
         let nc = NotificationCenter.default
@@ -134,7 +153,8 @@ final class ListeningLog {
     private func watch() {
         guard let p = player else { return }
         let live = withObservationTracking {
-            _ = p.isPaused                                   // a pause or a resume shows on screen at once
+            let paused = p.isPaused                          // a pause or a resume shows on screen at once
+            if paused { DispatchQueue.main.async { [weak self] in MainActor.assumeIsolated { self?.save(force: true) } } }
             return p.isSpeaking || p.breakEnds != nil
         } onChange: { [weak self] in
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.watch() } }
@@ -191,7 +211,8 @@ final class ListeningLog {
 
     /// The player reported a new place (every couple of seconds while reading, and on every jump).
     func position(_ id: UUID, _ offset: Int, length: Int, text: (NSRange) -> String) {
-        defer { lastPlace = (id, offset) }
+        let now = Date.now
+        defer { lastPlace = (id, offset, now) }
         if length > 0, Double(offset) / Double(length) >= 0.99, !finishedEver.contains(id.uuidString) {
             finishedEver.insert(id.uuidString)
             days[Self.key(.now), default: .init()].finished.append(id.uuidString)
@@ -200,7 +221,11 @@ final class ListeningLog {
         }
         guard let last = lastPlace, last.doc == id else { return }
         let delta = offset - last.offset
-        guard delta > 0, delta <= 3000 else { return }   // backwards or a jump: not heard
+        // backwards or a jump: not heard. A step forward longer than the voice can have read since the last report
+        // (90 characters a second is beyond 500 words a minute) is a skip, not listening: sentence, paragraph and
+        // 30-second skips used to be counted as words and pages.
+        let reach = Int(now.timeIntervalSince(last.at) * 90) + 150
+        guard delta > 0, delta <= min(3000, reach) else { return }
         let words = text(NSRange(location: last.offset, length: delta))
             .split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
         guard words > 0 else { return }
@@ -210,11 +235,22 @@ final class ListeningLog {
         publishSoon()
     }
 
+    /// Called on the main thread after each save with the whole log (Akşam tekrarı: the last days go to Teoria
+    /// through the shared App Group, and the reminder before bed is planned).
+    @ObservationIgnored var onSave: (([String: ListeningDay]) -> Void)?
+
+    /// Hands the log to `onSave` again without writing (the app came to the front: the reminder is planned anew).
+    func republish() {
+        guard loaded else { return }
+        onSave?(days)
+    }
+
     /// The log is encoded and written on a background queue (in order), never on the main thread.
     func save(force: Bool) {
         guard loaded, dirty, force || Date.now.timeIntervalSince(lastSave) > 30 else { return }
         dirty = false
         lastSave = .now
+        onSave?(days)
         let days = days, file = file, device = device
         Self.writer.async {
             guard let data = try? JSONEncoder().encode(days) else { return }

@@ -49,7 +49,8 @@ struct VoiceProfile: Identifiable, Hashable, Sendable {
     /// Usable on this device (the Apple base voice may be missing).
     var isAvailable: Bool {
         switch engine {
-        case .ema, .studio: true
+        case .ema: Bundle.main.url(forResource: "ema", withExtension: "json") != nil     // the model is not in every build
+        case .studio: true
         case .supertonic: SupertonicEngine.isInstalled
         case .apple(let name): Self.appleVoice(named: name) != nil
         }
@@ -182,7 +183,7 @@ final class ProfileRenderer: @unchecked Sendable {
         if let squeeze, squeeze.tempo > 1.01 {
             let q = FastSpeech.squeeze(r.samples, tempo: squeeze.tempo)
             r.words = r.words.map { (q.moved($0.sample), $0.range) }
-            r.samples = FastSpeech.tighten(q.samples, target: FastSpeech.closing(at: squeeze.words))
+            r.samples = FastSpeech.tighten(q.samples, target: FastSpeech.closing(at: squeeze.words), ends: q.phraseEnds.map(q.moved))
         }
         if clear { master.boost = boost; r.samples = master.whole(r.samples) }
         // 3 ms fades: pieces are queued back to back
@@ -268,8 +269,13 @@ private final class AppleCapture: NSObject, AVSpeechSynthesizerDelegate, @unchec
         var out: [Float] = []
         var rate: Double = 22_050
         lock.lock(); sawEmpty = false; lastBuffer = .now; finishedID = nil; lock.unlock()
+        let mine = ObjectIdentifier(u)
         synth.write(u) { [weak self] buffer in
             guard let self, let pcm = buffer as? AVAudioPCMBuffer else { return }
+            // a buffer of an utterance given up (a cancel) arriving late: it is not this render's audio, and its
+            // closing empty buffer is not this render's end
+            self.lock.lock(); let live = self.current == mine; self.lock.unlock()
+            guard live else { return }
             // iOS 27 sends an empty buffer in the middle of a long utterance too, so it is not the end by itself
             if pcm.frameLength == 0 { self.lock.lock(); self.sawEmpty = true; self.lastBuffer = .now; self.lock.unlock(); return }
             let n = Int(pcm.frameLength)
@@ -290,11 +296,15 @@ private final class AppleCapture: NSObject, AVSpeechSynthesizerDelegate, @unchec
             let over = finishedID == uid || (sawEmpty && Date().timeIntervalSince(lastBuffer) > 0.5)
             lock.unlock()
             if over { break }
-            if cancelled() || Date().timeIntervalSince(start) > 60 { synth.stopSpeaking(at: .immediate); return nil }
+            if cancelled() || Date().timeIntervalSince(start) > 60 {
+                lock.lock(); current = nil; lock.unlock()
+                synth.stopSpeaking(at: .immediate)
+                return nil
+            }
         }
-        lock.lock(); let m = marks; current = nil; lock.unlock()
-        let k = 48_000 / rate
-        let samples = Resampler.convert(out, from: rate, to: 48_000)
+        lock.lock(); let m = marks; current = nil; let heard = out; let heardRate = rate; lock.unlock()
+        let k = 48_000 / heardRate
+        let samples = Resampler.convert(heard, from: heardRate, to: 48_000)
         return RenderedSpeech(samples: samples, words: m.map { (Int(Double($0.0) * k), $0.1) })
     }
 

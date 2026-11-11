@@ -24,7 +24,9 @@ enum PitchShift {
     static func flatten(_ x: [Float], keep: Double, toward: Double? = nil, sampleRate sr: Int = 48_000) -> [Float] {
         guard keep < 0.99, x.count > sr / 10 else { return x }
         let hop = sr / 200
-        let f0 = f0Track(x, sr: sr, hop: hop)
+        // the tidied track (holes of up to 15 ms inside a vowel closed), the same one the resynthesis walks: with the
+        // raw track the closed holes kept factor 1, a 5–15 ms step back to the old pitch in the middle of a vowel
+        let f0 = tidy(f0Track(x, sr: sr, hop: hop))
         let voiced = f0.filter { $0 > 0 }.sorted()
         guard voiced.count > 20 else { return x }
         let middle = toward ?? voiced[voiced.count / 2]

@@ -676,6 +676,10 @@ private struct VoiceTuningSection: View {
             } footer: {
                 VStack(alignment: .leading, spacing: 6) {
                     if let adopted { Text(adopted).foregroundStyle(.primary) }
+                    if s.systemSpeech, SpeechPlayer.wpm(model.player.speed) > Int(FastSpeech.from) {
+                        Label("Şu an \(SpeechPlayer.wpm(model.player.speed)) kelime/dk'dasın ama “Yüksek hızda net okuma” devrede değil: bu anahtar açıkken hız iPhone'un motorundan istenir ve 385'in üstünde sesler birbirine karışır. Net okuma için “Bu tınıyı Wise Path'e al”a dokun.", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
                     Text(s.systemSpeech
                          ? "Türkçe ses, iPhone'un kendi Ekranı Seslendir'i gibi okur: hız ve perde Ayarlar › Erişilebilirlik › Seslendirilen İçerik'ten gelir, Wise Path'in hız düğmesi sesi değiştirmez. “Bu tınıyı Wise Path'e al” şu an duyduğun sesi iki saniyede ölçer, aynı kalınlığı ve hızı Wise Path'in kendi ayarına yazar ve bu anahtarı kapatır: ses aynı kalır, hız düğmesi ve Kalınlık uygulamada çalışır."
                          : "Hız, ses miktarı ve kalınlık Wise Path'ten gelir; iPhone'un ayarları sesi değiştirmez.")
@@ -868,6 +872,8 @@ struct VisualSettingsView: View {
                 }
                 Section {
                     NavigationLink("Konuşma İmleci") { CursorPage() }
+                    // the lens at hand: on or off here, its size on the page above
+                    Toggle("Satır bandı (okunan satırı vurgula)", isOn: Binding(get: { model.settings.wordLens }, set: { model.settings.wordLens = $0 }))
                 }
                 Section {
                     NavigationLink { BikeStylePage() } label: {
@@ -954,6 +960,9 @@ private struct AccentPage: View {
     }
 }
 
+/// The Konuşma İmleci page from outside this file (the -cursortest hook).
+struct CursorSettingsPage: View { var body: some View { CursorPage() } }
+
 /// Konuşma İmleci: the chip behind the word, the band behind the line, where the page keeps the line, focus mode.
 private struct CursorPage: View {
     @Environment(AppModel.self) private var model
@@ -966,7 +975,43 @@ private struct CursorPage: View {
             Section { preview(theme) }
             Section {
                 Toggle("Okunan kelimeyi işaretle", isOn: $s.showSpokenWord)
-                if s.showSpokenWord { swatches("Kelime rengi", selection: $s.wordColor, options: MarkColor.allCases.filter { $0 != .paper }) }
+                if s.showSpokenWord {
+                    swatches("Kelime rengi", selection: $s.wordColor, options: MarkColor.allCases.filter { $0 != .paper })
+                }
+            }
+            Section {
+                Toggle("Satır bandı", isOn: $s.wordLens)
+            } header: { Text("Satır bandı") } footer: {
+                Text("Okunan satırın üstünde iki ucu yuvarlak, ince kenarlı bir bant durur; okunan kelime bandın içinde kendi rengiyle işaretlidir. Satır kendi boyunda kalır, hiçbir şey kaymaz: bant yalnız satır değişince yer değiştirir. Aşağıdaki karartmayla birlikte okunan satır sayfadan ayrılır.")
+            }
+            Section {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(PageDim.allCases) { k in
+                            Button { withAnimation(.smooth(duration: 0.2)) { s.pageDim = k } } label: {
+                                DimTile(kind: k, strength: s.pageDimStrength, theme: theme, chosen: s.pageDim == k)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(k.name)
+                            .accessibilityAddTraits(s.pageDim == k ? .isSelected : [])
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .scrollClipDisabled()
+                if s.pageDim != .off {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack { Text("Yoğunluk"); Spacer(); Text("%\(Int((s.pageDimStrength * 100).rounded()))").foregroundStyle(.secondary).monospacedDigit() }
+                        HStack(spacing: 10) {
+                            Image(systemName: "sun.max").foregroundStyle(.secondary)
+                            Slider(value: $s.pageDimStrength, in: 0.15...0.85, step: 0.01)
+                            Image(systemName: "moon.fill").foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            } header: { Text("Sayfa karartma") } footer: {
+                Text(s.pageDim.note + " Okunan satır (ve Mercek bandı) hep açık kalır; karartma yalnız satır değişince yer değiştirir.")
             }
             Section {
                 Toggle("Okunan satırı işaretle", isOn: $s.showSpokenLine)
@@ -999,6 +1044,7 @@ private struct CursorPage: View {
         }
         return VStack(alignment: .leading, spacing: 0) {
             row { Text("Bu yüzden Berkeley'in sorusuna").font(font).foregroundStyle(ink) }
+                .overlay { DimTile.veil(s.pageDim, s.pageDimStrength, theme, above: true) }
             row {
                 HStack(spacing: 0) {
                     Text("cevabı, Locke'unkinden de ").font(font).foregroundStyle(ink)
@@ -1010,7 +1056,19 @@ private struct CursorPage: View {
                 }
             }
             .background(line ?? .clear)
+            // Satır bandı: a capsule with a hairline edge over the middle line
+            .background {
+                if s.wordLens {
+                    Capsule().fill(Color(uiColor: theme.background))
+                        .overlay(Capsule().strokeBorder(theme.isDark ? Color.white.opacity(0.28) : Color.black.opacity(0.14), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.16), radius: 5, y: 2)
+                        .padding(.horizontal, 2).padding(.vertical, -2)
+                }
+            }
+            .zIndex(1)
+            .animation(.smooth(duration: 0.2), value: s.wordLens)
             row { Text("gözleri yeni açılan adam, küreyi").font(font).foregroundStyle(ink) }
+                .overlay { DimTile.veil(s.pageDim, s.pageDimStrength, theme, above: false) }
         }
         .background(Color(uiColor: theme.background))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -1090,5 +1148,68 @@ struct MusicLevelSlider: View {
                 Image(systemName: "speaker.fill").font(.caption)
             } maximumValueLabel: { Image(systemName: "speaker.wave.3.fill").font(.caption) }
         }
+    }
+}
+
+
+/// A small page for the Sayfa karartma picker: five lines, the middle one being read, the rest as the chosen
+/// dimming leaves them.
+struct DimTile: View {
+    let kind: PageDim
+    let strength: Double
+    let theme: ReaderTheme
+    let chosen: Bool
+
+    /// The shade a row of the page gets (`above`: the row lies above the line being read). In the settings preview
+    /// and on the tiles; the page itself uses PageShade.
+    static func veil(_ kind: PageDim, _ strength: Double, _ theme: ReaderTheme, above: Bool, distance: Int = 1) -> some View {
+        let paper = Color(uiColor: theme.background)
+        let a: Double = {
+            switch kind {
+            case .off: 0
+            case .fade, .dark, .dusk: strength
+            case .spotlight: min(0.95, strength * 1.2) * min(1, 0.3 + 0.35 * Double(distance - 1) + 0.2)
+            case .window: distance <= 1 ? 0 : min(0.92, strength * 1.15)
+            }
+        }()
+        let ink: Color = switch kind {
+        case .fade, .window, .off: paper
+        case .dark, .spotlight: .black
+        case .dusk: theme.isDark ? Color(red: 0.14, green: 0.07, blue: 0.01) : Color(red: 0.42, green: 0.24, blue: 0.05)
+        }
+        return Rectangle().fill(ink.opacity(a)).allowsHitTesting(false)
+    }
+
+    var body: some View {
+        let ink = Color(uiColor: theme.text)
+        let widths: [CGFloat] = [0.86, 0.7, 0.92, 0.78, 0.6]
+        VStack(spacing: 6) {
+            VStack(spacing: 0) {
+                ForEach(0..<5, id: \.self) { i in
+                    HStack {
+                        Capsule().fill(ink.opacity(0.75)).frame(width: 58 * widths[i], height: 3.5)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 7)
+                    .frame(height: 11)
+                    .background(i == 2 ? Color(uiColor: theme.band) : .clear)
+                    .overlay {
+                        if i != 2 { DimTile.veil(kind, strength, theme, above: i < 2, distance: abs(i - 2)) }
+                    }
+                }
+            }
+            .padding(.vertical, 5)
+            .frame(width: 72)
+            .background(Color(uiColor: theme.background))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.primary.opacity(0.15), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.accentColor, lineWidth: chosen ? 2.5 : 0).padding(-3))
+            Label(kind.name, systemImage: kind.symbol)
+                .labelStyle(.titleOnly)
+                .font(.caption.weight(chosen ? .semibold : .regular))
+                .foregroundStyle(chosen ? .primary : .secondary)
+                .lineLimit(1)
+        }
+        .frame(width: 84)
     }
 }

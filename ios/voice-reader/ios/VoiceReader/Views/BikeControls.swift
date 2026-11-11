@@ -118,6 +118,7 @@ struct BikeBar: View {
             .frame(height: 4)
             .padding(.horizontal, 18)
             .padding(.top, 8)
+            GlassGroup(spacing: 10) {
             HStack(spacing: 10) {
                 BikeMicButton(style: style)
                 Button { p.toggle() } label: {
@@ -148,8 +149,12 @@ struct BikeBar: View {
             .padding(.horizontal, 12)
             .padding(.top, 10)
             .padding(.bottom, 8)
+            }
         }
-        .background(Color(uiColor: theme.chrome).ignoresSafeArea(edges: .bottom))
+        // the three keys are glass themselves: they stand straight on the page, no bar behind them
+        .background {
+            if #unavailable(iOS 26.0) { Color(uiColor: theme.chrome).ignoresSafeArea(edges: .bottom) }
+        }
     }
 }
 

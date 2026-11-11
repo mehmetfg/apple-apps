@@ -160,9 +160,23 @@ actor CloudFiles {
         guard !events.isEmpty else { return }
         let url = root.appending(path: "Events/\(device).jsonl")
         var data = read(url) ?? Data()
+        // The log exists but cannot be read now (iCloud has not brought it down): writing would replace the whole
+        // history with this batch, and the other devices, which count its lines, would then ignore every later
+        // event. The download is asked for and this batch is left out instead.
+        if data.isEmpty, Self.existsUnread(url) {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+            return
+        }
         let enc = JSONEncoder()
         for e in events { if let line = try? enc.encode(e) { data.append(line); data.append(0x0A) } }
         write(data, to: url)
+    }
+
+    /// The file is there (itself, or as iCloud's ".name.icloud" stand-in) although it gave no data.
+    static func existsUnread(_ url: URL) -> Bool {
+        let fm = FileManager.default
+        if fm.fileExists(atPath: url.path) { return ((try? fm.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0) > 0 }
+        return fm.fileExists(atPath: url.deletingLastPathComponent().appending(path: ".\(url.lastPathComponent).icloud").path)
     }
 
     /// New events from other devices since the line counts in `seen`; returns them and the new counts.

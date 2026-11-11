@@ -60,21 +60,36 @@ struct Accent: Equatable, Sendable {
         return UIColor(hue: h, saturation: min(1, s * 0.95 + 0.05), brightness: min(1, b + 0.34), alpha: 1)
     }
 
+    /// The accent's hue with its colour turned down: dark mode keeps only a whisper of it (2026-11-10, "koyu
+    /// temalarda çok fazla mavi var, sadeleştir"): icons and labels a quiet silver, bars a muted grey-blue.
+    private static func quiet(_ c: UIColor, saturation k: CGFloat, brightness v: CGFloat) -> UIColor {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0
+        c.getHue(&h, saturation: &s, brightness: &b, alpha: nil)
+        return UIColor(hue: h, saturation: s * k, brightness: v, alpha: 1)
+    }
+
     var inkUI: UIColor {
         let base = Self.color(hex)
         let bright = preset.map { Self.color($0.fill) } ?? Self.companion(base)
-        return UIColor { $0.userInterfaceStyle == .dark ? Self.lighten(bright, by: 0.30) : base }
+        return UIColor { $0.userInterfaceStyle == .dark ? Self.quiet(bright, saturation: 0.16, brightness: 0.88) : base }
     }
     var fillUI: UIColor {
         let base = preset.map { Self.color($0.fill) } ?? Self.companion(Self.color(hex))
-        return UIColor { $0.userInterfaceStyle == .dark ? Self.lighten(base, by: 0.18) : base }
+        return UIColor { $0.userInterfaceStyle == .dark ? Self.quiet(base, saturation: 0.32, brightness: 0.70) : base }
+    }
+    /// A solid ground for white marks (the voice-note key, the prominent buttons): the accent in light mode, a
+    /// graphite with a trace of the accent in dark mode (the silver ink would not carry white).
+    var solidUI: UIColor {
+        let base = Self.color(hex)
+        return UIColor { $0.userInterfaceStyle == .dark ? Self.quiet(base, saturation: 0.22, brightness: 0.30) : base }
     }
     var ink: Color { Color(uiColor: inkUI) }
     var fill: Color { Color(uiColor: fillUI) }
+    var solid: Color { Color(uiColor: solidUI) }
     /// A faint wash of the accent, for the selected row and the playing tile.
     var wash: Color { Color(uiColor: UIColor { t in
         let c = Self.color(hex)
-        return t.userInterfaceStyle == .dark ? Self.lighten(c, by: 0.3).withAlphaComponent(0.28) : Self.lighten(c, by: 0.55).withAlphaComponent(0.30)
+        return t.userInterfaceStyle == .dark ? UIColor(white: 1, alpha: 0.10) : Self.lighten(c, by: 0.55).withAlphaComponent(0.30)
     }) }
 }
 
@@ -83,9 +98,9 @@ enum Palette {
     static var playFill: Color { play }
 
     /// Library backdrop and panels, following the appearance.
-    static let ground = dyn((0.941, 0.941, 0.941), (0.055, 0.060, 0.070))
-    static let groundDeep = dyn((0.918, 0.918, 0.922), (0.020, 0.022, 0.028))
-    static let panel = dyn((1, 1, 1), (0.115, 0.122, 0.140))
+    static let ground = dyn((0.941, 0.941, 0.941), (0.058, 0.058, 0.062))       // dark: neutral, no blue cast
+    static let groundDeep = dyn((0.918, 0.918, 0.922), (0.022, 0.022, 0.024))
+    static let panel = dyn((1, 1, 1), (0.120, 0.120, 0.128))
 
     private static func dyn(_ light: (Double, Double, Double), _ dark: (Double, Double, Double)) -> Color {
         Color(UIColor { t in

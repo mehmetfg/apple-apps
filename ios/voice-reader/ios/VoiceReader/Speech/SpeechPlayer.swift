@@ -470,7 +470,7 @@ final class SpeechPlayer: NSObject {
         if breakEnds != nil { endBreak(); return }
         activateSession()
         isPaused = false
-        if format != nil, scheduledEnd > 0, (try? engine.start()) != nil {
+        if format != nil, scheduledEnd > 0, !queueBroken, (try? engine.start()) != nil {
             player.play()
             startTicker()
         } else {
@@ -572,6 +572,7 @@ final class SpeechPlayer: NSObject {
             let here = sentenceStart(before: at + 1)
             return at - here > 3 ? here : sentenceStart(before: max(0, here - 1))
         case .paragraph:
+            guard !blocks.isEmpty else { return nil }          // an empty document: ⏮ from the lock screen used to trap here
             let bi = blockIndex(containing: at)
             if forward { return bi + 1 < blocks.count ? blocks[bi + 1].location : nil }
             return at - blocks[bi].location > 3 ? blocks[bi].location : blocks[max(0, bi - 1)].location
@@ -698,6 +699,9 @@ final class SpeechPlayer: NSObject {
     }
 
     private func restart(at block: Int, offset: Int) {
+        queueBroken = false
+        audioQueued = false
+        startedAt = blocks.indices.contains(block) ? blocks[block].location + offset : 0
         generation += 1
         cancelToken.cancelled = true
         cancelToken = CancelToken()
@@ -787,6 +791,7 @@ final class SpeechPlayer: NSObject {
         let pos = blocks[nextBlock].location + nextOffset
         guard let i = pack.index(at: pos) else { return false }
         let seg = pack.segments[i]
+        guard seg.location <= text.length else { return false }  // a pack made from a longer text: the live path reads on
         // a gap the pack does not cover (text after the last rendered segment): live path
         if seg.location > pos, text.substring(with: NSRange(location: pos, length: seg.location - pos))
             .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false { return false }
@@ -892,7 +897,9 @@ final class SpeechPlayer: NSObject {
             let range = blocks[nextBlock]
             let start = min(nextOffset, range.length)
             if start >= range.length { nextBlock += 1; nextOffset = 0; continue }
-            let profileVoice = VoiceProfile.with(id: voiceID) != nil || tune(voiceID).steady > 0.01
+            // rendered whole before it is heard: the profile voices, Düzlük, and Yüksek hız (2026-11-10: above 385
+            // words a minute a jump or a speed change waited for the entire paragraph to be rendered and squeezed)
+            let profileVoice = VoiceProfile.with(id: voiceID) != nil || tune(voiceID).steady > 0.01 || fast(voiceID, language: nil)
             let limit = profileVoice ? (segments.isEmpty ? 140 : 280) : Int.max
             var end = start
             var lang: String?
@@ -987,6 +994,7 @@ final class SpeechPlayer: NSObject {
             scheduledEnd = ph
         }
         player.scheduleBuffer(out)
+        audioQueued = true
         scheduledEnd += AVAudioFramePosition(out.frameLength)
         if !isPaused, !player.isPlaying { player.play() }
     }
@@ -1032,6 +1040,7 @@ final class SpeechPlayer: NSObject {
         let ph = playhead
         if player.isPlaying, ph > scheduledEnd { scheduledEnd = ph }
         player.scheduleBuffer(buf)
+        audioQueued = true
         scheduledEnd += AVAudioFramePosition(tail.count)
     }
 
@@ -1088,6 +1097,7 @@ final class SpeechPlayer: NSObject {
             return (scheduledEnd + AVAudioFramePosition(Double(w.sample) * k), NSRange(location: piece.offset + o.location, length: o.length))
         }
         player.scheduleBuffer(out)
+        audioQueued = true
         scheduledEnd += AVAudioFramePosition(out.frameLength)
         seg.end = scheduledEnd
         segments.append(seg)
@@ -1116,9 +1126,13 @@ final class SpeechPlayer: NSObject {
             applyBoost()
             format = wanted
         }
-        if !engine.isRunning {
+        // Paused: audio still arriving is queued for the resume, the engine stays asleep (starting it here took the
+        // session back, so the other app's music was lowered again while we were paused). Reading: an engine that
+        // cannot start (a call, Siri) holds the reading where it is; before, every piece was dropped one after
+        // another until the book's end was reached and it was marked finished.
+        if !engine.isRunning, !isPaused {
             engine.prepare()
-            do { try engine.start() } catch { return nil }
+            do { try engine.start() } catch { engineRefused(); return nil }
         }
         guard let f = format else { return nil }
         ratio = f.sampleRate / src.sampleRate
@@ -1140,6 +1154,22 @@ final class SpeechPlayer: NSObject {
             fed = true; status.pointee = .haveData; return pcm
         }
         return err == nil ? out : nil
+    }
+
+    /// A piece was lost to an engine that would not start: the queue has a hole, so the next resume starts again
+    /// from the place heard, and nothing counts as finished meanwhile.
+    private var queueBroken = false
+
+    private func engineRefused() {
+        guard !queueBroken else { return }
+        queueBroken = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.isSpeaking, !self.isPaused else { return }
+                self.pause()
+                self.heldBySystem = true              // the system took the audio: reading goes on when it gives it back
+            }
+        }
     }
 
     private var playhead: AVAudioFramePosition {
@@ -1164,7 +1194,7 @@ final class SpeechPlayer: NSObject {
         }
         synthesizeNext()
         if let end = sleepEnds, Date.now >= end { pause(); setSleepTimer(.off); return }
-        if !synthesizing, nextBlock >= blocks.count, scheduledEnd == 0 { finished(); return }
+        if !synthesizing, nextBlock >= blocks.count, scheduledEnd == 0, !queueBroken { finished(); return }
         guard !isPaused, player.isPlaying else { return }
         if breakEvery > 0 {
             listened += 0.04
@@ -1424,8 +1454,26 @@ final class SpeechPlayer: NSObject {
         fadeTimer = t
     }
 
+    /// Whether any sound was queued since reading last started, and where it started.
+    private var audioQueued = false
+    private var startedAt = 0
+    /// Why reading stopped by itself, for the screen to say (nil = nothing to say).
+    var problem: String?
+
     private func finished() {
         guard let id = documentID else { return }
+        // The end was reached without a single sound: the voice produced nothing (it is not installed, or the
+        // synthesiser failed) and every piece was passed over. That is not a book heard to its end: the place is
+        // kept and the reader is told. (Seen 2026-11-10 in the simulator: one press of play marked a book finished.)
+        if !audioQueued, text.length - startedAt > 200 {
+            let at = startedAt
+            stop(release: !keepSessionAtEnd)
+            cursor = min(at, max(0, text.length - 1))
+            shownCursor = cursor
+            problem = "Ses üretilemedi: seçili ses bu cihazda kurulu olmayabilir. Ses ayarlarından başka bir ses seç ya da sesi Ayarlar › Erişilebilirlik › Seslendirilen İçerik › Sesler'den indir."
+            report(force: true)
+            return
+        }
         cursor = text.length
         stop(release: !keepSessionAtEnd)
         onFinished?(id)
@@ -1571,6 +1619,9 @@ final class SpeechPlayer: NSObject {
         // iOS 27: the system says in its own words whether to go on after it took the audio away, and why the session
         // went quiet. Reading follows that: it goes on when recommended (and only if the system had stopped it), and
         // a session the system closed while reading counts as held, not as the reader's pause.
+        // These names exist only in the iOS 27 SDK (Xcode 27, Swift 6.3 and later): with Xcode 26.3 on macOS 15 the
+        // block is left out of the build, and reading falls back to the interruption notice above.
+        #if compiler(>=6.3)
         if #available(iOS 27.0, *) {
             nc.addObserver(forName: AVAudioSession.resumptionRecommendationNotification, object: nil, queue: .main) { [weak self] n in
                 let context = n.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext
@@ -1592,6 +1643,7 @@ final class SpeechPlayer: NSObject {
                 }
             }
         }
+        #endif
         nc.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.engineChanged() }
         }

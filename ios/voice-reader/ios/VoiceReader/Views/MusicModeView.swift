@@ -373,8 +373,8 @@ struct MusicModeView: View {
                     if let ch = model.player.chapterTitle(at: model.player.shownCursor) { Text(ch).lineLimit(1) }
                 }
             }
-            .font(.system(size: 11, weight: .medium, design: .rounded))
-            .foregroundStyle(paper.opacity(0.35))
+            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .foregroundStyle(paper.opacity(0.62))
             .padding(.horizontal, 20).padding(.bottom, 10)
         }
     }

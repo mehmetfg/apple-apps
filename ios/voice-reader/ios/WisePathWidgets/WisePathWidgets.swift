@@ -177,19 +177,23 @@ struct ReadingWidget: Widget {
 
     /// iOS 27 adds the tall extra-large size on the iPhone: the whole shelf of what is being read.
     private static var families: [WidgetFamily] {
-        if #available(iOS 27.0, *) { return [.systemMedium, .systemLarge, .systemExtraLargePortrait] }
+        if let tall = WidgetFamily.extraLargePortrait { return [.systemMedium, .systemLarge, tall] }
         return [.systemMedium, .systemLarge]
     }
+}
+
+extension WidgetFamily {
+    /// iOS 27's tall size, looked up by its name: the iOS 26 SDK has no symbol for it, so naming it would not build
+    /// there. On a system that has the size it is found; elsewhere it is nil.
+    static let extraLargePortrait: WidgetFamily? =
+        (0..<64).lazy.compactMap { WidgetFamily(rawValue: $0) }.first { $0.description == "systemExtraLargePortrait" }
 }
 
 struct ReadingView: View {
     @Environment(\.widgetFamily) private var widgetFamily
     let entry: SnapshotEntry
 
-    private var tall: Bool {
-        if #available(iOS 27.0, *) { return widgetFamily == .systemExtraLargePortrait }
-        return false
-    }
+    private var tall: Bool { widgetFamily == WidgetFamily.extraLargePortrait }
     /// The tall size is laid out as the large one, with more rows.
     private var family: WidgetFamily { tall ? .systemLarge : widgetFamily }
 

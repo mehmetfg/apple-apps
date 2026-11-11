@@ -201,6 +201,7 @@ final class LibraryStore {
         try FileManager.default.copyItem(at: pack, to: dest)
     }
 
+    func contentURL(_ id: UUID) -> URL { folderURL(id).appending(path: "content.json") }
     func contentData(_ id: UUID) -> Data? { try? Data(contentsOf: folderURL(id).appending(path: "content.json")) }
     func coverData(_ id: UUID) -> Data? { try? Data(contentsOf: coverURL(id)) }
 

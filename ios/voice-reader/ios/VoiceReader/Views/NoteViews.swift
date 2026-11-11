@@ -26,7 +26,7 @@ struct MicButton: View {
                     .scaleEffect(1 + CGFloat(rec.level) * 0.45)
                     .animation(.easeOut(duration: 0.12), value: rec.level)
             }
-            Circle().fill(on ? Color.red : accent.ink)
+            Circle().fill(on ? Color.red : accent.solid)
             Circle().trim(from: 0, to: pressing && !on ? 1 : 0)
                 .stroke(Color.white, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
@@ -51,7 +51,7 @@ struct MicButton: View {
                 Text("Kayıt için basılı tut")
                     .font(.caption.weight(.semibold)).fixedSize()
                     .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(.regularMaterial, in: Capsule())
+                    .modifier(GlassCapsule(interactive: false, fallback: Color(uiColor: .secondarySystemBackground)))
                     .offset(x: 50, y: -40)
                     .transition(.opacity)
                     .task { try? await Task.sleep(for: .seconds(1.6)); withAnimation { hint = false } }

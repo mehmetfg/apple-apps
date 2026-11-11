@@ -114,6 +114,10 @@ actor VaultMirror {
         guard !events.isEmpty, let d = dir("Events") else { return }
         let url = d.appending(path: "\(device).jsonl")
         var data = (try? Data(contentsOf: url)) ?? Data()
+        if data.isEmpty, CloudFiles.existsUnread(url) {          // not brought down yet: never replace the log (SyncEngine)
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+            return
+        }
         let enc = JSONEncoder()
         for e in events { if let line = try? enc.encode(e) { data.append(line); data.append(0x0A) } }
         write(data, to: url)

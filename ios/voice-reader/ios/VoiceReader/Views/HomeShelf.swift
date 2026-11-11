@@ -20,7 +20,7 @@ struct StateLabel: View {
                     .padding(.horizontal, 6).padding(.vertical, 1.5)
                     .background(Color.accentColor, in: Capsule())
             } else {
-                Text("%\(Int((doc.progress * 100).rounded()))").foregroundStyle(.secondary)
+                Text("%\(Int(doc.progress * 100))").foregroundStyle(.secondary)      // floored, as the reader shows it
             }
         }
         .font(.caption.weight(.semibold).monospacedDigit())
@@ -49,7 +49,7 @@ struct RecentBooks: View {
         let books = Self.pick(model)
         if !books.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Son okunanlar").font(.caption.weight(.semibold)).foregroundStyle(.secondary).textCase(.uppercase)
+                Text("Kaldığın kitaplar").font(.title3.weight(.bold))
                     .padding(.horizontal, 20)
                 GeometryReader { g in
                     let w = (g.size.width - 40 - 24) / 3
@@ -99,7 +99,13 @@ private struct RecentBook: View {
                 }
             Text(doc.title).font(.system(size: 13, weight: .semibold, design: .serif)).lineLimit(2)
                 .frame(width: width, alignment: .leading)
-            StateLabel(doc: doc)
+            HStack(spacing: 5) {
+                StateLabel(doc: doc)
+                if !doc.isFinished, !doc.isUnread {
+                    Text(Format.duration(model.duration(characters: max(0, doc.length - doc.position), speed: doc.speed)))
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
+                }
+            }
         }
         .frame(width: width, alignment: .leading)
         .accessibilityElement(children: .contain)
@@ -111,6 +117,9 @@ private struct RecentBook: View {
 /// "34 kitap · 5 süren · 20 okunacak · 9 bitti · 41 sa kaldı": what is at hand. A tap on a count shows that shelf.
 struct InventoryStrip: View {
     @Environment(AppModel.self) private var model
+    /// Since 2026-11-10 the strip lives in İstatistik (the home shows the day instead): a tap on a count chooses that
+    /// shelf on the home and closes the page.
+    var onPick: () -> Void = {}
 
     var body: some View {
         let all = model.store.documents
@@ -140,14 +149,13 @@ struct InventoryStrip: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(14)
-        .modifier(GlassPanel(cornerRadius: 18))
-        .padding(.horizontal, 14)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .contain)
     }
 
     private func cell(_ n: String, _ label: String, _ shelf: String) -> some View {
         let on = model.settings.homeShelf == shelf
-        return Button { withAnimation(.smooth(duration: 0.25)) { model.settings.homeShelf = shelf } } label: {
+        return Button { withAnimation(.smooth(duration: 0.25)) { model.settings.homeShelf = shelf }; onPick() } label: {
             VStack(spacing: 1) {
                 Text(n).font(.system(size: 20, weight: .bold, design: .rounded)).monospacedDigit()
                 Text(label).font(.caption2.weight(on ? .bold : .regular)).foregroundStyle(on ? .primary : .secondary)

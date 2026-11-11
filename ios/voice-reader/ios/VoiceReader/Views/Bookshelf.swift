@@ -71,9 +71,10 @@ struct BookshelfView: View {
                 }
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Wood.frame, lineWidth: 5))
-        .shadow(color: .black.opacity(0.25), radius: 10, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Wood.frame, lineWidth: 6))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.white.opacity(0.10), lineWidth: 0.6))
+        .shadow(color: .black.opacity(0.30), radius: 12, y: 7)
         .padding(.horizontal, 14)
     }
 }
@@ -81,11 +82,12 @@ struct BookshelfView: View {
 // MARK: - wood
 
 private enum Wood {
-    static let frame = Color(red: 0.30, green: 0.18, blue: 0.10)
-    static let plankTop = Color(red: 0.55, green: 0.36, blue: 0.20)
+    static let frame = LinearGradient(colors: [Color(red: 0.42, green: 0.26, blue: 0.14), Color(red: 0.24, green: 0.14, blue: 0.07)],
+                                      startPoint: .top, endPoint: .bottom)
+    static let plankTop = Color(red: 0.62, green: 0.42, blue: 0.24)
     static let plankEdge = Color(red: 0.36, green: 0.22, blue: 0.12)
     static var back: some View {
-        LinearGradient(colors: [Color(red: 0.17, green: 0.11, blue: 0.07), Color(red: 0.24, green: 0.15, blue: 0.09)],
+        LinearGradient(colors: [Color(red: 0.13, green: 0.08, blue: 0.05), Color(red: 0.24, green: 0.15, blue: 0.09)],
                        startPoint: .top, endPoint: .bottom)
             .overlay {
                 // a faint grain, drawn once
@@ -97,16 +99,27 @@ private enum Wood {
                     }
                 }
             }
+            // the shelf above throws its shadow on the back and on the books' heads; the sides are darker
+            .overlay(alignment: .top) {
+                LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom).frame(height: 22)
+            }
+            .overlay {
+                LinearGradient(stops: [.init(color: .black.opacity(0.35), location: 0), .init(color: .clear, location: 0.06),
+                                       .init(color: .clear, location: 0.94), .init(color: .black.opacity(0.35), location: 1)],
+                               startPoint: .leading, endPoint: .trailing)
+            }
     }
 }
 
+/// The board the books stand on: its top catches the light, its front edge is rounded off into shadow.
 private struct Plank: View {
     var body: some View {
         VStack(spacing: 0) {
-            LinearGradient(colors: [Wood.plankTop, Wood.plankEdge], startPoint: .top, endPoint: .bottom).frame(height: 9)
-            Wood.plankEdge.opacity(0.9).frame(height: 4)
+            Rectangle().fill(.white.opacity(0.28)).frame(height: 1)
+            LinearGradient(colors: [Wood.plankTop, Wood.plankEdge], startPoint: .top, endPoint: .bottom).frame(height: 10)
+            LinearGradient(colors: [Wood.plankEdge, Wood.plankEdge.blend(.black, 0.45)], startPoint: .top, endPoint: .bottom).frame(height: 5)
         }
-        .shadow(color: .black.opacity(0.45), radius: 4, y: 3)
+        .shadow(color: .black.opacity(0.5), radius: 5, y: 4)
     }
 }
 
@@ -114,8 +127,8 @@ private struct Plank: View {
 
 /// 2026-11-04: every spine the same height and thickness (the row reads as a row, not a skyline). The title runs down
 /// the spine on two lines in a type large enough to read; a series book shows its subject, not the long series title.
-/// A plate at the top carries a short key (F 04, B 03, or the title's initials) in the series colour, so a book is
-/// found even before its title is read; at the foot its state in words: %42, Yeni or ✓.
+/// At the top a short key (F 04, B 03, or the title's initials) is stamped in gold, so a book is found even before
+/// its title is read; at the foot its state: %42, YENİ or ✓.
 struct Spine: View {
     let doc: DocumentRecord
 
@@ -157,70 +170,115 @@ struct Spine: View {
         return doc.title.hasPrefix("Genişletme · ") ? String(doc.title.dropFirst(13)) : doc.title
     }
 
-    private var ink: Color { Color(red: 0.97, green: 0.93, blue: 0.84) }
+    /// Gold foil, as stamped into cloth or leather: the lettering, the rules, the label's edge.
+    private static let foil = LinearGradient(colors: [Color(red: 0.98, green: 0.88, blue: 0.60), Color(red: 0.80, green: 0.62, blue: 0.30),
+                                                      Color(red: 0.95, green: 0.82, blue: 0.52)], startPoint: .topLeading, endPoint: .bottomTrailing)
+    private static let cream = Color(red: 0.97, green: 0.90, blue: 0.72)
 
+    /// 2026-11-10: the white plate at the top is gone ("tepesindeki beyaz etiket çirkin; gerçekliğe uygun olsun").
+    /// The spine is bound like a real book: a rounded back in cloth, raised bands across it, the volume's key
+    /// stamped in gold between two gold rules, the title on a dark leather label with a gold edge, and the state
+    /// stamped at the foot. Only gradients and text: nothing is drawn per pixel.
     var body: some View {
         let w = Self.thickness, h = Self.height
-        let titleLength = h - 64
+        let labelHeight = h - 78
         ZStack(alignment: .top) {
-            LinearGradient(stops: [.init(color: color.blend(.black, 0.35), location: 0),
-                                   .init(color: color.blend(.white, 0.12), location: 0.35),
-                                   .init(color: color, location: 0.6),
-                                   .init(color: color.blend(.black, 0.4), location: 1)],
+            // the rounded back: light falls on its left third, the right side turns away
+            LinearGradient(stops: [.init(color: color.blend(.black, 0.50), location: 0),
+                                   .init(color: color.blend(.white, 0.16), location: 0.28),
+                                   .init(color: color, location: 0.55),
+                                   .init(color: color.blend(.black, 0.55), location: 1)],
                            startPoint: .leading, endPoint: .trailing)
+            // head and foot fall into shadow a little
+            LinearGradient(stops: [.init(color: .black.opacity(0.30), location: 0), .init(color: .clear, location: 0.07),
+                                   .init(color: .clear, location: 0.93), .init(color: .black.opacity(0.35), location: 1)],
+                           startPoint: .top, endPoint: .bottom)
             VStack(spacing: 0) {
-                // the plate
+                rule.padding(.top, 7)
                 Text(key)
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
-                    .foregroundStyle(color.blend(.black, 0.5))
+                    .font(.system(size: 10.5, weight: .bold, design: .serif))
+                    .tracking(0.6)
+                    .foregroundStyle(Self.foil)
                     .lineLimit(1).minimumScaleFactor(0.6)
-                    .frame(width: w - 10, height: 20)
-                    .background(ink.opacity(0.92), in: RoundedRectangle(cornerRadius: 3, style: .continuous))
-                    .padding(.top, 8)
-                band.padding(.horizontal, 3).padding(.top, 5)
-                // the title: two lines down the spine
+                    .frame(width: w - 8, height: 17)
+                rule
+                hub.padding(.top, 4)
+                // the title's label: darker leather let into the spine, a gold line round it
                 Text(spineTitle)
                     .font(.system(size: 12.5, weight: .semibold, design: .serif))
-                    .foregroundStyle(ink)
+                    .foregroundStyle(Self.cream)
                     .multilineTextAlignment(.leading)
                     .lineLimit(2)
                     .minimumScaleFactor(0.72)
                     .lineSpacing(-1)
-                    .frame(width: titleLength, height: w - 10, alignment: .leading)
+                    .frame(width: labelHeight - 12, height: w - 14, alignment: .leading)
                     .rotationEffect(.degrees(90))
-                    .frame(width: w, height: titleLength)
+                    .frame(width: w - 8, height: labelHeight)
+                    .background {
+                        RoundedRectangle(cornerRadius: 2.5, style: .continuous)
+                            .fill(LinearGradient(colors: [color.blend(.black, 0.62), color.blend(.black, 0.48)], startPoint: .leading, endPoint: .trailing))
+                        RoundedRectangle(cornerRadius: 2.5, style: .continuous)
+                            .strokeBorder(Self.foil, lineWidth: doc.isFinished ? 1.2 : 0.7)
+                            .opacity(doc.isFinished ? 1 : 0.75)
+                    }
+                    .padding(.top, 4)
+                hub.padding(.top, 4)
                 Spacer(minLength: 0)
-                band.padding(.horizontal, 3).padding(.bottom, 3)
                 Text(state)
-                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
-                    .foregroundStyle(doc.isFinished ? Color(red: 0.95, green: 0.80, blue: 0.40) : ink.opacity(0.85))
+                    .font(.system(size: 9.5, weight: .bold, design: .serif))
+                    .foregroundStyle(doc.isFinished ? AnyShapeStyle(Self.foil) : AnyShapeStyle(Self.cream.opacity(0.9)))
                     .lineLimit(1).minimumScaleFactor(0.7)
-                    .padding(.bottom, 6)
+                rule.padding(.top, 3).padding(.bottom, 6)
+            }
+            // a book being read shows how far it is: a gold thread up its right edge
+            if !doc.isFinished, !doc.isUnread {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Rectangle().fill(Self.foil).frame(width: 2, height: h * doc.progress)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 2)
+                .opacity(0.9)
             }
         }
         .frame(width: w, height: h)
-        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 3))
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 4, bottomLeadingRadius: 2, bottomTrailingRadius: 2, topTrailingRadius: 4))
         .overlay(alignment: .top) {
             if !doc.isFinished, !doc.isUnread {
-                Ribbon().fill(Color(red: 0.75, green: 0.12, blue: 0.16))
-                    .frame(width: 7, height: 18)
-                    .offset(x: w * 0.30, y: -8)
+                Ribbon().fill(LinearGradient(colors: [Color(red: 0.82, green: 0.14, blue: 0.18), Color(red: 0.55, green: 0.06, blue: 0.10)],
+                                             startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 7, height: 20)
+                    .offset(x: w * 0.28, y: -9)
+                    .shadow(color: .black.opacity(0.4), radius: 1, x: 1, y: 1)
             }
         }
+        // each book stands a little apart from its neighbour
+        .shadow(color: .black.opacity(0.45), radius: 2.5, x: 1.5, y: 0)
         .contentShape(Rectangle())
     }
 
     private var state: String {
         if doc.isFinished { return doc.finishes.count >= 2 ? "✓ \(doc.finishes.count)" : "✓" }
-        if doc.isUnread { return "Yeni" }
-        return "%\(Int((doc.progress * 100).rounded()))"
+        if doc.isUnread { return "YENİ" }
+        return "%\(Int(doc.progress * 100))"
     }
 
-    private var band: some View {
-        let gold = Color(red: 0.88, green: 0.72, blue: 0.38)
-        return VStack(spacing: 2) {
-            Rectangle().fill(doc.isFinished ? gold : .black.opacity(0.35)).frame(height: doc.isFinished ? 2.5 : 1.5)
-            Rectangle().fill(doc.isFinished ? gold.opacity(0.8) : .white.opacity(0.18)).frame(height: 1)
+    /// A gold rule stamped across the spine (two on a finished book).
+    private var rule: some View {
+        VStack(spacing: 1.5) {
+            Rectangle().fill(Self.foil).frame(height: 1)
+            if doc.isFinished { Rectangle().fill(Self.foil).frame(height: 1) }
+        }
+        .padding(.horizontal, 4)
+        .opacity(0.9)
+    }
+
+    /// A raised band: the cord under the cloth, lit from above.
+    private var hub: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(.white.opacity(0.22)).frame(height: 1)
+            Rectangle().fill(color.blend(.white, 0.06)).frame(height: 2.5)
+            Rectangle().fill(.black.opacity(0.45)).frame(height: 1.5)
         }
     }
 }
@@ -266,6 +324,11 @@ private struct PulledBook: View {
                         .frame(maxWidth: .infinity, minHeight: 48)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(model.settings.accent.solid)
+                Button { dismiss(); model.bookSearchDoc = doc.id } label: {
+                    Label("Ara", systemImage: "text.magnifyingglass").frame(maxWidth: .infinity, minHeight: 48)
+                }
+                .buttonStyle(.bordered)
                 if !doc.highlights.isEmpty {
                     Button { dismiss(); model.marksSheetDoc = doc.id } label: {
                         Label("\(doc.highlights.count) işaret", systemImage: "highlighter").frame(maxWidth: .infinity, minHeight: 48)
