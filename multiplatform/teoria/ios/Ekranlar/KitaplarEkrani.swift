@@ -41,6 +41,7 @@ struct KitaplarEkrani: View {
     @State private var istatistik = false
     @State private var vitrinOrta: String?
     @State private var showNotes = false
+    @State private var aramaAcik = false        // LibrarySearchSheet: a title or a sentence in any book (Search.swift)
 
     var secili: KitapSekmesi { sekme ?? ilkSekme }
     var suren: [OkumaKitabi] { depo.akis.kitaplar.filter(\.suruyor).sorted { $0.sonZaman > $1.sonZaman } }
@@ -61,6 +62,7 @@ struct KitaplarEkrani: View {
             Group {
                 if secili.tamEkran {
                     VStack(spacing: 0) {
+                        LibrarySearchButton { aramaAcik = true }.padding(.horizontal, 18).padding(.top, 10)
                         secici.padding(.horizontal, 18).padding(.vertical, 10)
                         switch secili {
                         #if os(macOS)
@@ -75,6 +77,8 @@ struct KitaplarEkrani: View {
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 18) {
+                            // Arşiv has its own field, which searches titles and sentences together
+                            if secili != .arsiv { LibrarySearchButton { aramaAcik = true } }
                             secici
                             switch secili {
                             case .suren: voiceReaderShelf; vitrin(suren); ozet; izgara(suren, bos: "Süren kitap yok. Voice Dream'de dinlemeye başladığın kitap burada durur.")
@@ -120,6 +124,11 @@ struct KitaplarEkrani: View {
         }
         .onAppear { openLinkedBook() }
         .onChange(of: openBook.wrappedValue) { _, _ in openLinkedBook() }
+        .sheet(isPresented: $aramaAcik) {
+            LibrarySearchSheet { id in path = [id] }
+                .environmentObject(depo)
+                .preferredColorScheme(depo.tema.sema)
+        }
     }
 
     private func openLinkedBook() {
@@ -428,6 +437,8 @@ struct ArsivRafi: View {
     @ObservedObject private var library = LibraryStore.shared
     @State private var arama = ""
     @State private var dis = false
+    @StateObject private var cumle = LibrarySearch()     // the same field also finds sentences inside the books
+    @State private var place: BookPlace?
 
     var body: some View {
         let q = Dil.normal(arama)
@@ -446,7 +457,11 @@ struct ArsivRafi: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Tema.ikincil)
-                TextField("Kitap ara", text: $arama).textFieldStyle(.plain).autocorrectionDisabled()
+                TextField("Kitap ya da cümle ara", text: $arama).textFieldStyle(.plain).autocorrectionDisabled()
+                if !arama.isEmpty {
+                    Button { arama = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.plain).foregroundStyle(Tema.soluk).accessibilityLabel("Temizle")
+                }
                 Toggle("Dış kitaplar", isOn: $dis).toggleStyle(.switch).font(.caption).fixedSize()
             }
             .font(.system(size: 15))
@@ -468,7 +483,13 @@ struct ArsivRafi: View {
                     }
                 }
             }
+            if arama.trimmingCharacters(in: .whitespacesAndNewlines).count >= LibrarySearch.minimum {
+                SentenceResults(search: cumle) { h in place = BookPlace(book: h.book, ch: h.ch, b: h.b, find: cumle.query) }
+            }
         }
+        .onChange(of: arama) { _, q in cumle.search(q) }
+        .onDisappear { cumle.cancel() }
+        .bookPlaceOpener($place)
     }
 }
 

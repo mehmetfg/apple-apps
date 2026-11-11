@@ -161,6 +161,11 @@ struct TeoriaApp: App {
         case "ikinci":
             sekme = .bugun
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NotificationCenter.default.post(name: .init("teoria.ikinci"), object: nil) }
+        case "aksam":       // Wise Path's evening reminder (Akşam tekrarı, Evening.swift)
+            present {
+                sekme = .bugun
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NotificationCenter.default.post(name: .init("teoria.aksam"), object: nil) }
+            }
         case "kitaplar": sekme = .kitaplar
         case "mufredat": sekme = .mufredat
         case let x where x.hasPrefix("ses:"):

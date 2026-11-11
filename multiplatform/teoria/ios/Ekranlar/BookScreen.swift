@@ -25,7 +25,8 @@ struct ReaderRequest: Identifiable, Hashable {
     let mode: ReaderMode
     var ch: Int? = nil
     var b: Int? = nil
-    var id: String { "\(mode.rawValue).\(ch ?? -1).\(b ?? -1)" }
+    var find: String? = nil         // "Bu kitapta ara": the phrase, marked in the reader
+    var id: String { "\(mode.rawValue).\(ch ?? -1).\(b ?? -1).\(find ?? "")" }
 }
 
 struct BookScreen: View {
@@ -68,6 +69,7 @@ struct BookScreen: View {
                 BookRatingBar(book: entry.id)
                 partsStrip
                 doors
+                BookTextSearch(book: book, tint: tint) { h, q in reader = ReaderRequest(mode: .full, ch: h.ch, b: h.b, find: q) }
                 #if os(iOS)
                 outsideLinks
                 #endif
@@ -105,7 +107,7 @@ struct BookScreen: View {
     @ViewBuilder
     private func readerView(_ r: ReaderRequest) -> some View {
         if let book {
-            ReaderView(book: book, mode: r.mode, jump: r.ch.map { ($0, r.b ?? 0) }).environmentObject(depo)
+            ReaderView(book: book, mode: r.mode, jump: r.ch.map { ($0, r.b ?? 0) }, find: r.find).environmentObject(depo)
         }
     }
 

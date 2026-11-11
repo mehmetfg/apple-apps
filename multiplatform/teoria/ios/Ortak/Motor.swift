@@ -72,6 +72,8 @@ struct Durum {
     var morningAnswers: [String: [Date]] = [:]    // day → when each active-recall card was answered (oldest first)
     var afternoonItems: [String: Set<String>] = [:] // day → afternoon items looked at
     var afternoonDone: [String: Olay] = [:]          // day → the afternoon block's closing event
+    var eveningBranches: [String: Set<String>] = [:] // day → the branches of its evening session studied
+    var eveningDone: [String: Olay] = [:]            // day → the evening session's closing event
     var zamanKutusu: [String: TimeBoxState] = [:] // session day → review time box (start, extension; finish = morningDone)
 
     /// Bir işarete kaç sesli not kaydettin ("2" ya da nil) — akıştaki mikrofonun yanında.
@@ -165,6 +167,10 @@ struct Durum {
                 if let h = o.hedef, let day = o.metin { d.afternoonItems[day, default: []].insert(h) }
             case .afternoonDone:
                 if let h = o.hedef { d.afternoonDone[h] = o }
+            case .eveningBranch:
+                if let h = o.hedef, let r = o.rol { d.eveningBranches[h, default: []].insert(r) }
+            case .eveningDone:
+                if let h = o.hedef { d.eveningDone[h] = o }
             case .zamanBasla:
                 if let h = o.hedef {
                     var s = d.zamanKutusu[h] ?? TimeBoxState()

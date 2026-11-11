@@ -170,6 +170,9 @@ struct TeoriaWidgetPaketi: WidgetBundle {
 
 /// Adds the tall size of iOS 27 (the largest one on an iPhone) where the system has it. The large layout fills it.
 func tallFamilies(_ base: [WidgetFamily]) -> [WidgetFamily] {
-    if #available(iOS 27.0, *) { return base + [.systemExtraLargePortrait] }
-    return base
+    base + (tallFamily.map { [$0] } ?? [])
 }
+
+/// iOS 27's tall size, looked up by its name: the iOS 26 SDK has no symbol for it, so naming it would not build there.
+let tallFamily: WidgetFamily? =
+    (0..<64).lazy.compactMap { WidgetFamily(rawValue: $0) }.first { $0.description == "systemExtraLargePortrait" }

@@ -271,6 +271,9 @@ struct MacKok: View {
         switch r {
         case "kur", "hatirla": kurDakika = depo.kurDakika; bolum = .kur
         case "ikinci": bolum = .ikinci
+        case "aksam":       // Akşam tekrarı (Evening.swift) opens over Bugün
+            bolum = .bugun
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NotificationCenter.default.post(name: .init("teoria.aksam"), object: nil) }
         case "ses": sesHedef = .some(nil)
         case "defter": defterAc()
         case "akis": bolum = .akis

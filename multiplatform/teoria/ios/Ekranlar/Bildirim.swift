@@ -36,10 +36,6 @@ enum Bildirim {
         get { UserDefaults.standard.object(forKey: "teoria.bildirim.ses") as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: "teoria.bildirim.ses") }
     }
-    static var aksam: Bool {
-        get { UserDefaults.standard.object(forKey: "teoria.bildirim.aksam") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "teoria.bildirim.aksam") }
-    }
 
     static func kategorileriKaydet() {
         let hatirladim = UNNotificationAction(identifier: "hatirladim", title: "Hatırladım", options: [], icon: .init(systemImageName: "checkmark"))
@@ -161,16 +157,8 @@ enum Bildirim {
                 sayac += 1
             }
         }
-        // Akşam: yalnız bugün, yalnız kür yapılmadıysa. Dil davet eder, hesap sormaz.
-        if aksam, depo.durum.bugunKur == 0, let an = t.date(bySettingHour: min(son, 23) - 1, minute: 30, second: 0, of: simdi), an > simdi {
-            let c = UNMutableNotificationContent()
-            c.title = "\(depo.kurDakika) dakikalık kür hazır"
-            c.body = "Bir ısınma, birkaç kart, başarıyla biten bir son. İstersen."
-            duzey(c)
-            c.userInfo = ["ac": "kur"]
-            let tetik = UNCalendarNotificationTrigger(dateMatching: t.dateComponents([.year, .month, .day, .hour, .minute], from: an), repeats: false)
-            try? await m.add(UNNotificationRequest(identifier: "\(onek)aksam", content: c, trigger: tetik))
-        }
+        // Akşam (2026-11-07): the old evening Kür invitation is gone. The evening reminder now comes from Wise Path and
+        // only on a day with listening: "Akşam tekrarı · bugün N dk dinledin", opening teoria://aksam (Evening.swift).
         // İkinci dikkat: one notification at 14:00 today, unless the afternoon block is already closed.
         if depo.durum.afternoonDone[Tarih.gun(simdi)] == nil,
            let an = t.date(bySettingHour: 14, minute: 0, second: 0, of: simdi), an > simdi.addingTimeInterval(60) {

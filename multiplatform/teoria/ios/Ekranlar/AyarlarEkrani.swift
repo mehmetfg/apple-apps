@@ -1,6 +1,9 @@
 // Ayarlar: zorluk, kür süresi, tema, haptik, bildirimler, vault, merdiveni elle çevirme, cihaz adı.
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(PDMBus)
+import PDMBus
+#endif
 
 struct AyarlarEkrani: View {
     @EnvironmentObject var depo: Depo
@@ -10,7 +13,10 @@ struct AyarlarEkrani: View {
     @State private var bildirimSayi = Bildirim.gunluk
     @State private var bas = Bildirim.basSaat
     @State private var son = Bildirim.sonSaat
-    @State private var aksam = Bildirim.aksam
+    #if canImport(PDMBus)
+    @State private var evening = PDMEvening.enabled
+    @State private var eveningTime = Calendar.current.date(bySettingHour: PDMEvening.hour, minute: PDMEvening.minute, second: 0, of: Date()) ?? Date()
+    #endif
     @State private var sesli = Bildirim.sesli
     @State private var izin: Bildirim.Izin = .verildi
     @State private var planli = UserDefaults.standard.integer(forKey: "teoria.bildirim.planli")
@@ -73,7 +79,6 @@ struct AyarlarEkrani: View {
                         Stepper("Günde \(bildirimSayi) bildirim", value: $bildirimSayi, in: 1...8)
                         Stepper("Başlangıç \(bas):00", value: $bas, in: 6...(son - 1))
                         Stepper("Bitiş \(son):00", value: $son, in: (bas + 1)...23)
-                        Toggle("Akşam, kür yapılmadıysa bir davet", isOn: $aksam)
                         LabeledContent("Planlı", value: izin == .verildi ? "\(planli) bildirim · 3 gün" : "izin yok")
                         Button {
                             Dokunus.secim()
@@ -91,9 +96,25 @@ struct AyarlarEkrani: View {
                 }
                 .onChange(of: [bildirimSayi, bas, son]) { _, _ in bildirimKaydet() }
                 .onChange(of: bildirimAcik) { _, _ in bildirimKaydet() }
-                .onChange(of: aksam) { _, _ in bildirimKaydet() }
                 .onChange(of: sesli) { _, _ in bildirimKaydet() }
                 .task { await izinTazele() }
+
+                #if canImport(PDMBus)
+                Section {
+                    Toggle(isOn: $evening) { Label("Akşam tekrarı", systemImage: "moon.stars") }
+                    if evening {
+                        DatePicker("Hatırlatma saati", selection: $eveningTime, displayedComponents: .hourAndMinute)
+                    }
+                } header: { Text("Akşam tekrarı") } footer: {
+                    Text("Wise Path'te gün içinde en az 3 dakika dinlediğinde bu saatte bir bildirim gelir: dal dal kaç dakika dinlediğin, önce kısa gösterim, sonra test. Akşamı burada kapattığında o gün bir daha hatırlatmaz. Saat değişikliği Wise Path bir sonraki açılışında planlanır.")
+                }
+                .onChange(of: evening) { _, v in PDMEvening.enabled = v }
+                .onChange(of: eveningTime) { _, t in
+                    let c = Calendar.current.dateComponents([.hour, .minute], from: t)
+                    PDMEvening.hour = c.hour ?? 22
+                    PDMEvening.minute = c.minute ?? 30
+                }
+                #endif
 
                 Section {
                     LabeledContent("Vault", value: kasa.bagli ? kasa.klasorAdi : "bağlı değil")
@@ -148,7 +169,7 @@ struct AyarlarEkrani: View {
 
     private func bildirimKaydet() {
         Bildirim.acik = bildirimAcik; Bildirim.gunluk = bildirimSayi
-        Bildirim.basSaat = bas; Bildirim.sonSaat = son; Bildirim.aksam = aksam; Bildirim.sesli = sesli
+        Bildirim.basSaat = bas; Bildirim.sonSaat = son; Bildirim.sesli = sesli
         Task {
             if bildirimAcik { _ = await Bildirim.izinIste() }
             await Bildirim.planla(depo)

@@ -259,7 +259,53 @@ final class LibraryStore: ObservableObject {
             syncAgain = false
             await syncOnce(kasa)
         } while syncAgain
+        #if os(iOS)
+        Task { await pullSearch(kasa) }
+        #endif
     }
+
+    #if os(iOS)
+    private var pullingSearch = false
+    /// Sentence search (Search.swift): each book's text as compressed lines (veri/search_corpus.py), ~20 MB in all.
+    /// Copied apart from the main sync so the shelf and the plans never wait for it; a file is copied only when its
+    /// size or date changed. The Mac reads the vault's files directly.
+    private func pullSearch(_ kasa: Kasa) async {
+        guard !pullingSearch else { return }
+        pullingSearch = true
+        defer { pullingSearch = false }
+        let target = local.appendingPathComponent("search", isDirectory: true)
+        _ = await kasa.ile { kok -> Int in
+            let fm = FileManager.default
+            let src = kok.appendingPathComponent("library/search", isDirectory: true)
+            try? fm.createDirectory(at: target, withIntermediateDirectories: true)
+            var keep = Set<String>(), copied = 0
+            for f in (try? fm.contentsOfDirectory(atPath: src.path)) ?? [] {
+                if f.hasPrefix("."), f.hasSuffix(".icloud") {
+                    let name = String(f.dropFirst().dropLast(7))
+                    keep.insert(name)
+                    try? fm.startDownloadingUbiquitousItem(at: src.appendingPathComponent(name))
+                    continue
+                }
+                guard f.hasSuffix(".z") else { continue }
+                keep.insert(f)
+                let s = src.appendingPathComponent(f), d = target.appendingPathComponent(f)
+                guard let ss = FileStamp.of(s) else { continue }
+                if let ds = FileStamp.of(d), ds.size == ss.size, ds.modified >= ss.modified { continue }
+                guard let v = Kasa.koordineliOku(s), !v.isEmpty else { continue }
+                try? v.write(to: d, options: .atomic)
+                try? fm.setAttributes([.modificationDate: ss.modified], ofItemAtPath: d.path)
+                copied += 1
+            }
+            // a book gone from the vault leaves the search too (never on an empty listing)
+            if !keep.isEmpty {
+                for f in (try? fm.contentsOfDirectory(atPath: target.path)) ?? [] where f.hasSuffix(".z") && !keep.contains(f) {
+                    try? fm.removeItem(at: target.appendingPathComponent(f))
+                }
+            }
+            return copied
+        }
+    }
+    #endif
 
     private struct Pulled: Sendable {
         var changed = Set<String>()             // groups whose local copy was rewritten: index · network · sabah · marks · feedback
@@ -296,6 +342,8 @@ final class LibraryStore: ObservableObject {
             _ = try pull(lib.appendingPathComponent("sabah.json"), target.appendingPathComponent("sabah.json"), "sabah", wait: true)
             // İkinci dikkat (veri/ikinci.py)
             _ = try pull(lib.appendingPathComponent("ikinci.json"), target.appendingPathComponent("ikinci.json"), "ikinci", wait: true)
+            // Akşam tekrarı: chapter bounds, chapters and cards of the books likely heard today (veri/evening.py)
+            _ = try pull(lib.appendingPathComponent("evening.json"), target.appendingPathComponent("evening.json"), "evening", wait: true)
             _ = try pull(lib.appendingPathComponent("network.json"), target.appendingPathComponent("network.json"), "network", wait: true)
             // marks: mine up, the other devices' down
             let mk = lib.appendingPathComponent("marks", isDirectory: true)
@@ -334,6 +382,7 @@ final class LibraryStore: ObservableObject {
         stamps.merge(pulled.stamps) { _, new in new }
         // Only what changed is read again, and it is decoded off the main actor.
         if pulled.changed.contains("sabah") { await MorningStore.shared.reload() }
+        if pulled.changed.contains("evening") { await EveningStore.shared.reload() }
         if pulled.changed.contains("feedback") { FeedbackStore.shared.load() }
         if pulled.changed.contains("marks") { loadMarks() }
         let dir = local

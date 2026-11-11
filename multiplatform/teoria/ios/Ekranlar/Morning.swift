@@ -1257,7 +1257,8 @@ struct BookPlace: Identifiable {
     let book: String
     let ch: Int
     var b = 0
-    var id: String { "\(book).\(ch).\(b)" }
+    var find: String? = nil         // a phrase from the search: the reader opens on it, marked, with ↑ ↓ through the book
+    var id: String { "\(book).\(ch).\(b).\(find ?? "")" }
 }
 
 struct BookPlaceOpener: ViewModifier {
@@ -1273,7 +1274,7 @@ struct BookPlaceOpener: ViewModifier {
                 let raw = await lib.book(p.book, kasa: depo.kasa)
                 place = nil
                 guard let raw else { depo.bildirim = "Bu kitap kütüphanede yok"; return }
-                konum = KitapKonumu(book: lib.withMarks(raw), yer: (p.ch, p.b))
+                konum = KitapKonumu(book: lib.withMarks(raw), yer: (p.ch, p.b), find: p.find)
             }
             #if os(iOS)
             .fullScreenCover(item: $konum) { reader($0) }
@@ -1283,7 +1284,7 @@ struct BookPlaceOpener: ViewModifier {
     }
 
     private func reader(_ k: KitapKonumu) -> some View {
-        ReaderView(book: k.book, mode: .full, jump: k.yer.map { ($0.ch, $0.b) }).environmentObject(depo)
+        ReaderView(book: k.book, mode: .full, jump: k.yer.map { ($0.ch, $0.b) }, find: k.find).environmentObject(depo)
     }
 }
 

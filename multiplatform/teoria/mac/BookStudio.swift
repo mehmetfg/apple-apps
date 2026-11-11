@@ -587,27 +587,8 @@ struct BookStudio: View {
 
     private func runSearch(_ q: String) {
         guard let book else { return }
-        let needle = q.trimmingCharacters(in: .whitespaces)
-        guard needle.count >= 2 else { hits = []; hitIndex = nil; return }
-        var out: [SearchHit] = []
-        outer: for (ci, ch) in book.chapters.enumerated() {
-            for (bi, blk) in ch.blocks.enumerated() {
-                let ns = blk.x as NSString
-                var from = 0
-                while from < ns.length {
-                    let r = ns.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive], range: NSRange(location: from, length: ns.length - from), locale: Dil.tr)
-                    if r.location == NSNotFound { break }
-                    let a = max(0, r.location - 60), z = min(ns.length, NSMaxRange(r) + 80)
-                    out.append(SearchHit(ch: ci, b: bi, range: r,
-                                         before: (a > 0 ? "…" : "") + ns.substring(with: NSRange(location: a, length: r.location - a)),
-                                         match: ns.substring(with: r),
-                                         after: ns.substring(with: NSRange(location: NSMaxRange(r), length: z - NSMaxRange(r))) + (z < ns.length ? "…" : "")))
-                    if out.count >= 800 { break outer }
-                    from = NSMaxRange(r)
-                }
-            }
-        }
-        hits = out
+        // the library search's matcher (ios/Ekranlar/Search.swift): case, accents and ı/i ignored
+        hits = TextSearch.hits(in: book, q, limit: 800).hits.map(\.searchHit)
         hitIndex = nil
     }
 

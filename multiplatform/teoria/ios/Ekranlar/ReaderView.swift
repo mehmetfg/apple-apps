@@ -50,6 +50,7 @@ struct ReaderView: View {
     let book: Book
     @State var mode: ReaderMode
     var jump: (ch: Int, b: Int)? = nil
+    var find: String? = nil             // opened from a search: the phrase is marked at `jump` and ↑ ↓ step through the book
 
     @AppStorage("teoria.reader.size") private var size: Double = 19
     @AppStorage("teoria.reader.theme") private var themeRaw = ReaderTheme.paper.rawValue
@@ -179,7 +180,19 @@ struct ReaderView: View {
         layout = new
         refreshVisible(keepPage: nil)
         var target = new.page(forOffset: keepOffset)
-        if let j = jump, layout?.size == size, !jumped { target = new.page(chapter: j.ch, block: j.b); jumped = true }
+        if let j = jump, layout?.size == size, !jumped {
+            target = new.page(chapter: j.ch, block: j.b)
+            jumped = true
+            if let f = find, !f.isEmpty {
+                query = f
+                runSearch(f)
+                // the place that was chosen, else the next one after it
+                if let i = hits.firstIndex(where: { $0.ch == j.ch && $0.b == j.b }) ?? hits.firstIndex(where: { ($0.ch, $0.b) > (j.ch, j.b) }) {
+                    hitIndex = i
+                    if hits[i].ch == j.ch, hits[i].b == j.b { target = new.page(chapter: j.ch, block: j.b, offset: hits[i].range.location) }
+                }
+            }
+        }
         current = visible.firstIndex(where: { $0 >= target }) ?? max(0, visible.count - 1)
     }
     @State private var jumped = false
@@ -442,27 +455,8 @@ struct ReaderView: View {
     // MARK: search
 
     private func runSearch(_ q: String) {
-        let needle = q.trimmingCharacters(in: .whitespaces)
-        guard needle.count >= 2 else { hits = []; return }
-        var out: [SearchHit] = []
-        outer: for (ci, ch) in book.chapters.enumerated() {
-            for (bi, blk) in ch.blocks.enumerated() {
-                let ns = blk.x as NSString
-                var from = 0
-                while from < ns.length {
-                    let r = ns.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive], range: NSRange(location: from, length: ns.length - from), locale: Dil.tr)
-                    if r.location == NSNotFound { break }
-                    let a = max(0, r.location - 50), z = min(ns.length, NSMaxRange(r) + 70)
-                    out.append(SearchHit(ch: ci, b: bi, range: r,
-                                         before: (a > 0 ? "…" : "") + ns.substring(with: NSRange(location: a, length: r.location - a)),
-                                         match: ns.substring(with: r),
-                                         after: ns.substring(with: NSRange(location: NSMaxRange(r), length: z - NSMaxRange(r))) + (z < ns.length ? "…" : "")))
-                    if out.count >= 500 { break outer }
-                    from = NSMaxRange(r)
-                }
-            }
-        }
-        hits = out
+        // the library search's matcher (Search.swift): case, accents and ı/i ignored, the same places the search showed
+        hits = TextSearch.hits(in: book, q, limit: 500).hits.map(\.searchHit)
         hitIndex = nil
     }
 

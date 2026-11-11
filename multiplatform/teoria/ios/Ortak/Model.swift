@@ -233,6 +233,10 @@ enum OlayTuru: String, Codable {
     // İkinci dikkat (2026-11-05): hedef = item id, metin = day · afternoonDone: hedef = day, metin = "seen/total"
     case afternoonItem
     case afternoonDone
+    // Akşam tekrarı (2026-11-07): the day's listening before bed, branch by branch. hedef = day, rol = branch,
+    // metin = the heard chapters ("book#ch,…"); eveningDone: hedef = day, metin = the branches studied ("Felsefe,Bilimler")
+    case eveningBranch
+    case eveningDone
 }
 
 struct Olay: Codable, Identifiable, Hashable {

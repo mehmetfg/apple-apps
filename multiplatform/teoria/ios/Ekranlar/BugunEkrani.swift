@@ -23,8 +23,10 @@ struct BugunEkrani: View {
             if genis {
                 VStack(alignment: .leading, spacing: 22) {
                     baslik
+                    if aksamUstte { eveningCard }
                     morningCard
                     afternoonCard
+                    if !aksamUstte { eveningCard }
                     HStack(alignment: .top, spacing: 22) {
                         VStack(spacing: 18) {
                             kurKarti
@@ -48,7 +50,9 @@ struct BugunEkrani: View {
                     #if os(iOS)
                     ElsewhereRow()
                     #endif
+                    if aksamUstte { eveningCard }
                     morningCard
+                    if !aksamUstte { eveningCard }
                     kurKarti
                     aforizmaKarti
                     if let (i, ad) = gecmis { gecmisKarti(i, ad) }
@@ -70,10 +74,30 @@ struct BugunEkrani: View {
             AfternoonView(close: { afternoonOpen = false }).environmentObject(depo)
         }
         .onReceive(NotificationCenter.default.publisher(for: .init("teoria.ikinci"))) { _ in afternoonOpen = true }
+        .fullScreenCover(isPresented: $eveningOpen) {
+            EveningView(close: { eveningOpen = false }).environmentObject(depo)
+        }
+        #else
+        .sheet(isPresented: $eveningOpen) {
+            EveningView(wide: true, close: { eveningOpen = false }).environmentObject(depo)
+                .frame(minWidth: 860, minHeight: 680)
+        }
         #endif
+        .onReceive(NotificationCenter.default.publisher(for: .init("teoria.aksam"))) { _ in eveningOpen = true }
+        .task { await EveningStore.shared.refresh() }
+        .onChange(of: scenePhase) { _, p in if p == .active { Task { await EveningStore.shared.refresh() } } }
     }
 
     @State private var afternoonOpen = false
+    @State private var eveningOpen = false
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// Akşam tekrarı: the day's listening, studied before bed. From 17:00 it stands first on the page.
+    private var aksamUstte: Bool { Calendar.current.component(.hour, from: Date()) >= 17 }
+
+    private var eveningCard: some View {
+        EveningEntryCard { eveningOpen = true }
+    }
 
     /// İkinci dikkat: same as Sabah — Mac tab, iPhone room.
     private var afternoonCard: some View {

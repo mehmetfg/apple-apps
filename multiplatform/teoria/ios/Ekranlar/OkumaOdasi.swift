@@ -43,7 +43,8 @@ extension LibraryStore {
 struct KitapKonumu: Identifiable {
     let book: Book
     let yer: (ch: Int, b: Int)?
-    var id: String { "\(book.id).\(yer?.ch ?? -1).\(yer?.b ?? -1)" }
+    var find: String? = nil         // a searched phrase to mark and step through (Search.swift)
+    var id: String { "\(book.id).\(yer?.ch ?? -1).\(yer?.b ?? -1).\(find ?? "")" }
     var bolum: String? { yer.flatMap { book.chapters[safe: $0.ch]?.title } }
 
     @MainActor
