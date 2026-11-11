@@ -75,6 +75,41 @@ final class PDMBusTests: XCTestCase {
         XCTAssertNil(PDMBus.live(of: app))
     }
 
+    func testListeningAndEvening() throws {
+        let app = "listen-\(UUID().uuidString.prefix(6))"
+        let b = PDMBus(app: app, vaultRoot: { nil })
+        XCTAssertNil(PDMBus.listening(of: app))
+        let created = Date(timeIntervalSince1970: 2_000_000)
+        let l = PDMListening(app: "other", updated: created,
+                             days: ["2026-11-07": ["D1": .init(seconds: 1200, words: 5000, ranges: [[100, 9000]])]],
+                             docs: ["D1": .init(title: "Felsefe 06 — Adalet", folder: nil, length: 60000, teoria: "by-k1-c06",
+                                                marks: [.init(at: 400, length: 30, text: "Adalet nedir?", created: created)])])
+        b.publishListening(l)
+        let r = try XCTUnwrap(PDMBus.listening(of: app))
+        XCTAssertEqual(r.app, app)                       // an app writes only its own file
+        XCTAssertEqual(r.days["2026-11-07"]?["D1"]?.ranges, [[100, 9000]])
+        XCTAssertEqual(r.docs["D1"]?.marks.first?.created, created)
+        XCTAssertEqual(r.docs["D1"]?.branch, "Felsefe")
+        // The same content is not written again (the time stays the first one).
+        var same = l; same.updated = created.addingTimeInterval(60)
+        b.publishListening(same)
+        XCTAssertEqual(PDMBus.listening(of: app)?.updated, created)
+        XCTAssertTrue(PDMBus.allListening().contains { $0.app == app })
+
+        // Sabah's branch rule: the folder first, then the first word of the title.
+        XCTAssertEqual(PDMListening.branch(folder: "Mühendislik", title: "Brooks"), "Mühendislik")
+        XCTAssertEqual(PDMListening.branch(folder: nil, title: "Bilimler 05 — Yöntem"), "Bilimler")
+        XCTAssertEqual(PDMListening.branch(folder: "FELSEFE", title: "x"), "Felsefe")
+        XCTAssertEqual(PDMListening.branch(folder: nil, title: "Başucu"), "Diğer")
+
+        PDMEvening.hour = 23; PDMEvening.minute = 5
+        XCTAssertEqual(PDMEvening.hour, 23); XCTAssertEqual(PDMEvening.minute, 5)
+        PDMEvening.closedDay = "2026-11-07"
+        XCTAssertTrue(PDMEvening.isClosed("2026-11-07"))
+        XCTAssertFalse(PDMEvening.isClosed("2026-11-08"))
+        PDMEvening.closedDay = nil
+    }
+
     func testRelayCarriesOtherOutboxes() throws {
         let vault = FileManager.default.temporaryDirectory.appendingPathComponent("pdm-relay-\(UUID().uuidString)")
         let bus = vault.appendingPathComponent("_bus")

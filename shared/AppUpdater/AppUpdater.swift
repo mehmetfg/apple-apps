@@ -178,7 +178,6 @@ enum AppUpdater {
     /// replaced at once; a running one is left alone, reported, and replaced on the next check after it quits.
     /// Apps missing from this Mac are installed too, so a fresh Mac needs only this app.
     static func startHub() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         queue.asyncAfter(deadline: .now() + 8) { hubCheck() }
         DispatchQueue.main.async {
             hubTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in queue.async { hubCheck() } }
@@ -199,7 +198,6 @@ enum AppUpdater {
             if running.contains(bundleID) {
                 if hubWaiting[bundleID] != entry.build {
                     hubWaiting[bundleID] = entry.build
-                    notify("\(entry.name) yeni sürümde hazır", "Uygulamayı kapatınca kendiliğinden kurulacak.")
                 }
                 continue
             }
@@ -208,7 +206,6 @@ enum AppUpdater {
             guard replaceClosed(dest, with: newApp) else { continue }
             hubWaiting[bundleID] = nil
             writeRecord(bundleID: bundleID, app: entry.name, build: entry.build, path: dest.path)
-            notify("\(entry.name) güncellendi", "Sürüm \(entry.build) kuruldu.")
         }
     }
 
