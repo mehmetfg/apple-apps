@@ -24,6 +24,8 @@ final class TelefonDeposu: ObservableObject {
     @Published private(set) var feed = FeedIssue.empty
     /// Merkez (2026-11-07): links.py's links.json (Yön, Konular), read-only; the Mac also pushes it over USB/Wi-Fi.
     @Published private(set) var links = Links.empty
+    /// Uygulamalar (2026-11-08): apps.py's Uygulamalar/apps.json, read-only; the Mac also pushes it over USB/Wi-Fi.
+    @Published private(set) var apps = AppsFile.empty
 
     private let kok = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Kivilcim")
     private var kayit: URL { KayitMerkezi.kayitKlasoru }
@@ -36,6 +38,7 @@ final class TelefonDeposu: ObservableObject {
     private var feedKopyasi: URL { kok.appendingPathComponent("feed.json") }
     private var feedOlay: URL { kok.appendingPathComponent("feed-events-iphone.jsonl") }
     private var linksKopyasi: URL { kok.appendingPathComponent("links.json") }
+    private var appsKopyasi: URL { kok.appendingPathComponent("apps.json") }
     private var onbellek: URL {
         let u = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("ses")
         try? FileManager.default.createDirectory(at: u, withIntermediateDirectories: true); return u
@@ -66,6 +69,13 @@ final class TelefonDeposu: ObservableObject {
         loadTatbik()
         loadFeed()
         loadLinks()
+        loadApps()
+    }
+
+    func loadApps() {
+        guard let v = try? Data(contentsOf: appsKopyasi), let a = try? JSONDecoder().decode(AppsFile.self, from: v),
+              a.generated != apps.generated || apps.apps.isEmpty else { return }
+        apps = a
     }
 
     // MARK: Bağlar (Yön, Konular)
@@ -222,7 +232,10 @@ final class TelefonDeposu: ObservableObject {
                         baslik: "Sesli fikir · \(Zaman.saat(Zaman.coz(k.zaman) ?? Date()))",
                         durum: g[k.id] == nil ? "yerel" : "bekliyor")
             o.kind = k.kind ?? "spark"
-            if o.isJournal { o.baslik = "Sesli günlük · \(Zaman.saat(Zaman.coz(k.zaman) ?? Date()))" }
+            if let a = k.app, !a.isEmpty { o.app = a; o.app_source = "elle" }
+            if o.isJournal {
+                o.baslik = "\(k.mode == "continuous" ? "Sürekli dinleme" : "Sesli günlük") · \(Zaman.saat(Zaman.coz(k.zaman) ?? Date()))"
+            }
             if let m = k.onMetin, !m.isEmpty, !o.isJournal {
                 o.baslik = Kural.baslik(m, siniflar); o.alan = Kural.alan(m, siniflar); o.amac = Kural.amac(m, siniflar)
             }
@@ -297,6 +310,7 @@ final class TelefonDeposu: ObservableObject {
         let tatbikK = tatbikKopyasi, tatbikO = tatbikOlay
         let feedK = feedKopyasi, feedO = feedOlay
         let linksK = linksKopyasi
+        let appsK = appsKopyasi
         let g = gonderilen
         // the local copy's "uretim" comes from the last rebuild: no need to decode the copy again just to compare
         let simdikiUretim = cache.dizinDamgasi == nil ? "" : (cache.dizinUretim ?? "")
@@ -357,19 +371,30 @@ final class TelefonDeposu: ObservableObject {
                 let eski = (try? Data(contentsOf: linksK)).flatMap { try? JSONDecoder().decode(Links.self, from: $0) }
                 if yeni.built >= (eski?.built ?? "") { try? v.write(to: linksK, options: .atomic) }
             }
+            let ap = veri.appendingPathComponent("Uygulamalar/apps.json")
+            // same rule as links.json: the newer of iCloud's copy and the one the Mac pushed straight
+            if Kasa.indir(ap, bekle: 2), let v = Kasa.koordineliOku(ap), let yeni = try? JSONDecoder().decode(AppsFile.self, from: v) {
+                let eski = (try? Data(contentsOf: appsK)).flatMap { try? JSONDecoder().decode(AppsFile.self, from: $0) }
+                if yeni.generated >= (eski?.generated ?? "") { try? v.write(to: appsK, options: .atomic) }
+            }
+            let nm = veri.appendingPathComponent(NewModelStore.vaultPath)
+            if Kasa.indir(nm, bekle: 2), let v = Kasa.koordineliOku(nm) { NewModelStore.takeFromVault(v) }
             let s = veri.appendingPathComponent("siniflar.json")
             if Kasa.indir(s, bekle: 2), let v = Kasa.koordineliOku(s) { try? v.write(to: sinifK, options: .atomic) }
             // yazdık; iCloud gerçekten yükledi mi? (son 14 günün kayıtları)
             let sinir = Zaman.iso(Date().addingTimeInterval(-14 * 86400)).prefix(10).replacingOccurrences(of: "-", with: "")
             var bekleyen = 0
             var hata: String?
+            var yuklenen: Set<String> = []
             for id in yeni.keys where id.prefix(8) >= sinir {
                 let u = veri.appendingPathComponent("ses/\(id.prefix(4))-\(id.dropFirst(4).prefix(2))/\(id).m4a")
                 guard let d = try? u.resourceValues(forKeys: [.ubiquitousItemIsUploadedKey, .ubiquitousItemUploadingErrorKey]) else { continue }
                 if d.ubiquitousItemIsUploaded == false { bekleyen += 1 }
+                if d.ubiquitousItemIsUploaded == true { yuklenen.insert(id) }
                 if hata == nil, let e = d.ubiquitousItemUploadingError { hata = e.localizedDescription }
             }
-            return SyncResult(gonderilen: yeni, bekleyen: bekleyen, hata: hata, dizin: cekilen, dizinDamgasi: cekilenDamga)
+            return SyncResult(gonderilen: yeni, bekleyen: bekleyen, hata: hata, dizin: cekilen, dizinDamgasi: cekilenDamga,
+                              uploaded: yuklenen)
         }
         if let sonuc {
             gonderilen = sonuc.gonderilen
@@ -382,11 +407,34 @@ final class TelefonDeposu: ObservableObject {
             loadTatbik()
             loadFeed()
             loadLinks()
+            loadApps()
+            NewModelStore.shared.load()
             if let d = sonuc.dizin, let damga = sonuc.dizinDamgasi {
                 cache.dizinDamgasi = damga; cache.dizinOgeler = d.ogeler; cache.dizinUretim = d.uretim
             }
+            pruneProcessed(uploaded: sonuc.uploaded)
         }
         kur()
+    }
+
+    /// Frees the phone (2026-11-08): a recording leaves the phone only when all three hold — iCloud says the vault
+    /// copy is uploaded, and the Mac's index lists it as processed ("hazir"). The part being recorded is never
+    /// among them: it is sent only once it is closed. It still plays from the vault afterwards (sesURL downloads
+    /// it). Settings › "Mac işleyince telefondan sil".
+    private func pruneProcessed(uploaded: Set<String>) {
+        guard UserDefaults.standard.bool(forKey: "pruneAfterMac"), !uploaded.isEmpty else { return }
+        let hazir = Set(cache.dizinOgeler.filter { $0.durum == "hazir" }.map(\.id))
+        let fm = FileManager.default
+        var freed = 0, count = 0
+        for id in uploaded.intersection(hazir) {
+            let m4a = kayit.appendingPathComponent(id + ".m4a")
+            guard fm.fileExists(atPath: m4a.path) else { continue }
+            freed += (try? m4a.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            try? fm.removeItem(at: m4a)
+            try? fm.removeItem(at: kayit.appendingPathComponent(id + ".json"))
+            count += 1
+        }
+        if count > 0 { Tani.yaz("telefondan silindi: \(count) kayıt · \(freed / 1_000_000) MB (Mac işledi, iCloud'da)") }
     }
 
     nonisolated static func isaretleriGonder(_ ik: URL, _ veri: URL) {
@@ -551,6 +599,8 @@ struct SyncResult: Sendable {
     var hata: String?
     var dizin: Dizin?
     var dizinDamgasi: FileStamp?
+    /// ids whose vault audio iCloud reports as uploaded (last 14 days)
+    var uploaded: Set<String> = []
 }
 
 struct WidgetContent: Equatable {

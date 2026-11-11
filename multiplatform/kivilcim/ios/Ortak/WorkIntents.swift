@@ -149,6 +149,28 @@ struct StartJournalIntent: AudioRecordingIntent, LiveActivityIntent {
     #endif
 }
 
+/// All-day listening (2026-11-08): start once, the phone keeps only the stretches with speech, in parts of at most
+/// 10 min. A second press ends it. Each kept part goes to the vault as a journal part.
+struct StartContinuousIntent: AudioRecordingIntent, LiveActivityIntent {
+    static let title: LocalizedStringResource = "Sürekli dinle"
+    static let description = IntentDescription("Gün boyu dinlemeyi başlatır ya da bitirir. Sessizlik atılır, yalnız konuşulan yerler kalır.")
+    static let openAppWhenRun = false
+    static let authenticationPolicy: IntentAuthenticationPolicy = .alwaysAllowed
+
+    #if !WIDGET
+    func perform() async throws -> some IntentResult {
+        Tani.yaz("niyet: sürekli (uygulama süreci)")
+        if !(await KayitMerkezi.shared.degistir(kaynak: "sürekli", tur: "continuous")) { try await oneGecipBaslat(tur: "continuous") }
+        return .result()
+    }
+    #else
+    func perform() async throws -> some IntentResult & OpensIntent {
+        Tani.yaz("niyet: sürekli UZANTIDA çalıştı → uygulama açılıyor")
+        return .result(opensIntent: AcVeKaydetNiyeti())
+    }
+    #endif
+}
+
 /// In the app process: rebuild the list, send the edit to the vault, refresh open pop-up cards.
 private func afterEdit() async {
     #if !WIDGET

@@ -184,6 +184,14 @@ enum Tani {
         guard ftruncate(fd, 0) == 0 else { return }
         _ = yeni.withUnsafeBytes { pwrite(fd, $0.baseAddress, $0.count, 0) }
     }
+    /// Copies the log into the app's own container (2026-11-10): the Mac can read it there with devicectl
+    /// (App Group files are outside what devicectl may copy), so a failed lock-screen recording can be diagnosed.
+    static func mirror() {
+        guard let u = dosya, let v = try? Data(contentsOf: u) else { return }
+        let d = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Kivilcim")
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        try? v.write(to: d.appendingPathComponent("tani.log"), options: .atomic)
+    }
     static func oku() -> String { dosya.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? "" }
 }
 

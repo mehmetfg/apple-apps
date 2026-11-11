@@ -6,8 +6,9 @@ import SwiftUI
 import Charts
 
 enum MerkezRota: Hashable {
-    case tatbik, akis, yon, konular
+    case tatbik, akis, yon, konular, uygulamalar, istatistik, yeniModel
     case konu(String)
+    case uygulama(String)
 }
 
 // MARK: Small pieces
@@ -129,6 +130,9 @@ func talkURL(_ topic: String) -> URL? {
         case "akis": p.append(MerkezRota.akis)
         case "yon": p.append(MerkezRota.yon)
         case "konular": p.append(MerkezRota.konular)
+        case "uygulamalar": p.append(MerkezRota.uygulamalar)
+        case "istatistik": p.append(MerkezRota.istatistik)
+        case "yeni-model": p.append(MerkezRota.yeniModel)
         default: break
         }
         path = p
@@ -147,10 +151,13 @@ struct MerkezEkrani: View {
                     Text("Söylediklerin, ne oldukları ve zihnin nereye gidiyor.")
                         .font(serif(.subheadline)).foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
+                    NavigationLink(value: MerkezRota.istatistik) { KivilcimIstatistikKarti() }.buttonStyle(.plain)
+                    NavigationLink(value: MerkezRota.yeniModel) { NewModelKarti() }.buttonStyle(.plain)
                     NavigationLink(value: MerkezRota.tatbik) { TatbikKarti() }.buttonStyle(.plain)
                     NavigationLink(value: MerkezRota.akis) { AkisKarti() }.buttonStyle(.plain)
                     NavigationLink(value: MerkezRota.yon) { YonKarti() }.buttonStyle(.plain)
                     NavigationLink(value: MerkezRota.konular) { KonularKarti() }.buttonStyle(.plain)
+                    NavigationLink(value: MerkezRota.uygulamalar) { UygulamalarKarti() }.buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
@@ -179,6 +186,10 @@ extension View {
                 case .yon: YonSayfasi()
                 case .konular: KonularSayfasi()
                 case .konu(let id): KonuSayfasi(id: id)
+                case .uygulamalar: UygulamalarSayfasi()
+                case .uygulama(let id): UygulamaSayfasi(id: id)
+                case .istatistik: KivilcimIstatistikSayfasi()
+                case .yeniModel: NewModelSayfasi()
                 }
             }
             .navigationDestination(for: TatbikItem.self) { TatbikPhoneDetail(id: $0.id) }

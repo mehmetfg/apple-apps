@@ -1,7 +1,7 @@
 // Kıvılcım widget uzantısı:
 //  • Kilit ekranı / Denetim Merkezi denetimi (iOS 18): tek dokunuş, kilit açılmadan kayıt
 //  • Kilit ekranı ve ana ekran widget'ları: kayıt düğmesi + son fikir
-//  • Canlı Etkinlik: kayıt sürerken kilit ekranında ve Dynamic Island'da süre, canlı dalga, vazgeç · duraklat · bitir
+//  • Canlı Etkinlik: kayıt sürerken kilit ekranında ve Dynamic Island'da süre, duraklat · bitir
 import WidgetKit
 import SwiftUI
 import AppIntents
@@ -13,6 +13,7 @@ struct KivilcimWidgetleri: WidgetBundle {
         KayitDenetimi()
         AcVeKaydetDenetimi()
         GunlukDenetimi()
+        SurekliDenetimi()
         KivilcimWidget()
         OpenSparksWidget()
         KayitCanliEtkinligi()
@@ -35,17 +36,21 @@ struct KayitDenetimi: ControlWidget {
     }
 }
 
-/// Yedek denetim: Face ID ile uygulamayı açar ve kaydı başlatır.
+/// The old "open and record" control (2026-11-10): it opened the app every time. The silent path has worked on every
+/// lock-screen press since 2026-11-05 (tani.log: 19 of 19 in the background), so this control now records without
+/// opening the app too, and only steps into the app when the microphone cannot open in the background. Same kind,
+/// so a control already placed on the lock screen or in Control Center keeps working without being re-added.
 struct AcVeKaydetDenetimi: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "com.fatihgocgun.kivilcim.ac") {
-            ControlWidgetButton(action: AcVeKaydetNiyeti()) {
-                Label("Aç ve kaydet", systemImage: "mic.circle.fill")
+            ControlWidgetButton(action: KaydiDegistirNiyeti()) {
+                Label(WidgetDurumu.kayitta ? "Kaydı bitir" : "Kaydet",
+                      systemImage: WidgetDurumu.kayitta ? "stop.circle.fill" : "mic.circle.fill")
             }
             .tint(.kivilcim)
         }
-        .displayName("Aç ve kaydet")
-        .description("Kıvılcım'ı açar ve kaydı başlatır (kilit açılır).")
+        .displayName("Kaydet (sessiz)")
+        .description("Kıvılcım: uygulamayı açmadan kaydeder; mikrofon açılamazsa uygulamaya geçer.")
     }
 }
 
@@ -60,6 +65,20 @@ struct GunlukDenetimi: ControlWidget {
         }
         .displayName("Sesli günlük")
         .description("Kıvılcım: uzun sesli günlük; o günün günlüğüne yazılır.")
+    }
+}
+
+/// All-day listening: one press starts it, the next ends it.
+struct SurekliDenetimi: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "com.fatihgocgun.kivilcim.surekli") {
+            ControlWidgetButton(action: StartContinuousIntent()) {
+                Label(WidgetDurumu.kayitta ? "Kaydı bitir" : "Sürekli dinle", systemImage: WidgetDurumu.kayitta ? "stop.circle.fill" : "ear.badge.waveform")
+            }
+            .tint(.teal)
+        }
+        .displayName("Sürekli dinle")
+        .description("Kıvılcım: gün boyu dinler, yalnız konuşulan yerleri saklar.")
     }
 }
 
@@ -106,7 +125,9 @@ struct OpenSparksView: View {
     @Environment(\.widgetFamily) var family
     /// The tall size of iOS 27 counts as large, with room for twice as many.
     private var isTall: Bool {
+        #if compiler(>=6.3)  // the iOS 27 SDK; Xcode 26 does not know this size
         if #available(iOS 27.0, *) { return family == .systemExtraLargePortrait }
+        #endif
         return false
     }
     private var isBig: Bool { family == .systemLarge || isTall }
@@ -270,150 +291,142 @@ struct WidgetGorunumu: View {
     }
 }
 
-// MARK: Canlı Etkinlik — yarı saydam sistem zemini, düz düğmeler: kilit ekranı, Dynamic Island ve adasız telefonda (13 Pro Max) şerit.
-// Uygulama saniyede bir sayaç/duraklama/dalga yollar; düğmeler (vazgeç · duraklat · bitir) uygulamanın sürecinde çalışır.
+// MARK: Live Activity — the recording popup on the lock screen, in the Dynamic Island and (on a phone without an
+// island) as a banner. 2026-11-10 rework: it no longer redraws every second. The app updates it only when the state
+// changes (start, pause, resume); the clock is the system timer, which runs on its own without updates. The old card
+// sent a waveform every second, and the system throttles Live Activity updates, so it moved in jerks. When the
+// recording ends the popup goes away at once: no "saved" card and no priority buttons.
 
 struct KayitCanliEtkinligi: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: KayitEtkinligi.self) { c in
-            KilitEkraniEtkinligi(d: c.state)
-                // yarı saydam zemin: duvar kâğıdının bulanığı arkadan geçer, panel cam gibi durur
-                .activityBackgroundTint(Color.black.opacity(0.32))
+            LockScreenRecording(d: c.state)
+                .activityBackgroundTint(Color.black.opacity(0.55))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { c in
             let d = c.state
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Kure(d: d, boy: 38).padding(.leading, 4)
+                    StatusBadge(d: d, size: 40).padding(.leading, 6).padding(.top, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    sayac(d).font(.system(size: 26, weight: .semibold, design: .rounded).monospacedDigit())
+                    RecordingTimer(d: d).font(.system(size: 28, weight: .semibold, design: .rounded).monospacedDigit())
                         .foregroundStyle(.white).multilineTextAlignment(.trailing)
-                        .frame(width: 96, alignment: .trailing).padding(.trailing, 4).padding(.top, 4)
+                        .frame(width: 100, alignment: .trailing).padding(.trailing, 6).padding(.top, 8)
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    Text(durumYazisi(d)).font(.caption.weight(.bold)).foregroundStyle(etkinlikRengi(d)).padding(.top, 2)
+                    Text(durumYazisi(d)).font(.caption.weight(.bold)).foregroundStyle(etkinlikRengi(d)).padding(.top, 4)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    if d.bitti {
-                        VStack(spacing: 8) {
-                            Text(d.baslik).font(.subheadline.weight(.medium)).lineLimit(2)
-                                .foregroundStyle(.white.opacity(0.85)).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6)
-                            if let id = d.kimlik { BitisDugmeleri(id: id) }
-                        }
-                    } else {
-                        VStack(spacing: 8) {
-                            Dalga(seviyeler: d.seviyeler, duraklatildi: d.duraklatildi, adet: 24).frame(height: 18)
-                            DenetimSirasi(d: d, boy: 34)
-                        }
-                        .padding(.horizontal, 4)
+                    HStack(spacing: 10) {
+                        PauseButton(d: d, size: 44, wide: true)
+                        StopButton(size: 44, wide: true)
                     }
+                    .padding(.horizontal, 6).padding(.top, 6)
                 }
             } compactLeading: {
-                Image(systemName: d.bitti ? "checkmark" : (d.duraklatildi ? "pause.fill" : "waveform"))
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(etkinlikRengi(d))
-                    .symbolEffect(.variableColor.iterative, isActive: !d.bitti && !d.duraklatildi)
-                    .padding(.leading, 2)
+                Image(systemName: d.duraklatildi ? "pause.fill" : "mic.fill")
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(etkinlikRengi(d)).padding(.leading, 2)
             } compactTrailing: {
-                sayac(d).font(.system(.subheadline, design: .rounded).weight(.semibold)).monospacedDigit()
+                RecordingTimer(d: d).font(.system(.subheadline, design: .rounded).weight(.semibold)).monospacedDigit()
                     .frame(width: 44).foregroundStyle(etkinlikRengi(d))
             } minimal: {
-                Image(systemName: d.bitti ? "checkmark" : (d.duraklatildi ? "pause.fill" : "waveform"))
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(etkinlikRengi(d))
-                    .symbolEffect(.variableColor.iterative, isActive: !d.bitti && !d.duraklatildi)
+                Image(systemName: d.duraklatildi ? "pause.fill" : "mic.fill")
+                    .font(.system(size: 12, weight: .bold)).foregroundStyle(etkinlikRengi(d))
             }
             .keylineTint(etkinlikRengi(d))
         }
     }
 }
 
-@ViewBuilder
-func sayac(_ d: KayitEtkinligi.ContentState) -> some View {
-    if d.bitti { Text(Zaman.sure(d.sure)) }
-    else { Text(timerInterval: d.baslangic...Date.distantFuture, pauseTime: d.duraklama, countsDown: false, showsHours: false) }
-}
-
-struct KilitEkraniEtkinligi: View {
+/// The system draws and advances this clock itself; while paused it stands still at the pause moment.
+struct RecordingTimer: View {
     let d: KayitEtkinligi.ContentState
     var body: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 14) {
-                Kure(d: d, boy: 52)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("KIVILCIM · \(durumYazisi(d).uppercased())")
-                        .font(.caption2.weight(.bold)).tracking(0.8).foregroundStyle(etkinlikRengi(d))
-                    if d.bitti {
-                        Text(d.baslik).font(.headline).foregroundStyle(.white).lineLimit(2)
-                    } else {
-                        sayac(d).font(.system(size: 34, weight: .semibold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(.white)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if d.bitti {
-                    Text(Zaman.sure(d.sure)).font(.system(.title3, design: .rounded).weight(.semibold).monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.75))
+        if d.bitti { Text(Zaman.sure(d.sure)) }
+        else { Text(timerInterval: d.baslangic...Date.distantFuture, pauseTime: d.duraklama, countsDown: false, showsHours: false) }
+    }
+}
+
+/// Status mark: a still symbol in a tinted circle. No symbol effect: a Live Activity cannot run one smoothly.
+struct StatusBadge: View {
+    let d: KayitEtkinligi.ContentState
+    var size: CGFloat
+    var body: some View {
+        Image(systemName: d.duraklatildi ? "pause.fill" : "mic.fill")
+            .font(.system(size: size * 0.42, weight: .semibold)).foregroundStyle(etkinlikRengi(d))
+            .frame(width: size, height: size)
+            .background { Circle().fill(etkinlikRengi(d).opacity(0.22)) }
+    }
+}
+
+/// One row, like Voice Memos: status and clock on the left, pause and stop on the right.
+struct LockScreenRecording: View {
+    let d: KayitEtkinligi.ContentState
+    var body: some View {
+        HStack(spacing: 12) {
+            StatusBadge(d: d, size: 46)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(durumYazisi(d).uppercased())
+                    .font(.caption2.weight(.bold)).tracking(0.8).foregroundStyle(etkinlikRengi(d))
+                RecordingTimer(d: d).font(.system(size: 32, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            PauseButton(d: d, size: 50)
+            StopButton(size: 50)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+    }
+}
+
+/// Pause ↔ resume; runs in the app process (LiveActivityIntent).
+struct PauseButton: View {
+    let d: KayitEtkinligi.ContentState
+    var size: CGFloat
+    var wide = false
+    var body: some View {
+        Button(intent: KaydiDuraklatNiyeti()) {
+            Group {
+                if wide {
+                    Label(d.duraklatildi ? "Devam" : "Duraklat", systemImage: d.duraklatildi ? "play.fill" : "pause.fill")
+                        .font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity)
                 } else {
-                    Dalga(seviyeler: d.seviyeler, duraklatildi: d.duraklatildi, adet: 14).frame(width: 92, height: 36)
+                    Image(systemName: d.duraklatildi ? "play.fill" : "pause.fill")
+                        .font(.system(size: size * 0.36, weight: .bold)).frame(width: size)
                 }
             }
-            if !d.bitti { DenetimSirasi(d: d, boy: 46) }
-            else if let id = d.kimlik { BitisDugmeleri(id: id) }
+            .foregroundStyle(.white).frame(height: size)
+            .background { Capsule().fill(Color.white.opacity(0.18)) }
         }
-        .padding(16)
+        .buttonStyle(.plain).accessibilityLabel(d.duraklatildi ? "Devam" : "Duraklat")
     }
 }
 
-/// After a spark ends: set its priority or mark it done right on the lock screen (runs in the app process).
-struct BitisDugmeleri: View {
-    let id: String
+/// Stop: saves the recording; the popup closes right away.
+struct StopButton: View {
+    var size: CGFloat
+    var wide = false
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach([Priority.urgent, .high, .low]) { p in
-                Button(intent: SetPriorityIntent(id: id, priority: p)) {
-                    Text(p.name).font(.caption.weight(.bold)).foregroundStyle(.white)
-                        .frame(maxWidth: .infinity).frame(height: 34).background { DugmeZemini(renk: Color(hex: p.hex)) }
-                }.buttonStyle(.plain)
+        Button(intent: KaydiBitirNiyeti()) {
+            Group {
+                if wide {
+                    Label("Bitir", systemImage: "stop.fill").font(.subheadline.weight(.bold)).frame(maxWidth: .infinity)
+                } else {
+                    Image(systemName: "stop.fill").font(.system(size: size * 0.36, weight: .bold)).frame(width: size)
+                }
             }
-            Button(intent: MarkDoneIntent(id: id)) {
-                Image(systemName: "checkmark").font(.subheadline.weight(.bold)).foregroundStyle(.white)
-                    .frame(width: 44, height: 34).background { DugmeZemini(renk: .green) }
-            }.buttonStyle(.plain).accessibilityLabel("Yapıldı")
+            .foregroundStyle(.white).frame(height: size)
+            .background { Capsule().fill(Color.kivilcim) }
         }
-    }
-}
-
-/// Kilit ekranında ve adada aynı üç düğme: ✕ vazgeç · ‖ duraklat / ▶ devam · ■ bitir.
-struct DenetimSirasi: View {
-    let d: KayitEtkinligi.ContentState
-    var boy: CGFloat = 44
-    var body: some View {
-        HStack(spacing: 10) {
-            Button(intent: KaydiIptalNiyeti()) {
-                Image(systemName: "xmark").font(.system(size: 15, weight: .bold)).foregroundStyle(.white.opacity(0.9))
-                    .frame(width: boy, height: boy).background { DugmeZemini() }
-            }
-            .buttonStyle(.plain).accessibilityLabel("Vazgeç")
-            Button(intent: KaydiDuraklatNiyeti()) {
-                Label(d.duraklatildi ? "Devam" : "Duraklat", systemImage: d.duraklatildi ? "play.fill" : "pause.fill")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity).frame(height: boy).background { DugmeZemini() }
-            }
-            .buttonStyle(.plain)
-            Button(intent: KaydiBitirNiyeti()) {
-                Label("Bitir", systemImage: "stop.fill")
-                    .font(.subheadline.weight(.bold)).foregroundStyle(.white)
-                    .frame(maxWidth: .infinity).frame(height: boy).background { DugmeZemini(renk: .kivilcim) }
-            }
-            .buttonStyle(.plain)
-        }
+        .buttonStyle(.plain).accessibilityLabel("Bitir")
     }
 }
 
 /// Adds the tall size of iOS 27 (the largest one on an iPhone) where the system has it.
 func tallFamilies(_ base: [WidgetFamily]) -> [WidgetFamily] {
+    #if compiler(>=6.3)  // the iOS 27 SDK; Xcode 26 does not know this size
     if #available(iOS 27.0, *) { return base + [.systemExtraLargePortrait] }
+    #endif
     return base
 }

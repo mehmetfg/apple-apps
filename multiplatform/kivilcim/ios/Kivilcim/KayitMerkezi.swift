@@ -5,6 +5,7 @@ import Foundation
 import AVFoundation
 import ActivityKit
 import Speech
+import SoundAnalysis
 import SwiftUI
 import UIKit
 import WidgetKit
@@ -34,12 +35,49 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
     /// (a Teoria book id or "k:<name>"). Goes into the sidecar's `topic`, the field the Mac writes for a topic
     /// chosen before recording, so links.py treats both the same. nil for every other way of starting.
     @Published private(set) var activeTopic: String?
+    /// The app this recording is about, when it was started from that app's page (Merkez › Uygulamalar).
+    @Published private(set) var activeApp: String?
     /// After a spark ends in the app: the quick sheet (title · priority · note) opens for this id.
     @Published var hizliDuzen: String?
 
     static let tavan: TimeInterval = 30 * 60
     static let gunlukTavan: TimeInterval = 60 * 60
-    var tavan: TimeInterval { aktifTur == "journal" ? KayitMerkezi.gunlukTavan : KayitMerkezi.tavan }
+    var tavan: TimeInterval {
+        surekli ? Continuous.partCap : aktifTur == "journal" ? KayitMerkezi.gunlukTavan : KayitMerkezi.tavan
+    }
+
+    // MARK: Continuous mode (2026-11-08)
+    // Start once, listen all day. The recorder never stops; the phone only decides which stretches to keep:
+    // a part with speech closes after a minute of silence (or at 10 min) and is sent; a part with no speech is
+    // thrown away after a minute and starts over. So a 20-minute silent walk costs at most one minute on disk.
+
+    enum Continuous {
+        static let partCap: TimeInterval = 10 * 60
+        /// speech, then this much silence → the part is closed and sent
+        static let closeAfterSilence: TimeInterval = 60
+        /// no speech for this long at the start of a part → the part is discarded and starts over
+        static let discardAfter: TimeInterval = 60
+        /// less speech than this in a part → it holds nothing worth keeping (a cough, a door)
+        static let minSpeech: TimeInterval = 2
+        /// level above the running noise floor that counts as sound worth listening to
+        static let speechMargin: Float = 10
+        /// a single click or step is not speech: the level must stay up this long (5 meter ticks)
+        static let speechHold: TimeInterval = 0.35
+        /// Apple's on-device sound classifier: a window counts as speech above this confidence. Measured
+        /// 2026-11-08 on a real room + synthetic speech: quiet room 0.5 s in 120 s, a −26 dB whisper 6 s in 7 s.
+        static let classifierSpeech: Double = 0.7
+        static let lowBattery: Float = 0.15
+    }
+    var surekli: Bool { aktifTur == "continuous" }
+    /// Parts kept (sent) in this continuous session; shown under the clock.
+    @Published private(set) var keptParts = 0
+    @Published private(set) var speaking = false
+    private var noiseFloor: Float = -50
+    private var speechInPart: TimeInterval = 0
+    private var lastSpeechAt: TimeInterval = 0
+    private var lastTickAt: TimeInterval = 0
+    private var loudFor: TimeInterval = 0
+    private var lastBatteryCheck = Date.distantPast
     private var kaydedici: AVAudioRecorder?
     private var zamanlayici: Timer?
     private var kimlik = ""
@@ -49,7 +87,6 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
     /// Canlı Etkinlik sayacının başlangıcı: her devamda duraklanan süre kadar ileri alınır.
     private var sayacBaslangic = Date()
     private var duraklamaAni: Date?
-    private var sonEtkinlikTazesi = Date.distantPast
     private var arkaPlan: UIBackgroundTaskIdentifier = .invalid
     /// A long talk does not stop at the cap: it goes on in a new part (2026-11-04; on 11-03 a 30 min cap
     /// silently cut the evening talk at 22:05). Each part is its own file and note, linked to the one before.
@@ -72,8 +109,110 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let t = n.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt else { return }
             let basladi = t == AVAudioSession.InterruptionType.began.rawValue
             let neden = (n.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt).map(String.init) ?? "-"
+            // background time is taken here, synchronously: once the call takes the microphone the app has no
+            // audio to keep it awake, and iOS may suspend it before the save below gets to run
+            if basladi { MainActor.assumeIsolated { KayitMerkezi.shared.kesintiZamani() } }
             Task { @MainActor in await KayitMerkezi.shared.kesinti(basladi: basladi, neden: neden) }
         }
+        // the audio system restarted (rare): the recorder is dead, so what it holds is saved now
+        NotificationCenter.default.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { _ in
+            Task { @MainActor in
+                guard KayitMerkezi.shared.kayitta else { return }
+                Tani.yaz("ses sistemi yeniden başladı → kayıt saklanıyor")
+                await KayitMerkezi.shared.bitir()
+            }
+        }
+        // the app is being closed (swiped away, or iOS ends it while it runs): there is no time for anything async,
+        // so the file is closed and its sidecar written right here; it goes to the vault on the next launch
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { KayitMerkezi.shared.acilKaydet(neden: "uygulama kapanıyor") }
+        }
+    }
+
+    // MARK: Never lose a recording (2026-11-10)
+
+    private var kesintiGorevi: UIBackgroundTaskIdentifier = .invalid
+    /// Continuous listening stopped for a call: it starts again by itself when the call is over.
+    private var resumeContinuous = false
+
+    fileprivate func kesintiZamani() {
+        guard kayitta, kesintiGorevi == .invalid else { return }
+        kesintiGorevi = UIApplication.shared.beginBackgroundTask(withName: "kivilcim-kesinti") { [weak self] in
+            MainActor.assumeIsolated {
+                // time is up and the recording is still open: close it now, synchronously
+                self?.acilKaydet(neden: "kesintide arka plan süresi bitti")
+                self?.kesintiBitir()
+            }
+        }
+    }
+
+    private func kesintiBitir() {
+        if kesintiGorevi != .invalid { UIApplication.shared.endBackgroundTask(kesintiGorevi); kesintiGorevi = .invalid }
+    }
+
+    /// Closes the open recording without any await: the recorder finalizes the file inside stop(), the sidecar is
+    /// a small synchronous write. For the moments when the async bitir() would not get to run.
+    func acilKaydet(neden: String) {
+        guard kayitta, let k = kaydedici else { return }
+        let gecen = k.currentTime > 0 ? k.currentTime : Date().timeIntervalSince(baslangic)
+        k.delegate = nil
+        k.stop()
+        zamanlayici?.invalidate(); zamanlayici = nil
+        kaydedici = nil; kayitta = false; duraklatildi = false; duraklamaAni = nil; kesintide = false
+        Tani.yaz("acil kayıt (\(neden)) \(kimlik) · \(Int(gecen)) sn")
+        if gecen >= 1.0 {
+            TelefonDeposu.shared.yeniKayit(sidecar(kimlik, baslangic, gecen, devam: oncekiParca))
+        } else {
+            try? FileManager.default.removeItem(at: KayitMerkezi.kayitKlasoru.appendingPathComponent(kimlik + ".m4a"))
+        }
+        WidgetDurumu.d.set(false, forKey: "kayitta")
+        if let e = etkinlik { etkinlik = nil; Task { await e.end(nil, dismissalPolicy: .immediate) } }
+    }
+
+    /// Recordings whose sidecar was never written (the app was killed while recording, or the phone shut down):
+    /// the list is taken at launch, before any new recording can start, and each file that plays is added as a
+    /// normal recording. An empty file from a start that failed is removed; a file that cannot be read is moved
+    /// to kayit/bozuk, kept for repair on the Mac, and not tried again.
+    nonisolated static func recoverOrphans() {
+        let fm = FileManager.default
+        let dir = kayitKlasoru
+        guard let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.fileSizeKey]) else { return }
+        let orphans = files.filter {
+            $0.pathExtension == "m4a" && !fm.fileExists(atPath: $0.deletingPathExtension().appendingPathExtension("json").path)
+        }
+        guard !orphans.isEmpty else { return }
+        Task { @MainActor in
+            var found = 0
+            for u in orphans {
+                let id = u.deletingPathExtension().lastPathComponent
+                let size = (try? u.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                let sure = (try? await AVURLAsset(url: u).load(.duration).seconds) ?? 0
+                if sure.isFinite, sure >= 1 {
+                    let an = orphanDate(id) ?? ((try? u.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date())
+                    let k = Kunye(id: id, cihaz: "iphone", zaman: Zaman.iso(an), sure: (sure * 10).rounded() / 10,
+                                  kalite: KayitMerkezi.shared.kaliteSecimi.rawValue,
+                                  dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil, kind: "spark")
+                    TelefonDeposu.shared.yeniKayit(k)
+                    found += 1
+                    Tani.yaz("kurtarıldı: \(id) · \(Int(sure)) sn")
+                } else if size < 8_192 {
+                    try? fm.removeItem(at: u)
+                    Tani.yaz("boş kayıt dosyası silindi: \(id) (\(size) bayt)")
+                } else {
+                    let bozuk = dir.appendingPathComponent("bozuk")
+                    try? fm.createDirectory(at: bozuk, withIntermediateDirectories: true)
+                    try? fm.moveItem(at: u, to: bozuk.appendingPathComponent(u.lastPathComponent))
+                    Tani.yaz("HATA: \(id) okunamadı (\(size / 1024) KB) → kayit/bozuk'ta saklandı")
+                }
+            }
+            if found > 0 { await TelefonDeposu.shared.gonder() }
+        }
+    }
+
+    nonisolated private static func orphanDate(_ id: String) -> Date? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = .autoupdatingCurrent; f.dateFormat = "yyyyMMdd-HHmmss"
+        return f.date(from: String(id.prefix(15)))
     }
 
     @discardableResult
@@ -86,10 +225,11 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     /// Kayıt başladıysa true. Arka planda mikrofon açılamazsa false döner; niyet o zaman öne geçip yeniden dener.
     @discardableResult
-    func baslat(kaynak: String = "uygulama", tur: String? = nil, topic: String? = nil) async -> Bool {
+    func baslat(kaynak: String = "uygulama", tur: String? = nil, topic: String? = nil, app: String? = nil) async -> Bool {
         guard !kayitta else { Tani.yaz("başlat: zaten kayıtta"); return true }
         aktifTur = tur ?? kind
         activeTopic = topic
+        activeApp = app
         // İkon menüsü / "Aç ve kaydet" sırasında uygulama henüz öne gelmemişken açılan kaydedici ~1 sn'de duruyordu
         // (2026-10-11…30 tanı kaydı, "geçişte" → "1 sn"); öne gelmesini en çok 2 sn bekle.
         var bekleme = 0
@@ -114,6 +254,8 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         baslangic = Date()
         sayacBaslangic = baslangic; duraklamaAni = nil; duraklatildi = false
         parca = 1; oncekiParca = nil; parcaGeciyor = false; oncekiToplam = 0
+        resetSpeech(); keptParts = 0; noiseFloor = -50
+        if surekli { UIDevice.current.isBatteryMonitoringEnabled = true }
         kimlik = Kimlik.yeni("iphone", baslangic)
         // Sistem, kilit ekranından başlayan ses kaydında Canlı Etkinliği ÖNCE ister; yoksa kaydı keser.
         etkinlikBaslat()
@@ -185,26 +327,113 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         k.updateMeters()
         meter.sure = oncekiToplam + k.currentTime   // the screen counts the whole talk, not the part
         let db = k.averagePower(forChannel: 0)
-        var s = meter.seviyeler
-        s.append(max(0.05, min(1, (db + 52) / 52)))
-        if s.count > 80 { s.removeFirst(s.count - 80) }
-        meter.seviyeler = s
+        // the level bars are only drawn inside the app: on the lock screen nobody sees them, so skip the work
+        if UIApplication.shared.applicationState == .active {
+            var s = meter.seviyeler
+            s.append(max(0.05, min(1, (db + 52) / 52)))
+            if s.count > 80 { s.removeFirst(s.count - 80) }
+            meter.seviyeler = s
+        }
+        if surekli, !parcaGeciyor, let karar = listen(db: db, t: k.currentTime) {
+            parcaGeciyor = true; Task { await parcaDegistir(karar) }; return
+        }
         // duraklatma record(forDuration:) tavanını düşürür; tavanı burada tutarız.
         // Tavan dolunca kayıt bitmez: yeni parçaya geçer (konuşma kaybolmasın).
-        if k.currentTime >= tavan - 0.5, !parcaGeciyor { parcaGeciyor = true; Task { await parcaDegistir() }; return }
-        if Date().timeIntervalSince(sonEtkinlikTazesi) >= 1 { sonEtkinlikTazesi = Date(); Task { await etkinlikTazele() } }
+        if k.currentTime >= tavan - 0.5, !parcaGeciyor { parcaGeciyor = true; Task { await parcaDegistir(.cap) }; return }
+        // No Live Activity update here (2026-11-10): its clock is the system timer and runs by itself. The old
+        // once-a-second waveform update was throttled by the system and made the lock-screen card move in jerks.
+    }
+
+    enum PartEnd { case cap, silence, empty }
+
+    private func resetSpeech() { speechInPart = 0; lastSpeechAt = 0; lastTickAt = 0; loudFor = 0; speaking = false }
+
+    /// One tick of the level detector: cheap, every meter tick, decides only when a part ends. Whether a closed
+    /// part holds speech is decided afterwards by Apple's classifier (`speechSeconds`), because level alone cannot
+    /// tell a voice from a keyboard or a fan (2026-11-08 test: a silent room kept a part open for minutes).
+    /// The floor follows the room within seconds, so a steady noise stops counting quickly.
+    private func listen(db: Float, t: TimeInterval) -> PartEnd? {
+        let dt = max(0, min(0.5, t - lastTickAt)); lastTickAt = t
+        noiseFloor += (db - noiseFloor) * (db < noiseFloor ? 0.02 : 0.01)
+        noiseFloor = max(-80, min(-20, noiseFloor))
+        let loud = db > noiseFloor + Continuous.speechMargin && db > -60
+        loudFor = loud ? loudFor + dt : 0
+        let now = loudFor >= Continuous.speechHold
+        if now { speechInPart += dt; lastSpeechAt = t }
+        // held for 1.5 s after the last word, so the screen does not flicker (and redraw) between syllables
+        let shown = lastSpeechAt > 0 && t - lastSpeechAt < 1.5
+        if shown != speaking { speaking = shown }
+        if Date().timeIntervalSince(lastBatteryCheck) >= 60 { lastBatteryCheck = Date(); checkBattery() }
+        let quiet = t - lastSpeechAt
+        if speechInPart >= Continuous.minSpeech, quiet >= Continuous.closeAfterSilence { return .silence }
+        if speechInPart < Continuous.minSpeech, quiet >= Continuous.discardAfter { return .empty }
+        return nil
+    }
+
+    /// Runs Apple's sound classifier over a closed part. Under `minSpeech` seconds of speech the file is deleted
+    /// and false comes back. If the classifier cannot run, the part is kept (Whisper on the Mac drops silence).
+    private func keepIfSpeech(_ u: URL, _ gecen: TimeInterval) async -> Bool {
+        let s = await Task.detached(priority: .utility) { KayitMerkezi.speechSeconds(u) }.value
+        guard let s else { Tani.yaz("sürekli: sınıflandırıcı çalışmadı → parça saklanıyor"); return true }
+        if s >= Continuous.minSpeech { Tani.yaz("sürekli: \(Int(gecen)) sn parçada \(String(format: "%.1f", s)) sn konuşma → saklandı"); return true }
+        try? FileManager.default.removeItem(at: u)
+        Tani.yaz("sürekli: \(Int(gecen)) sn parçada konuşma yok (\(String(format: "%.1f", s)) sn) → silindi")
+        return false
+    }
+
+    /// Seconds of speech in a file by the built-in classifier: 1 s windows, half overlapping, so each window over
+    /// the threshold adds 0.5 s. nil when the classifier is not available.
+    nonisolated static func speechSeconds(_ u: URL) -> Double? {
+        guard let analyzer = try? SNAudioFileAnalyzer(url: u),
+              let request = try? SNClassifySoundRequest(classifierIdentifier: .version1) else { return nil }
+        request.windowDuration = CMTime(seconds: 1, preferredTimescale: 1000)
+        request.overlapFactor = 0.5
+        let counter = SpeechCounter(threshold: Continuous.classifierSpeech)
+        guard (try? analyzer.add(request, withObserver: counter)) != nil else { return nil }
+        analyzer.analyze()
+        return counter.failed ? nil : Double(counter.windows) * 0.5
+    }
+
+    private func checkBattery() {
+        let d = UIDevice.current
+        guard d.batteryLevel >= 0, d.batteryLevel < Continuous.lowBattery, d.batteryState == .unplugged else { return }
+        Tani.yaz("sürekli: pil %\(Int(d.batteryLevel * 100)) → dinleme bitiyor")
+        Task {
+            await bitir()
+            hata = "Pil %\(Int(Continuous.lowBattery * 100))'in altına indi; sürekli dinleme durdu."
+        }
+    }
+
+    private func sidecar(_ id: String, _ an: Date, _ gecen: TimeInterval, devam: String?) -> Kunye {
+        Kunye(id: id, cihaz: "iphone", zaman: Zaman.iso(an), sure: (gecen * 10).rounded() / 10,
+              kalite: kalite.rawValue, dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil,
+              kind: surekli ? "journal" : aktifTur, devam: devam, topic: activeTopic, mode: surekli ? "continuous" : nil, app: activeApp)
     }
 
     /// Kısa kesinti (bildirim sesi, Canlı Etkinlik uyarısı) kaydı bitirmez: biterse kayıt kaldığı yerden sürer.
     /// 4 sn içinde bitmezse (arama vb.) o ana kadarki kayıt saklanır.
     private var kesintide = false
     func kesinti(basladi: Bool, neden: String) async {
+        if !basladi, resumeContinuous, !kayitta {
+            resumeContinuous = false
+            let ok = await baslat(kaynak: "çağrıdan sonra", tur: "continuous")
+            Tani.yaz("sürekli dinleme çağrıdan sonra \(ok ? "yeniden başladı" : "BAŞLAYAMADI (uygulamadan yeniden başlat)")")
+            return
+        }
         guard kayitta else { return }
         if basladi {
             Tani.yaz("ses kesintisi başladı (neden: \(neden))")
             kesintide = true
+            defer { kesintiBitir() }
             try? await Task.sleep(for: .seconds(4))
-            if kesintide, kayitta { Tani.yaz("kesinti sürüyor → kayıt saklanıyor"); kesintide = false; await bitir() }
+            guard kesintide, kayitta else { return }
+            // A call (or anything that holds the microphone longer than an alert sound): what was recorded is saved
+            // now, under the background time taken when the interruption began. Continuous listening too, since an
+            // open file left waiting through a call is lost if iOS ends the app meanwhile; it starts again after.
+            if surekli { resumeContinuous = true }
+            Tani.yaz("kesinti sürüyor → kayıt saklanıyor\(surekli ? " · sürekli dinleme çağrıdan sonra sürecek" : "")")
+            kesintide = false
+            await bitir()
         } else if kesintide {
             kesintide = false
             guard !duraklatildi, let k = kaydedici else { return }
@@ -244,24 +473,30 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         kaydedici = nil; kayitta = false; duraklatildi = false; duraklamaAni = nil; kesintide = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         let u = KayitMerkezi.kayitKlasoru.appendingPathComponent(kimlik + ".m4a")
-        if gecen < 1.0 {
-            Tani.yaz("bitir: 1 sn'den kısa → silindi")
+        speaking = false
+        // the background time starts before the classifier: with the microphone off the app may be suspended
+        arkaPlan = UIApplication.shared.beginBackgroundTask(withName: "kivilcim-kaydet") { [weak self] in
+            Task { @MainActor in self?.arkaPlaniKapat() }
+        }
+        var emptyContinuous = surekli && speechInPart < Continuous.minSpeech
+        if surekli, !emptyContinuous, gecen >= 1.0, !(await keepIfSpeech(u, gecen)) { emptyContinuous = true }
+        if gecen < 1.0 || emptyContinuous {
+            Tani.yaz(emptyContinuous ? "bitir: sürekli dinleme bitti · son parçada konuşma yok → silindi · \(keptParts) parça saklandı"
+                                     : "bitir: 1 sn'den kısa → silindi")
             KivilcimBus.publishLive(id: sonBitis?.id, active: false)
             try? FileManager.default.removeItem(at: u)
             await etkinlikBitir(nil, 0)
             widgetDurumu(kayitta: false)
+            arkaPlaniKapat()
             return
         }
         if UserDefaults.standard.bool(forKey: "dokunsal") { UINotificationFeedbackGenerator().notificationOccurred(.success) }
-        arkaPlan = UIApplication.shared.beginBackgroundTask(withName: "kivilcim-kaydet") { [weak self] in
-            Task { @MainActor in self?.arkaPlaniKapat() }
-        }
-        let kunye = Kunye(id: kimlik, cihaz: "iphone", zaman: Zaman.iso(baslangic), sure: (gecen * 10).rounded() / 10,
-                          kalite: kalite.rawValue, dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil,
-                          kind: aktifTur, devam: oncekiParca, topic: activeTopic)
+        let kunye = sidecar(kimlik, baslangic, gecen, devam: oncekiParca)
+        if surekli { keptParts += 1 }
         sonKimlik = kimlik
         KivilcimBus.publishLive(id: kimlik, active: false)
         Tani.yaz("kayıt bitti \(kimlik) · \(Int(gecen)) sn")
+        Task.detached(priority: .utility) { Tani.mirror() }
         let depo = TelefonDeposu.shared
         depo.yeniKayit(kunye)
         sonBitis = Bitis(an: Date(), baslik: depo.oge(kimlik)?.baslik ?? "Sesli fikir", sure: gecen, id: kimlik, kind: aktifTur)
@@ -297,7 +532,9 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     /// The cap is reached: the next part starts first, then the full part is closed and sent. The audio session stays
     /// open the whole time, so this works on the lock screen too (a new session could not start in the background).
-    private func parcaDegistir() async {
+    /// Continuous mode adds two more reasons than the cap: a part with speech closes after a minute of silence
+    /// (sent like any part, not linked as a continuation: the talk ended), and a part with no speech is deleted.
+    private func parcaDegistir(_ neden: PartEnd = .cap) async {
         defer { parcaGeciyor = false }
         guard kayitta, let eski = kaydedici else { return }
         let yeniAn = Date()
@@ -319,13 +556,41 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         eski.delegate = nil
         let gecen = eski.currentTime > 0 ? eski.currentTime : Date().timeIntervalSince(baslangic)
         eski.stop()
-        let kunye = Kunye(id: kimlik, cihaz: "iphone", zaman: Zaman.iso(baslangic), sure: (gecen * 10).rounded() / 10,
-                          kalite: kalite.rawValue, dil: UserDefaults.standard.string(forKey: "dil") ?? "tr", onMetin: nil,
-                          kind: aktifTur, devam: oncekiParca, topic: activeTopic)
-        Tani.yaz("parça \(parca) bitti \(kimlik) · \(Int(gecen)) sn → parça \(parca + 1) \(yeniKimlik)")
-        oncekiParca = kimlik
-        kaydedici = yeni; kimlik = yeniKimlik; baslangic = yeniAn; parca += 1; oncekiToplam += gecen
+        let eskiKimlik = kimlik, eskiBaslangic = baslangic
+        let bos = surekli && (neden == .empty || speechInPart < Continuous.minSpeech)
+        let konusma = Int(speechInPart)
+        kaydedici = yeni; kimlik = yeniKimlik; baslangic = yeniAn; oncekiToplam += gecen
+        resetSpeech()
         KivilcimBus.publishLive(id: yeniKimlik, active: true)
+        if bos {
+            // nothing was said: the file goes, the chain stays as it was, no alert
+            try? FileManager.default.removeItem(at: KayitMerkezi.kayitKlasoru.appendingPathComponent(eskiKimlik + ".m4a"))
+            Tani.yaz("sürekli: \(Int(gecen)) sn sessiz parça atıldı → yeniden \(yeniKimlik)")
+            return
+        }
+        let kunye = sidecar(eskiKimlik, eskiBaslangic, gecen, devam: oncekiParca)
+        Tani.yaz("parça \(parca) bitti \(eskiKimlik) · \(Int(gecen)) sn · ses \(konusma) sn · \(neden) → parça \(parca + 1) \(yeniKimlik)")
+        // a part closed by silence is the end of a talk: the next one starts a new chain
+        oncekiParca = neden == .silence ? nil : eskiKimlik
+        parca += 1
+        if surekli {
+            // classify, keep, send and draft run on their own: this function must return at once, or the
+            // next part change (and the cap) would wait behind them
+            let eskiU = KayitMerkezi.kayitKlasoru.appendingPathComponent(eskiKimlik + ".m4a")
+            Task {
+                guard await keepIfSpeech(eskiU, gecen) else { return }
+                TelefonDeposu.shared.yeniKayit(kunye)
+                keptParts += 1
+                await etkinlikTazele()
+                await TelefonDeposu.shared.gonder()
+                if UserDefaults.standard.bool(forKey: "onDokum"),
+                   let metin = await KayitMerkezi.tani(KayitMerkezi.kayitKlasoru.appendingPathComponent(eskiKimlik + ".m4a"), dil: kunye.dil) {
+                    TelefonDeposu.shared.onMetin(eskiKimlik, metin)
+                    await TelefonDeposu.shared.gonder()
+                }
+            }
+            return
+        }
         TelefonDeposu.shared.yeniKayit(kunye)
         if UserDefaults.standard.bool(forKey: "dokunsal") { UINotificationFeedbackGenerator().notificationOccurred(.warning) }
         await etkinlikTazele(uyari: AlertConfiguration(title: "Kıvılcım sürüyor",
@@ -351,44 +616,25 @@ final class KayitMerkezi: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let d = KayitEtkinligi.ContentState(baslangic: baslangic)
         do {
             etkinlik = try Activity.request(attributes: KayitEtkinligi(kalite: kalite.ad),
-                                            content: .init(state: d, staleDate: baslangic.addingTimeInterval(tavan)))
+                                            content: .init(state: d, staleDate: nil))
         } catch { Tani.yaz("HATA: Canlı Etkinlik başlamadı: \(error.localizedDescription)") }
     }
 
-    /// Sayaç, duraklama ve son düzeyleri Canlı Etkinliğe yollar (saniyede bir; sistem sıklığı kendisi de kısar).
+    /// Sends the clock start and the pause moment to the Live Activity. Called only when the state changes (start,
+    /// pause, resume, a new part); the system timer in the card counts on its own between updates. No stale date:
+    /// the card has nothing that goes out of date while it waits.
     private func etkinlikTazele(uyari: AlertConfiguration? = nil) async {
         guard let e = etkinlik, kayitta else { return }
-        sonEtkinlikTazesi = Date()
-        let d = KayitEtkinligi.ContentState(baslangic: sayacBaslangic, duraklama: duraklamaAni, seviyeler: dalga())
-        await e.update(.init(state: d, staleDate: Date().addingTimeInterval(tavan)), alertConfiguration: uyari)
+        let d = KayitEtkinligi.ContentState(baslangic: sayacBaslangic, duraklama: duraklamaAni)
+        await e.update(.init(state: d, staleDate: nil), alertConfiguration: uyari)
     }
 
-    /// Son ~3 saniyenin düzeyleri 18 çubuğa indirgenir (her çubuk kendi diliminin tepesi).
-    private func dalga() -> [Double] {
-        let adet = 18
-        if duraklatildi { return Array(repeating: 0.06, count: adet) }
-        let son = Array(seviyeler.suffix(adet * 2))
-        guard !son.isEmpty else { return [] }
-        let dilim = max(1, son.count / adet)
-        return stride(from: 0, to: son.count, by: dilim).prefix(adet).map { i in
-            (Double(son[i..<min(son.count, i + dilim)].max() ?? 0) * 100).rounded() / 100
-        }
-    }
-
+    /// The recording is over (saved or discarded): the popup goes away at once. No "saved" card, no priority buttons
+    /// (2026-11-10, asked for: stop → it disappears). Priority can still be set in the app or in the open-items widget.
     private func etkinlikBitir(_ baslik: String?, _ sure: Double) async {
         guard let e = etkinlik else { return }
-        if let baslik {
-            var d = KayitEtkinligi.ContentState(baslangic: baslangic, bitti: true, sure: sure, baslik: baslik)
-            d.kimlik = aktifTur == "spark" ? kimlik : nil
-            // adasız telefonda "kaydedildi" şeridi; adalı telefonda ada bir an açılıp onay gösterir
-            await e.update(.init(state: d, staleDate: nil),
-                           alertConfiguration: AlertConfiguration(title: "Kaydedildi", body: "\(baslik)", sound: .named("sessiz.caf")))
-            // a spark keeps its card ~45 sn: priority and "done" buttons on the lock screen, no need to open the app
-            await e.end(.init(state: d, staleDate: nil), dismissalPolicy: .after(Date().addingTimeInterval(d.kimlik == nil ? 6 : 45)))
-        } else {
-            await e.end(nil, dismissalPolicy: .immediate)
-        }
         etkinlik = nil
+        await e.end(nil, dismissalPolicy: .immediate)
     }
 
     private func widgetDurumu(kayitta: Bool) {
@@ -473,4 +719,18 @@ final class Biriktirici: @unchecked Sendable {
         if parcaSonu, !simdiki.isEmpty { kalici.append(simdiki); simdiki = "" }
     }
     var metin: String { (kalici + (simdiki.isEmpty ? [] : [simdiki])).joined(separator: " ") }
+}
+
+/// Counts the classifier windows that hear speech (synchronous file analysis; read after analyze() returns).
+final class SpeechCounter: NSObject, SNResultsObserving, @unchecked Sendable {
+    let threshold: Double
+    private(set) var windows = 0
+    private(set) var failed = false
+    init(threshold: Double) { self.threshold = threshold }
+    func request(_ request: SNRequest, didProduce result: SNResult) {
+        guard let c = result as? SNClassificationResult,
+              (c.classification(forIdentifier: "speech")?.confidence ?? 0) >= threshold else { return }
+        windows += 1
+    }
+    func request(_ request: SNRequest, didFailWithError error: Error) { failed = true }
 }

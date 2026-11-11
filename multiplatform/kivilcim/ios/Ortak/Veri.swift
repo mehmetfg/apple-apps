@@ -52,11 +52,16 @@ struct Oge: Codable, Identifiable, Hashable, Sendable {
     var topics: [TopicShare] = []
     /// The part before this one when a long talk rolled over into a new file.
     var devam: String = ""
+    /// Apps layer (apps.py, 2026-11-08): the app this record is about. app_source: elle · soz (named) · ust (its recording's).
+    var app: String = ""
+    var app_name: String = ""
+    var app_source: String = ""
 
     enum CodingKeys: String, CodingKey {
         case id, tarih, cihaz, sure, kalite, boyut, ses, metin, metin_kaynak, baslik, baslik_kaynak, ozet, alan, amac, etiketler, yildiz, durum, not
         case status, priority, done_at, kind, parent, offset, notes, journal_note, url, tur, simdi
         case topic, topic_name, topic_source, topics, devam
+        case app, app_name, app_source
     }
 
     init(id: String, tarih: String, cihaz: String, sure: Double, kalite: String, boyut: Int, ses: String,
@@ -103,6 +108,9 @@ struct Oge: Codable, Identifiable, Hashable, Sendable {
         topic_source = (try? c.decode(String.self, forKey: .topic_source)) ?? ""
         topics = (try? c.decode([TopicShare].self, forKey: .topics)) ?? []
         devam = (try? c.decode(String.self, forKey: .devam)) ?? ""
+        app = (try? c.decode(String.self, forKey: .app)) ?? ""
+        app_name = (try? c.decode(String.self, forKey: .app_name)) ?? ""
+        app_source = (try? c.decode(String.self, forKey: .app_source)) ?? ""
     }
 
     var zaman: Date { Zaman.coz(tarih) ?? .distantPast }
@@ -308,6 +316,10 @@ struct Kunye: Codable, Sendable {
     var devam: String? = nil
     /// Mac (2026-11-04): the book/topic chosen before recording (Teoria book id or "k:<name>").
     var topic: String? = nil
+    /// "continuous" (2026-11-08): a part of an all-day listening session; it goes out as kind=journal.
+    var mode: String? = nil
+    /// Apps (2026-11-08): the app whose page this recording was started from (apps.py id).
+    var app: String? = nil
 }
 
 enum Kimlik {
@@ -355,6 +367,9 @@ enum Olay {
             }
             if let v = d["priority"]?.1 as? Int { ogeler[i].priority = v }
             if let v = d["kind"]?.1 as? String, !v.isEmpty { ogeler[i].kind = v }
+            if let v = d["app"]?.1 as? String {
+                ogeler[i].app = v == "-" ? "" : v; ogeler[i].app_source = "elle"; ogeler[i].app_name = ""
+            }
         }
         // notes accumulate (every "note" event is a new line); the rest are last-write-wins
         for i in ogeler.indices {

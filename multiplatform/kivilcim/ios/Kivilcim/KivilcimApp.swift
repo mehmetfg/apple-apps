@@ -18,7 +18,7 @@ struct KivilcimApp: App {
     @State private var isaretSes: BekleyenIsaret?
 
     init() {
-        UserDefaults.standard.register(defaults: ["kalite": "dengeli", "dil": "tr", "onDokum": true, "dokunsal": true, "sunucuDokum": false])
+        UserDefaults.standard.register(defaults: ["kalite": "dengeli", "dil": "tr", "onDokum": true, "dokunsal": true, "sunucuDokum": false, "pruneAfterMac": true])
         KivilcimKisayollari.updateAppShortcutParameters()
         TelefonDeposu.preload()     // reads the stored list on a background thread while the app launches
     }
@@ -36,33 +36,7 @@ struct KivilcimApp: App {
             .tabBarMinimizeBehavior(.onScrollDown)
             .tint(.kivilcim)
             .environmentObject(merkez).environmentObject(depo).environmentObject(kasa).environmentObject(oy)
-            .onOpenURL { u in
-                // kivilcim://kaydet · kivilcim://bitir · kivilcim://arsiv · kivilcim://merkez
-                switch u.host {
-                case "kaydet":
-                    // kivilcim://kaydet?topic=<Teoria book id or k:name>: another app starts a recording about a book
-                    let topic = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "topic" }?.value?
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    let konu = topic.flatMap { $0.isEmpty || $0.count > 200 ? nil : $0 }
-                    sekme = 0; Task { await merkez.baslat(kaynak: konu == nil ? "adres" : "adres+konu", topic: konu) }
-                case "bitir": Task { await merkez.bitir() }
-                case "arsiv", "isler": sekme = 1
-                case "merkez": sekme = 5; MerkezNav.shared.open(u.pathComponents.dropFirst().first)
-                case "tatbik", "akis": sekme = 5; MerkezNav.shared.open(u.host)
-                case "gunluk": sekme = 3
-                case "duzen": if let id = u.pathComponents.dropFirst().first { merkez.hizliDuzen = id }
-                case "isaret-ses":
-                    // Paylaş › Kıvılcım › "İşaretle ve sesli not ekle"
-                    if let id = u.pathComponents.dropFirst().first {
-                        let ay = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "ay" }?.value
-                            ?? String(id.prefix(4)) + "-" + String(id.dropFirst(4).prefix(2))
-                        var m = BekleyenIsaret(id: id, ay: ay)
-                        m.baslik = IsaretSesDeposu.oku(m)?["baslik"] as? String ?? ""
-                        isaretSes = m
-                    }
-                default: break
-                }
-            }
+            .onOpenURL { adresAc($0) }
             // a Spotlight result: the record's id opens its quick editor
             .onContinueUserActivity(PDMSpotlight.activityType) { a in
                 if let id = PDMSpotlight.identifier(from: a) { merkez.hizliDuzen = id }
@@ -74,7 +48,8 @@ struct KivilcimApp: App {
                     // the share sheet could not open the app: the waiting voice note opens here instead
                     if isaretSes == nil, let m = IsaretSesDeposu.sonBekleyen() { isaretSes = m }
                     Task { await depo.gonder(); await KivilcimBus.becameActive() }
-                    Task.detached(priority: .utility) { Tani.kirp() }
+                    Task.detached(priority: .utility) { Tani.kirp(); Tani.mirror() }
+                    NewModelStore.shared.load()
                 }
             }
             .sheet(item: $isaretSes) { m in IsaretSesEkrani(isaret: m).environmentObject(depo) }
@@ -83,6 +58,8 @@ struct KivilcimApp: App {
                 if tur.hasSuffix("kaydet") { sekme = 0; Task { await merkez.baslat(kaynak: "ikon") } } else { sekme = 1 }
             }
             .task {
+                // a launch straight into the foreground (the lock-screen record path) never changes evre: copy here too
+                Task.detached(priority: .utility) { Tani.mirror() }
                 if let o = ProcessInfo.processInfo.environment["KIVILCIM_ONIZLEME"] { sekme = Int(o) ?? 0 }
                 // kilit ekranından kayıt için izinler önceden alınmalı (orada soru gösterilemez)
                 if AVAudioApplication.shared.recordPermission == .undetermined { _ = await AVAudioApplication.requestRecordPermission() }
@@ -94,6 +71,41 @@ struct KivilcimApp: App {
                     await merkez.bitir()
                 }
             }
+        }
+    }
+
+    /// kivilcim://kaydet · bitir · surekli · arsiv · merkez/<sayfa> · duzen/<id> · isaret-ses/<id>
+    private func adresAc(_ u: URL) {
+        switch u.host {
+        case "kaydet":
+            // kivilcim://kaydet?topic=<Teoria book id or k:name>: another app starts a recording about a book
+            let q = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            func temiz(_ ad: String) -> String? {
+                let v = q.first(where: { $0.name == ad })?.value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return v.isEmpty || v.count > 200 ? nil : v
+            }
+            // ?app=<id>: a voice note from an app's page (Merkez › Uygulamalar)
+            let konu = temiz("topic"), app = temiz("app")
+            let kaynak = app != nil ? "adres+uygulama" : konu != nil ? "adres+konu" : "adres"
+            sekme = 0; Task { await merkez.baslat(kaynak: kaynak, topic: konu, app: app) }
+        case "bitir": Task { await merkez.bitir() }
+        // kivilcim://surekli: all-day listening on/off (Shortcuts, Back Tap)
+        case "surekli": sekme = 0; Task { await merkez.degistir(kaynak: "adres", tur: "continuous") }
+        case "arsiv", "isler": sekme = 1
+        case "merkez": sekme = 5; MerkezNav.shared.open(u.pathComponents.dropFirst().first)
+        case "tatbik", "akis", "uygulamalar": sekme = 5; MerkezNav.shared.open(u.host)
+        case "gunluk": sekme = 3
+        case "duzen": if let id = u.pathComponents.dropFirst().first { merkez.hizliDuzen = id }
+        case "isaret-ses":
+            // Paylaş › Kıvılcım › "İşaretle ve sesli not ekle"
+            if let id = u.pathComponents.dropFirst().first {
+                let ay = URLComponents(url: u, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "ay" }?.value
+                    ?? String(id.prefix(4)) + "-" + String(id.dropFirst(4).prefix(2))
+                var m = BekleyenIsaret(id: id, ay: ay)
+                m.baslik = IsaretSesDeposu.oku(m)?["baslik"] as? String ?? ""
+                isaretSes = m
+            }
+        default: break
         }
     }
 }
@@ -108,6 +120,8 @@ struct KivilcimKisayollari: AppShortcutsProvider {
                     shortTitle: "Aç ve kaydet", systemImageName: "mic.circle")
         AppShortcut(intent: StartJournalIntent(), phrases: ["\(.applicationName) ile günlük kaydet", "\(.applicationName) günlük"],
                     shortTitle: "Sesli günlük", systemImageName: "book.pages")
+        AppShortcut(intent: StartContinuousIntent(), phrases: ["\(.applicationName) sürekli dinle", "\(.applicationName) ile gün boyu dinle"],
+                    shortTitle: "Sürekli dinle", systemImageName: "ear.badge.waveform")
         AppShortcut(intent: ShowOpenSparksIntent(), phrases: ["\(.applicationName) açık işler", "\(.applicationName) neler açık"],
                     shortTitle: "Açık işler", systemImageName: "checklist")
         AppShortcut(intent: EditLastSparkIntent(), phrases: ["\(.applicationName) son kaydı düzenle"],
@@ -130,6 +144,8 @@ extension Notification.Name { static let kivilcimKisaYol = Notification.Name("ki
 final class UygulamaTemsilcisi: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions o: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         KivilcimSystem.registerSend()
+        // before any recording can start in this launch: a file left without its sidecar is saved, not lost
+        KayitMerkezi.recoverOrphans()
         return true
     }
 

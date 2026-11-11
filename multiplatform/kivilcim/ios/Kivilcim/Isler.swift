@@ -444,12 +444,20 @@ struct FeedPhoneDetail: View {
     @Environment(\.openURL) private var openURL
     let id: String
 
+    /// Split out of `body`: inline, the Xcode 26.3 compiler gave up type-checking the whole view.
+    private static func byline(_ i: FeedItem) -> String {
+        var s = i.community
+        if let a = i.author, !a.isEmpty { s += " · " + a }
+        if let n = i.numbers { s += " · " + n }
+        return s
+    }
+
     var body: some View {
         if let i = depo.feed.items.first(where: { $0.id == id }) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     FeedPicture(item: i, height: 240)
-                    Text(i.community + (i.author.map { $0.isEmpty ? "" : " · " + $0 } ?? "") + (i.numbers.map { " · " + $0 } ?? ""))
+                    Text(Self.byline(i))
                         .font(.caption).foregroundStyle(.secondary)
                     Text(i.shownTitle).font(.system(.title2, design: .serif).weight(.bold)).textSelection(.enabled)
                     if let o = i.originalTitle { Text(o).font(.footnote).foregroundStyle(.secondary).textSelection(.enabled) }

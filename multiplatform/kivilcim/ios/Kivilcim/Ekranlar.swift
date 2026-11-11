@@ -84,6 +84,7 @@ struct KayitEkrani: View {
     @State private var secili: Oge?
     @State private var nabiz = false
     @State private var ayarlar = false
+    @State private var akis = false
 
     var bugun: [Oge] { depo.ogeler.filter { Calendar.current.isDateInToday($0.zaman) } }
 
@@ -94,6 +95,7 @@ struct KayitEkrani: View {
                     Picker("Kayıt türü", selection: $merkez.kind) {
                         Label("Kıvılcım", systemImage: "sparkles").tag("spark")
                         Label("Günlük", systemImage: "book.pages").tag("journal")
+                        Label("Sürekli", systemImage: "ear").tag("continuous")
                     }
                     .pickerStyle(.segmented).padding(.horizontal, 40).padding(.top, 8)
                 }
@@ -101,7 +103,10 @@ struct KayitEkrani: View {
                 ust
                 Spacer(minLength: 12)
                 dugme
-                Text(merkez.kayitta ? "Dokun: bitir" : merkez.kind == "journal" ? "Dokun: günlüğe başla · fikirde “kıvılcım” de" : "Dokun: başlat · basılı tut: bas-konuş")
+                Text(merkez.kayitta ? (merkez.surekli ? "Dokun: dinlemeyi bitir" : "Dokun: bitir")
+                     : merkez.kind == "journal" ? "Dokun: günlüğe başla · fikirde “kıvılcım” de"
+                     : merkez.kind == "continuous" ? "Dokun: gün boyu dinle · sessizlik atılır"
+                     : "Dokun: başlat · basılı tut: bas-konuş")
                     .font(.footnote).foregroundStyle(.secondary).padding(.top, 14)
                 if merkez.kayitta {
                     HStack(spacing: 22) {
@@ -109,6 +114,10 @@ struct KayitEkrani: View {
                         Button(merkez.duraklatildi ? "Devam" : "Duraklat") { Task { await merkez.duraklatDegistir() } }
                     }
                     .font(.footnote.weight(.medium)).padding(.top, 6)
+                }
+                if merkez.surekli || (!merkez.kayitta && merkez.kind == "continuous") {
+                    Button { akis = true } label: { Label("Son 1 saat", systemImage: "clock.arrow.circlepath") }
+                        .buttonStyle(.bordered).tint(.teal).font(.footnote.weight(.medium)).padding(.top, 10)
                 }
                 Spacer(minLength: 16)
                 sonKayit
@@ -130,6 +139,7 @@ struct KayitEkrani: View {
             }
             .sheet(item: $secili) { o in NavigationStack { DetayEkrani(id: o.id) } }
             .sheet(isPresented: $ayarlar) { AyarlarEkrani() }
+            .sheet(isPresented: $akis) { RecentTimeline() }
             .sheet(item: Binding(get: { merkez.hizliDuzen.map(KimlikSarici.init) }, set: { merkez.hizliDuzen = $0?.id })) { k in
                 HizliDuzenSayfasi(id: k.id).presentationDetents([.medium, .large])
             }
@@ -149,16 +159,28 @@ struct KayitEkrani: View {
                     .font(.system(size: 64, weight: .semibold, design: .rounded).monospacedDigit())
                     .contentTransition(.numericText())
                 MeterBars(meter: merkez.meter, adet: 34).frame(height: 54).padding(.horizontal, 30)
-                Text("\(merkez.aktifTur == "journal" ? "Sesli günlük · en çok 60 dk" : "Kıvılcım") · \(merkez.kaliteSecimi.ad)").font(.caption).foregroundStyle(.secondary)
+                if merkez.surekli {
+                    Label(merkez.speaking ? "Konuşma duyuluyor" : "Dinliyor · sessizlik atılıyor",
+                          systemImage: merkez.speaking ? "waveform" : "ear")
+                        .font(.caption.weight(.medium)).foregroundStyle(merkez.speaking ? Color.teal : .secondary)
+                        .contentTransition(.symbolEffect(.replace))
+                    Text("Sürekli dinleme · \(merkez.keptParts) parça saklandı · \(merkez.kaliteSecimi.ad)").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("\(merkez.aktifTur == "journal" ? "Sesli günlük · en çok 60 dk" : "Kıvılcım") · \(merkez.kaliteSecimi.ad)").font(.caption).foregroundStyle(.secondary)
+                }
                 if let t = merkez.activeTopic {
                     // the name comes from a record already linked to the same topic; otherwise the id itself
                     let ad = t.hasPrefix("k:") ? String(t.dropFirst(2)) : (depo.ogeler.first { $0.topic == t && !$0.topic_name.isEmpty }?.topic_name ?? t)
                     Label("Konu: \(ad)", systemImage: "book.closed").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
+                if let a = merkez.activeApp {
+                    Label("Uygulama: \(depo.appName(a))", systemImage: "app.badge").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
             }
         } else {
             VStack(spacing: 8) {
-                Text(merkez.kind == "journal" ? "Gününü anlat" : "Aklına geleni söyle").font(.title2.weight(.semibold))
+                Text(merkez.kind == "journal" ? "Gününü anlat" : merkez.kind == "continuous" ? "Bir kez başlat, gün boyu dinlesin" : "Aklına geleni söyle")
+                    .font(.title2.weight(.semibold)).multilineTextAlignment(.center)
                 Text(bugun.isEmpty ? "Bugün henüz fikir yok" : "Bugün \(bugun.count) fikir · \(Int(bugun.reduce(0) { $0 + $1.sure } / 60)) dk")
                     .font(.subheadline).foregroundStyle(.secondary)
                 if let h = merkez.hata { Text(h).font(.footnote).foregroundStyle(.red).multilineTextAlignment(.center).padding(.horizontal) }
@@ -193,7 +215,8 @@ struct KayitEkrani: View {
             .onEnded { _ in
                 let tutuldu = Date().timeIntervalSince(basma ?? Date()) >= 0.6
                 basma = nil
-                if basildigindaKayittaydi || (tutuldu && merkez.kayitta) { Tani.yaz("uygulama düğmesi: bitir"); Task { await merkez.bitir() } }
+                // push-to-talk does not apply to all-day listening: holding the button must not end the day
+                if basildigindaKayittaydi || (tutuldu && merkez.kayitta && !merkez.surekli) { Tani.yaz("uygulama düğmesi: bitir"); Task { await merkez.bitir() } }
             })
         .onChange(of: merkez.kayitta) { _, k in nabiz = k }
         .accessibilityLabel(merkez.kayitta ? "Kaydı bitir" : "Kaydı başlat")
@@ -473,6 +496,7 @@ struct DetayEkrani: View {
                                 Image(systemName: o.yildiz ? "star.fill" : "star").foregroundStyle(o.yildiz ? .yellow : .secondary)
                             }.accessibilityLabel(o.yildiz ? "Yıldızı kaldır" : "Yıldızla").buttonStyle(.bordered).sensoryFeedback(.impact, trigger: o.yildiz)
                         }
+                        if o.kind != "isaret" { AppLinkMenu(o: o) }
                         if !o.etiketler.isEmpty {
                             Text(o.etiketler.map { "#" + $0 }.joined(separator: "  ")).font(.caption).foregroundStyle(.secondary)
                         }
@@ -660,6 +684,7 @@ struct AyarlarEkrani: View {
     @AppStorage("onDokum") private var onDokum = true
     @AppStorage("sunucuDokum") private var sunucuDokum = false
     @AppStorage("dokunsal") private var dokunsal = true
+    @AppStorage("pruneAfterMac") private var pruneAfterMac = true
     @State private var secici = false
 
     var body: some View {
@@ -691,6 +716,14 @@ struct AyarlarEkrani: View {
                     if onDokum { Toggle("Cihaz içi değilse Apple sunucusunu kullan", isOn: $sunucuDokum) }
                 } header: { Text("Döküm") } footer: {
                     Text("Asıl döküm Mac'te yerel Whisper ile yapılır. Ön döküm, Mac kapalıyken de fikri telefonda aranabilir kılar; varsayılan olarak ses telefondan çıkmaz.")
+                }
+                Section {
+                    Toggle("Mac işleyince sesi telefondan sil", isOn: $pruneAfterMac)
+                    Adim(n: 1, metin: "Kayıt ekranında Sürekli'yi seç, bir kez dokun. Kilit ekranına ya da Denetim Merkezi'ne Kıvılcım › Sürekli dinle denetimi de eklenebilir.")
+                    Adim(n: 2, metin: "Telefon sessizliği atar: konuşma bitince bir dakika sonra parça kapanır ve gönderilir. Bir parça en çok 10 dk.")
+                    Adim(n: 3, metin: "Fısıltı için AirPods tak: cepteki telefon fısıltıyı zor duyar, normal sesi alır.")
+                } header: { Text("Sürekli dinleme") } footer: {
+                    Text("Ses, iCloud'a yüklendiği ve Mac'teki Whisper onu yazıya döktüğü an telefondan silinir; vault'ta durur ve dinlenince oradan iner. Pil %15'in altına inerse dinleme kendiliğinden durur. Yanındakilere kayıtta olduğunu söyle.")
                 }
                 Section {
                     LabeledContent("Klasör", value: kasa.bagli ? kasa.klasorAdi : "bağlı değil")
@@ -756,5 +789,79 @@ struct TaniEkrani: View {
         .navigationTitle("Tanı")
         .toolbar { Button("Yenile") { metin = Tani.oku() } }
         .refreshable { metin = Tani.oku() }
+    }
+}
+
+/// "What did I say in the last hour?" (2026-11-08): everything recorded in the window, oldest first, so it reads
+/// like the talk itself. Each part shows the phone's draft until the Mac's Whisper text arrives; ideas pulled out
+/// of a part sit under it. A tap opens the record (listen, retitle, reclassify).
+struct RecentTimeline: View {
+    @EnvironmentObject var depo: TelefonDeposu
+    @EnvironmentObject var merkez: KayitMerkezi
+    @Environment(\.dismiss) private var close
+    @State private var window = 60
+    @State private var selected: Oge?
+
+    private var since: Date {
+        window == 0 ? Calendar.current.startOfDay(for: Date()) : Date().addingTimeInterval(-Double(window) * 60)
+    }
+    private var parts: [Oge] {
+        depo.ogeler.filter { $0.kind != "extract" && $0.kind != "isaret" && $0.zaman >= since }.sorted { $0.tarih < $1.tarih }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Picker("Aralık", selection: $window) {
+                        Text("Son 1 saat").tag(60); Text("Son 3 saat").tag(180); Text("Bugün").tag(0)
+                    }
+                    .pickerStyle(.segmented)
+                    if merkez.surekli {
+                        Label("Şu an dinleniyor · biten parça buraya düşer", systemImage: merkez.speaking ? "waveform" : "ear")
+                            .font(.footnote).foregroundStyle(.teal)
+                    }
+                }
+                if parts.isEmpty {
+                    Section {
+                        Text("Bu aralıkta kayıt yok.").foregroundStyle(.secondary)
+                    }
+                }
+                ForEach(parts) { o in
+                    Section {
+                        Button { selected = o } label: { row(o) }.buttonStyle(.plain)
+                        ForEach(depo.cocuklar(o)) { c in
+                            Button { selected = c } label: {
+                                Label(c.baslik, systemImage: "sparkles").font(.subheadline).foregroundStyle(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        Text("\(Zaman.saat(o.zaman)) · \(Zaman.sure(o.sure))")
+                    }
+                }
+            }
+            .navigationTitle(window == 0 ? "Bugün" : "Son \(window / 60) saat")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button("Kapat") { close() } }
+            .sheet(item: $selected) { o in NavigationStack { DetayEkrani(id: o.id) } }
+            .refreshable { await depo.gonder() }
+        }
+    }
+
+    @ViewBuilder private func row(_ o: Oge) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(o.baslik).font(.headline).lineLimit(2)
+                Spacer()
+                if o.durum != "hazir" {
+                    Text(o.metin.isEmpty ? "Mac bekleniyor" : "ön döküm").font(.caption2).foregroundStyle(.orange)
+                }
+            }
+            if !o.ozet.isEmpty { Text(o.ozet).font(.subheadline).foregroundStyle(.secondary) }
+            if !o.metin.isEmpty { Text(o.metin).font(.callout).lineLimit(8) }
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
     }
 }
