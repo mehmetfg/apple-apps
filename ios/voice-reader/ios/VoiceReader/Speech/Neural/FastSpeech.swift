@@ -44,8 +44,15 @@ enum FastSpeech {
     }
 
     /// `tempo` times shorter (2 = half as long).
+    ///
+    /// `uneven`: how much of the shortening may be uneven. A system voice comes here already at its clean speed and
+    /// is shortened 1.15 to 1.5 times, all of it unevenly. A voice that comes at its natural pace (the neural voices:
+    /// Elif, Kaan) needs 2.75 to 4.2 times: done all unevenly the steady vowels would go 5 to 12 times faster and
+    /// the consonants 1.6 to 2.6, and above 3.6 times the time asked for could not be reached at all (measured on
+    /// Elif from the phone, 2026-11-13: 3.9 asked, 3.6 given). With `uneven` 1.6 the first 1.6 times is uneven, as
+    /// for Yelda, and the rest is the same for every sound. The time asked for is now always reached.
     static func squeeze(_ x: [Float], tempo: Double, sampleRate sr: Double = 48_000, shortPause: Double = 0.035,
-                        longPause: Double = 0.10, spare: Float = 0.85) -> Result {
+                        longPause: Double = 0.10, spare: Float = 0.85, uneven: Double = .infinity) -> Result {
         let hop = Int(sr * 0.005), W = Int(sr * 0.02)
         guard tempo > 1.01, x.count > 4 * W else { return Result(samples: x, marks: [(0, 0), (x.count, x.count)]) }
         let (c, pause) = protect(x, sr: sr, hop: hop, window: W)
@@ -67,15 +74,22 @@ enum FastSpeech {
         var fixed = 0.0
         for k in 0..<n where pause[k] { fixed += frame / rate[k] }
         let want = max(0.05, Double(x.count) / sr / tempo - fixed)
-        // speech: rate = 1 + (R − 1)·(1 − spare·c); R so that the speech takes the time that is left
+        // the part that is shortened unevenly (all of it unless `uneven` says less)
+        let unevenWant = tempo > uneven ? max(want, Double(x.count) / sr / uneven - fixed) : want
+        // speech: rate = S·(1 + (R − 1)·(1 − spare·c)); R so that the speech takes the uneven part's time, then S
+        // (the same for every sound) for what is left, also when R reached its end before the time was met
         var lo = 1.0, hi = 12.0, R = 1.0
-        for _ in 0..<40 {
-            R = (lo + hi) / 2
+        func time(_ R: Double) -> Double {
             var t = 0.0
             for k in 0..<n where !pause[k] { t += frame / (1 + (R - 1) * Double(1 - spare * c[k])) }
-            if t > want { lo = R } else { hi = R }
+            return t
         }
-        for k in 0..<n where !pause[k] { rate[k] = 1 + (R - 1) * Double(1 - spare * c[k]) }
+        for _ in 0..<40 {
+            R = (lo + hi) / 2
+            if time(R) > unevenWant { lo = R } else { hi = R }
+        }
+        let S = max(1, time(R) / want)
+        for k in 0..<n where !pause[k] { rate[k] = S * (1 + (R - 1) * Double(1 - spare * c[k])) }
 
         // variable-rate WSOLA
         let N = W / 2 * 2, H = N / 2, T = Int(sr * 0.006)
