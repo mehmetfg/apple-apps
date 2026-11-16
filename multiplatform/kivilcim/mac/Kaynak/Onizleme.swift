@@ -36,6 +36,11 @@ enum Onizleme {
         // 2026-11-06: the daily feed and an item
         ciz(AnyView(FeedView(selection: .constant(depo.feed.items.first?.id))), NSSize(width: 760, height: 1500), cikis.appendingPathComponent("akis\(ek).png"))
         ciz(AnyView(FeedDetail(id: depo.feed.items.first?.id ?? "")), NSSize(width: 620, height: 600), cikis.appendingPathComponent("akis-madde\(ek).png"))
+        // 2026-11-14: Program · Durum board (one program open) and the Uygulamalar page with an app's detail
+        AppsHub.shared.load(depo.kok); AppsHub.shared.scanNow()
+        ciz(AnyView(ProgramBoardView(selection: .constant(nil), previewOpen: "kivilcim")), NSSize(width: 1180, height: 1500), cikis.appendingPathComponent("pano\(ek).png"))
+        ciz(AnyView(AppsView(selection: .constant("voice-reader"), query: "")), NSSize(width: 1180, height: 1700), cikis.appendingPathComponent("uygulamalar\(ek).png"))
+        ciz(AnyView(AppDetail(id: "kivilcim", goRecord: .constant(nil))), NSSize(width: 480, height: 1300), cikis.appendingPathComponent("uygulama\(ek).png"))
         // 2026-11-05: Tatbik page and an item's detail
         ciz(AnyView(TatbikView(selection: .constant(nil), query: "")), NSSize(width: 900, height: 1500), cikis.appendingPathComponent("tatbik\(ek).png"))
         if let m = depo.tatbik.maddeler.first(where: { $0.status == .kismen }) {

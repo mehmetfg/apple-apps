@@ -119,6 +119,33 @@ def like_remove(m):
     return {"ok": True}
 
 
+def seen_save(m):
+    """Radar (2026-11-11): posts that passed on screen on x.com, one JSON line each, in the day's file. radar.py ranks them."""
+    keep = ("status", "url", "author", "handle", "text", "links", "image", "replies", "reposts", "likes", "views",
+            "posted", "following", "seen")
+    lines = []
+    for p in (m.get("posts") or [])[:60]:
+        status = "".join(c for c in str(p.get("status", "")) if c.isdigit())
+        if not status:
+            continue
+        x = {k: p.get(k) for k in keep if p.get(k) not in (None, "")}
+        x["status"] = status
+        x["text"] = str(x.get("text", ""))[:1200]
+        lines.append(json.dumps(x, ensure_ascii=False))
+    if not lines:
+        return {"ok": True}
+    name = f"{datetime.date.today().isoformat()}.jsonl"
+    for folder in (KOK / "Feed" / "x-seen", LIKES_INBOX / "x-seen"):
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            with open(folder / name, "a", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+            return {"ok": True}
+        except PermissionError as e:
+            log(f"yazılamadı {folder}: {e}")
+    return {"ok": False, "hata": "hiçbir yere yazılamadı"}
+
+
 def isle_baslat():
     if os.environ.get("KIVILCIM_KOK"):
         return   # test run
@@ -169,6 +196,8 @@ def main():
             gonder(like_save(m))
         elif e == "x_unlike":
             gonder(like_remove(m))
+        elif e == "x_seen":
+            gonder(seen_save(m))
         elif e == "ac" and m.get("yol"):
             subprocess.Popen(["open", str(KOK / m["yol"])])
             gonder({"ok": True})

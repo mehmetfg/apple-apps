@@ -96,6 +96,8 @@ chrome.runtime.onMessage.addListener((m, _s, reply) => {
   // a like on X: kept for tomorrow's daily feed, silently (no badge, no notification)
   if (m && m.eylem === "x_like") { send({ eylem: "x_like", like: { ...m.like, time: localIso() } }).then(reply); return true; }
   if (m && m.eylem === "x_unlike") { send({ eylem: "x_unlike", status: m.status }).then(reply); return true; }
+  // posts that passed on screen on x.com (Radar): appended to the day's file, silently
+  if (m && m.eylem === "x_seen" && Array.isArray(m.posts)) { send({ eylem: "x_seen", posts: m.posts.slice(0, 60) }).then(reply); return true; }
   return false;
 });
 

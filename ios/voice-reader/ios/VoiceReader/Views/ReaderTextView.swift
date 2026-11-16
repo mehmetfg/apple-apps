@@ -227,6 +227,15 @@ struct ReaderTextView: UIViewRepresentable {
                 scroll(tv, to: j.offset, fraction: j.fraction, animated: false)
                 paintMarks(animated: false, follow: false)
                 if tv.alpha < 1 { UIView.animate(withDuration: 0.15) { tv.alpha = 1 } }
+            } else if let j = lastJump, Date.now.timeIntervalSince(j.at) < 2, pendingScroll == nil,
+                      !tv.isTracking, !tv.isDragging, !tv.isDecelerating,
+                      tv.contentOffset.y <= -tv.adjustedContentInset.top + 1, j.offset > 0 {
+                // Just after a book opens at its place the text container takes its final width, and UITextView,
+                // working out the new content size, puts the page back at the top (2026-11-12, -opentest: the place
+                // was at 62 321 pt, the page went to -152 a moment later and the book showed its beginning). A page
+                // thrown to the top in the first two seconds after a jump, with no finger on it, goes back to the place.
+                scroll(tv, to: j.offset, fraction: j.fraction, animated: false)
+                paintMarks(animated: false, follow: false)
             } else if pendingScroll == nil, let f = bandFrame, abs(f.width - tv.bounds.width) > 0.5 {
                 paintMarks(animated: false, follow: false)          // rotated or resized: the band is full width
             }

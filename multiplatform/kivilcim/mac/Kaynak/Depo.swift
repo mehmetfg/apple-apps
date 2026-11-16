@@ -15,6 +15,9 @@ final class Depo: ObservableObject {
     private var tatbikDate: Date?
     @Published private(set) var feed = FeedIssue.empty
     private var feedDate: Date?
+    @Published private(set) var radar = RadarPage.empty
+    private var radarDate: Date?
+    private var radarAsked = Date.distantPast
     @Published private(set) var isleniyor = false
     @Published private(set) var durumMetni = ""
     @Published var secili: String?
@@ -93,7 +96,35 @@ final class Depo: ObservableObject {
         ogeler = liste.sorted { $0.tarih > $1.tarih }
         loadLinks()
         loadTatbik()
+        AppsHub.shared.load(kok)
         loadFeed()
+        loadRadar()
+    }
+
+    /// Feed/radar.json (radar.py). A broken file keeps the last state.
+    func loadRadar() {
+        let u = kok.appendingPathComponent("Feed/radar.json")
+        let t = (try? u.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        guard t != radarDate || radar.updated == nil else { return }
+        radarDate = t
+        if let v = try? Data(contentsOf: u), let s = try? JSONDecoder().decode(RadarPage.self, from: v) { radar = s }
+    }
+
+    /// A change shown at once, before the next pass rewrites the file.
+    func radarLocal(_ change: (inout RadarPage) -> Void) { change(&radar) }
+
+    /// New X sightings, pins or translations since radar.json was written: rank again, at most every 2 minutes
+    /// (the extension writes every 15 s while x.com is being read).
+    private func radarInputsNewer() -> Bool {
+        guard Date().timeIntervalSince(radarAsked) > 120 else { return false }
+        let f = kok.appendingPathComponent("Feed")
+        func date(_ u: URL) -> Date { (try? u.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast }
+        let merged = max(date(f.appendingPathComponent("radar.json")), radarAsked)
+        var inputs = ["x-accounts.json", "radar-hidden.json", "radar-translations.json"].map { f.appendingPathComponent($0) }
+        inputs += ((try? FileManager.default.contentsOfDirectory(at: f.appendingPathComponent("x-seen"), includingPropertiesForKeys: nil)) ?? [])
+        guard inputs.contains(where: { date($0) > merged.addingTimeInterval(1) }) else { return false }
+        radarAsked = Date()
+        return true
     }
 
     /// Feed/feed.json (feed.py). A broken file keeps the last state.
@@ -390,8 +421,8 @@ final class Depo: ObservableObject {
             else if olayYeni && !isleniyor { isle(hizli: true) }
             // iCloud telefondan getirmezse: telefon eşleşikken isle.py kayıtları devicectl ile kendisi alır
             else if !isleniyor, Date().timeIntervalSince(sonTelefon) > 600 { sonTelefon = Date(); isle() }
-            else if !isleniyor, tatbikInputsNewer() || feedInputsNewer() { isle(hizli: true) }
-            else if d.dizinTarihi != dizinTarihi { yukle() } else { loadLinks(); loadTatbik(); loadFeed() }
+            else if !isleniyor, tatbikInputsNewer() || feedInputsNewer() || radarInputsNewer() { isle(hizli: true) }
+            else if d.dizinTarihi != dizinTarihi { yukle() } else { loadLinks(); loadTatbik(); AppsHub.shared.load(kok); loadFeed(); loadRadar() }
             if #available(macOS 26.0, *) { await FeedTranslator.inBackground(self) }
         }
     }

@@ -371,7 +371,7 @@ struct TatbikPano: View {
             return oa != ob ? oa < ob : a.priorityRank != b.priorityRank ? a.priorityRank < b.priorityRank : a.id < b.id
         }
     }
-    private func order(_ s: TatbikStatus) -> Int { [.acik: 0, .kismen: 1, .tamam: 2, .gerekYok: 3][s] ?? 0 }
+    private func order(_ s: TatbikStatus) -> Int { [.acik: 0, .kismen: 1, .tamam: 2][s] ?? 0 }
 
     var body: some View {
         List {
@@ -437,7 +437,6 @@ struct TatbikPano: View {
             }.tint(.green)
         }
         .swipeActions(edge: .trailing) {
-            Button { depo.tatbikDuzelt(m.id, "status", "gerek-yok") } label: { Label("Gerek yok", systemImage: "minus.circle") }.tint(.gray)
             Button { depo.tatbikDuzelt(m.id, "status", "kismen") } label: { Label("Kısmen", systemImage: "circle.lefthalf.filled") }
                 .tint(TatbikStatus.kismen.color)
         }

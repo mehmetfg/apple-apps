@@ -5,7 +5,7 @@
 // chips, pills and keys are glass that answers the finger; neighbouring pieces share one container so they blend
 // and are drawn in one pass. Before iOS 26 each piece falls back to what it was (a flat bar, a material capsule).
 //
-//   ReaderBarGlass     the reader's top and bottom bars: a floating glass slab tinted with the page's chrome colour
+//   ReaderBarGlass     the reader's top and bottom bars: glass fixed to the screen's edge, tinted with the chrome colour
 //   GlassCapsule       chips, pills, small keys (optionally tinted, optionally answering the touch)
 //   GlassGroup         GlassEffectContainer where it exists
 //   GlassPanel         cards and the mini player (MiniPlayer.swift)
@@ -17,11 +17,17 @@ struct ReaderBarGlass: ViewModifier {
     let edge: VerticalEdge
 
     func body(content: Content) -> some View {
+        // Fixed to the screen's edge, full width, running under the clock or the home indicator (2026-11-12: the
+        // floating slab with rounded corners looked "askıda"; the user wanted the bars stuck to the edge).
         if #available(iOS 26.0, *) {
             content
-                .glassEffect(.regular.tint(Color(uiColor: theme.chrome).opacity(0.5)), in: .rect(cornerRadius: 26, style: .continuous))
-                .padding(.horizontal, 8)
-                .padding(edge == .top ? .top : .bottom, 2)
+                .frame(maxWidth: .infinity)
+                .background {
+                    Rectangle()
+                        .glassEffect(.regular.tint(Color(uiColor: theme.chrome).opacity(0.5)), in: .rect)
+                        .ignoresSafeArea(edges: edge == .top ? .top : .bottom)
+                }
+                .overlay(alignment: edge == .top ? .bottom : .top) { Rectangle().fill(Color(uiColor: theme.hairline)).frame(height: 0.5) }
         } else {
             content
                 .background(Color(uiColor: theme.chrome).ignoresSafeArea(edges: edge == .top ? .top : .bottom))

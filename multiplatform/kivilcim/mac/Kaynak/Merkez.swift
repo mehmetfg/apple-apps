@@ -593,11 +593,11 @@ struct RecordDock: View {
 extension Suzgec {
     var key: String {
         switch self {
-        case .yon: "yon"; case .akis: "akis"; case .konular: "konular"; case .tatbik: "tatbik"; case .gunluk: "gunluk"; case .acik: "acik"; case .biten: "biten"
+        case .board: "board"; case .apps: "apps"; case .yon: "yon"; case .akis: "akis"; case .konular: "konular"; case .tatbik: "tatbik"; case .gunluk: "gunluk"; case .acik: "acik"; case .biten: "biten"
         default: "acik"
         }
     }
     static func from(_ k: String) -> Suzgec {
-        switch k { case "akis": .akis; case "konular": .konular; case "tatbik": .tatbik; case "gunluk": .gunluk; case "acik": .acik; case "biten": .biten; default: .yon }
+        switch k { case "board": .board; case "apps": .apps; case "akis": .akis; case "konular": .konular; case "tatbik": .tatbik; case "gunluk": .gunluk; case "acik": .acik; case "biten": .biten; default: .yon }
     }
 }

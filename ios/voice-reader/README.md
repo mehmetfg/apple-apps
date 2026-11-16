@@ -1013,3 +1013,51 @@ görüntüsü (derlendi, ekranda bakılmadı).
 - Simülatörde denendi: dört karartma biçimi açık temada, ayar sayfası, kapsül bant. Denenmedi: koyu temada kapsül, kinetik kipin yeni ikon sıklığı.
 - Koyu temalar sadeleşti (2026-11-10 gece): koyu modda vurgu rengi gümüş-beyaza (`Accent.quiet`, doygunluk %16), ilerleme çubukları soluk gri-maviye çekildi; zeminler (Palette, Koyu tema) mavisiz nötr gri. Beyaz işaret taşıyan dolgular (ses notu düğmesi, öne çıkan düğmeler) için `Accent.solid`: açıkta vurgu, koyuda grafit.
 - Satır geçişi akıcı (2026-11-11): kapsül, arkasındaki satır bandı ve sayfa karartması bir sonraki satıra birlikte ~0,32 sn'lik yumuşak bir eğriyle kayıyor (`LineGlide`); eski satırın yazısı yenisine eriyor, yazı yana kaymıyor. Satır içinde hiçbir şey kımıldamıyor. Kapsülün gölgesi kalktı (uçlarında leke yapıyordu), yalnız ince halka kaldı. Simülatörde videodan kare kare denetlendi.
+
+## 2026-11-11 — Siri'nin sesleri (Elif, Kaan) Wise Path'te; hız payı
+
+Siri'nin Türkçe sesleri uygulamaların listesinde yok, Siri'nin ses servisi (sirittsd) de korumalı alandaki uygulamaya
+cevap vermiyor. Ama o servisin kullandığı motor (`SiriTTSService` içindeki `SiriTTSSynthesisEngine`) her sürecin
+yükleyebildiği bir çerçevede ve sesi klasör yolu olarak alıyor. Ses klasörleri uygulamanın içinde gelince
+(`Models/SiriVoices.bundle`, bu Mac'in Siri varlıklarından `studio/siri/install-voices.sh` ile kopyalanır) motor
+telefonda internetsiz konuşuyor: 48 kHz, kelime başları dahil. Kod `Speech/Neural/SiriEngine.swift`; açık API değil,
+her şey çalışma anında adıyla aranır, bir iOS sürümü bunları değiştirirse sesler listede soluk görünür, okuma öbür
+sese düşer. App Store'a gitmez.
+
+**Motorun hız sayısı sisteme göre farklı** (iPhone 13 Pro Max, iOS 27.0.1, 133 karakterlik cümle, `-siritest`):
+iOS 1…2 arasını yok sayıyor, üstünü yarıya indiriyor (2,5 → 1,25×, 3 → 1,5×, 4 → 2×); macOS 15.6 sayıyı olduğu gibi
+alıyor. 1'in altı ikisinde de olduğu gibi. Motor bunu ilk hızlı parçadan önce bir kez ölçer (iki kısa cümle, ≈0,2 sn,
+`warmUp` sırasında, süreç başına bir kez). Bu düzeltmeden önceki telefon kurulumunda 2,75× aslında 1,84× çalıyordu.
+`neuralSentenceDuration` hiçbir şeyi değiştirmiyor.
+
+**Hız payı sese göre** (`Voice.modelShare`): yüksek hızın en fazla bu kadarını model alır, kalanı WSOLA. Whisper, 889
+karakter, 330 kelime/dk, tam hızda duyulan kelime: Elif payı 1,5'te %84, 2'de %97; Kaan 1,5'te %90, 2'de %68. 200
+kelime/dk'ya yavaşlatılınca her pay (1…2,5) ve 430 kelime/dk'da da %97–99 karakter: karar tam hızdaki puanla. Elif 2,
+Kaan 1,5. Modelin payı render'ı da ucuzlatır: telefonda bir cümle kendi hızında 1,15 sn, motor 1,5× iken 0,78 sn, 2×
+iken 0,66 sn. Motordan sonraki zincir (EQ, WSOLA, düzlük, seviye) her hızda 0,04 sn'nin altında.
+
+Telefonda tam zincir (eski 1,5 payı ile, hız düzeltmesi sonrası): Elif 1× 30,6 sn sesi 4,55 sn'de (6,7× gerçek
+zaman), 2,75× 11,1 sn'yi 3,6 sn'de, 3,6× 8,5 sn'yi 2,9 sn'de; istenen karakter/sn'nin %95–97'si. Mac'te yeni paylarla
+Elif %97–98, Kaan %96.
+
+**Sınanan:** telefonda hız eğrisi ve tam zincir (1,5 payıyla); Mac'te yeni paylar ve süreç başına tek ölçüm.
+**Sınanmayan:** yeni paylarla telefonda ölçüm (kurulum sırasında telefonun bağlantısı koptu; derleme tamam);
+Elif'in 2 payının kulakla dinlenmesi; Düzlük açıkken Siri seslerinde PSOLA çatlağı (Ema'da vardı). Bu Mac'ten
+yapılan kurulumda Ema ve Supertonic modelleri yok (`Speech/Neural/Models/` yalnız SiriVoices.bundle taşıyor).
+
+### 2026-11-12 — Siri seslerinde takılan vurgu; yapışık bantlar; kitap kaldığı yerden açılıyor
+- **Vurgu takılması (Elif, Kaan):** iOS motorun hız sayısını yarıya indiriyor ama kelime zamanlarını indirmiyordu;
+  1×'in üstündeki her hızda kelimeler gerçek yerlerinin yarısında bildiriliyordu (son kelime başı / ses uzunluğu:
+  1×'te 0,98, 2,75× ve 3,6×'te 0,49). Vurgu sesin önüne geçiyor, sonra bekleyip donuyordu. `SiriEngine.synthesize`
+  kelime zamanlarını aynı katsayıyla düzeltiyor; telefonda ölçüldü: her hızda iki seste 0,98.
+  Yeni paylarla telefonda render: Elif 2,75× 11,1 sn sesi 2,0 sn'de (önce 3,6 sn), Kaan 2,6 sn'de.
+- **Bantlar kenara yapışık** (`ReaderBarGlass`): yuvarlak köşeli, kenardan boşluklu, havada duran cam levha yerine
+  tam genişlikte, saat ve ana ekran çizgisinin altına uzanan cam bant, iç kenarında ince çizgi. Dokununca gizlenme
+  aynı.
+- **Kitap kaldığı yerden açılıyor:** kitap konumuna kaydırıldıktan hemen sonra metin kutusu son genişliğini alıyor ve
+  UITextView içerik boyunu yeniden hesaplarken sayfayı başa atıyordu (`_updateContentSize`; konum 62 321 pt,
+  bir an sonra -152). Atlamadan sonraki 2 sn içinde, parmak sayfada değilken başa atılan sayfa konuma geri götürülür.
+  Test kancası `-opentest -openreader`: 600 paragraflık kitap, konum 420. paragrafta; simülatörde 420. paragraf okuma
+  çizgisinde açıldı.
+**Sınanmayan:** telefonda kitap açılışı ve yeni bantlar (simülatörde, açık temada bakıldı); koyu temada bantlar;
+Siri seslerinde vurgunun telefonda gözle izlenmesi (zamanlar ölçüldü).

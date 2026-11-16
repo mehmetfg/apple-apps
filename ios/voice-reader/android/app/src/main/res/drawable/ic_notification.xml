@@ -1,0 +1,5 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <!-- an open book with a sound wave over it -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M3,6.5C5.2,5.6 8.2,5.6 11,7v12c-2.8,-1.4 -5.8,-1.4 -8,-0.5zM21,6.5C18.8,5.6 15.8,5.6 13,7v12c2.8,-1.4 5.8,-1.4 8,-0.5z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M6,2.6h1.2v2.2h-1.2zM8.4,1.6h1.2v3.2h-1.2zM10.8,2.2h1.2v2.6h-1.2zM13.2,1.4h1.2v3.4h-1.2zM15.6,2.4h1.2v2.4h-1.2z"/>
+</vector>

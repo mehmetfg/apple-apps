@@ -163,7 +163,7 @@ func obsidianAc(_ dosya: URL, _ vault: URL) {
 // MARK: Arşiv penceresi
 
 enum Suzgec: Hashable {
-    case yon, akis, konular, tatbik, acik, biten, gunluk, tumu, bugun, hafta, yildizli, bekleyen, alan(String), amac(String)
+    case board, apps, yon, akis, konular, tatbik, acik, biten, gunluk, tumu, bugun, hafta, yildizli, bekleyen, alan(String), amac(String)
 }
 
 struct ArsivPenceresi: View {
@@ -174,6 +174,8 @@ struct ArsivPenceresi: View {
     @State private var sorgu = ""
     @State private var konu: String?
     @State private var madde: String?
+    @State private var appSel: String?
+    @ObservedObject private var appsHub = AppsHub.shared
     @State private var feedItem: String?
     @State private var gitKayit: String?
     @AppStorage("tema") private var tema = "sistem"
@@ -182,7 +184,7 @@ struct ArsivPenceresi: View {
         let tk = Calendar.current
         return depo.ogeler.filter { o in
             switch suzgec ?? .tumu {
-            case .yon, .akis, .konular, .tatbik: false
+            case .board, .apps, .yon, .akis, .konular, .tatbik: false
             case .acik: !o.isDone && !o.isJournal
             case .biten: o.isDone
             case .gunluk: o.isJournal
@@ -201,6 +203,8 @@ struct ArsivPenceresi: View {
         NavigationSplitView {
             List(selection: $suzgec) {
                 Section("Merkez") {
+                    satir(.board, "Program · Durum", "tablecells", depo.tatbik.openCount)
+                    satir(.apps, "Uygulamalar", "square.grid.2x2", appsHub.apps.filter { appsHub.phase($0) == .active }.count)
                     Label("Yön", systemImage: "safari").tag(Suzgec.yon)
                     satir(.akis, "Akış", "newspaper", depo.feed.openCount)
                     satir(.tatbik, "Tatbik", "checklist", depo.tatbik.openCount)
@@ -237,38 +241,8 @@ struct ArsivPenceresi: View {
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 210)
             .safeAreaInset(edge: .bottom) { RecordDock() }
-        } content: {
-            Group {
-                switch suzgec {
-                case .yon: DirectionView(topic: $konu, filter: $suzgec)
-                case .akis: FeedView(selection: $feedItem)
-                case .tatbik: TatbikView(selection: $madde, query: sorgu)
-                case .konular: TopicList(selection: $konu, query: sorgu)
-                case .gunluk: JournalList(query: sorgu)
-                default: OgeListesi(liste: liste, sorgu: sorgu, oncelikle: suzgec == .acik)
-                }
-            }
-            .navigationSplitViewColumnWidth(min: 300, ideal: suzgec == .yon || suzgec == .tatbik || suzgec == .akis ? 600 : 360)
         } detail: {
-            if suzgec == .akis {
-                FeedDetail(id: feedItem ?? "")
-            } else if suzgec == .tatbik {
-                TatbikDetail(id: madde ?? "", goRecord: $gitKayit)
-            } else if suzgec == .yon || suzgec == .konular {
-                if let id = konu, let t = depo.links.topic(id) {
-                    TopicPage(t: t).id(t.id)
-                } else {
-                    ContentUnavailableView("Bir konu seç", systemImage: "books.vertical",
-                                           description: Text("Bir kitap hakkında söylediğin her şey, nerede kaydettiysen, burada bir arada."))
-                }
-            } else if depo.coklu.count > 1 {
-                BulkPanel(items: depo.ogeler.filter { depo.coklu.contains($0.id) })
-            } else if let id = depo.secili, let o = depo.ogeler.first(where: { $0.id == id }) {
-                if o.isJournal { JournalDetail(o: o).id(o.id) } else { Detay(o: o, sorgu: sorgu).id(o.id) }
-            } else {
-                ContentUnavailableView(suzgec == .gunluk ? "Bir konuşma seç" : "Bir fikir seç", systemImage: "waveform",
-                                       description: Text("\(KisayolSecenegi.secili.ad) fikir · ⌃⌥G uzun konuşma"))
-            }
+            main
         }
         .searchable(text: $sorgu, placement: .toolbar, prompt: "Başlık, döküm, etiket…")
         .onAppear { suzgec = Suzgec.from(acilis) }
@@ -279,7 +253,9 @@ struct ArsivPenceresi: View {
         }
         .onChange(of: depo.openTatbik) { _, id in
             guard let id else { return }
-            suzgec = .tatbik; madde = id; depo.openTatbik = nil
+            // the board shows items in place; from anywhere else the window goes to Tatbik
+            if suzgec != .board { suzgec = .tatbik }
+            madde = id; depo.openTatbik = nil
         }
         .toolbar {
             ToolbarItem {
@@ -298,6 +274,68 @@ struct ArsivPenceresi: View {
         }
         .navigationTitle("Kıvılcım")
         .navigationSubtitle("\(depo.ogeler.count) fikir · \(depo.toplamDakika) dk · \(String(format: "%.1f", depo.toplamMB)) MB")
+    }
+
+    /// Tatbik and Akış get the whole width; their detail opens as an inspector only once something is picked
+    /// (2026-11-11: an empty "pick an item" column took a third of the window). The other lists keep list | detail.
+    @ViewBuilder private var main: some View {
+        switch suzgec {
+        case .board:
+            ProgramBoardView(selection: $madde, openApps: { suzgec = .apps })
+                .inspector(isPresented: Binding(get: { madde != nil }, set: { if !$0 { madde = nil } })) {
+                    TatbikDetail(id: madde ?? "", goRecord: $gitKayit, close: { madde = nil })
+                        .inspectorColumnWidth(min: 340, ideal: 430, max: 680)
+                }
+        case .apps:
+            AppsView(selection: $appSel, query: sorgu)
+                .inspector(isPresented: Binding(get: { appSel != nil }, set: { if !$0 { appSel = nil } })) {
+                    AppDetail(id: appSel ?? "", goRecord: $gitKayit, close: { appSel = nil })
+                        .inspectorColumnWidth(min: 360, ideal: 460, max: 700)
+                }
+        case .tatbik:
+            TatbikView(selection: $madde, query: sorgu)
+                .inspector(isPresented: Binding(get: { madde != nil }, set: { if !$0 { madde = nil } })) {
+                    TatbikDetail(id: madde ?? "", goRecord: $gitKayit, close: { madde = nil })
+                        .inspectorColumnWidth(min: 340, ideal: 430, max: 680)
+                }
+        case .akis:
+            FeedView(selection: $feedItem)
+                .inspector(isPresented: Binding(get: { feedItem != nil }, set: { if !$0 { feedItem = nil } })) {
+                    FeedDetail(id: feedItem ?? "", close: { feedItem = nil })
+                        .inspectorColumnWidth(min: 340, ideal: 440, max: 700)
+                }
+        default:
+            HSplitView {
+                Group {
+                    switch suzgec {
+                    case .yon: DirectionView(topic: $konu, filter: $suzgec)
+                    case .konular: TopicList(selection: $konu, query: sorgu)
+                    case .gunluk: JournalList(query: sorgu)
+                    default: OgeListesi(liste: liste, sorgu: sorgu, oncelikle: suzgec == .acik)
+                    }
+                }
+                .frame(minWidth: 300, idealWidth: suzgec == .yon ? 600 : 360, maxWidth: suzgec == .yon ? .infinity : 620)
+                secondary.frame(minWidth: 380, maxWidth: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder private var secondary: some View {
+        if suzgec == .yon || suzgec == .konular {
+            if let id = konu, let t = depo.links.topic(id) {
+                TopicPage(t: t).id(t.id)
+            } else {
+                ContentUnavailableView("Bir konu seç", systemImage: "books.vertical",
+                                       description: Text("Bir kitap hakkında söylediğin her şey, nerede kaydettiysen, burada bir arada."))
+            }
+        } else if depo.coklu.count > 1 {
+            BulkPanel(items: depo.ogeler.filter { depo.coklu.contains($0.id) })
+        } else if let id = depo.secili, let o = depo.ogeler.first(where: { $0.id == id }) {
+            if o.isJournal { JournalDetail(o: o).id(o.id) } else { Detay(o: o, sorgu: sorgu).id(o.id) }
+        } else {
+            ContentUnavailableView(suzgec == .gunluk ? "Bir konuşma seç" : "Bir fikir seç", systemImage: "waveform",
+                                   description: Text("\(KisayolSecenegi.secili.ad) fikir · ⌃⌥G uzun konuşma"))
+        }
     }
 
     private func satir(_ s: Suzgec, _ ad: String, _ simge: String, _ n: Int) -> some View {

@@ -1,4 +1,5 @@
-// Voice Reader's own voices. Each is a base voice (Ema's neural model, a Supertonic style blend, or an Apple voice)
+// Voice Reader's own voices. Each is a base voice (Siri's neural voice, Ema's neural model, a Supertonic style blend,
+// or an Apple voice)
 // shaped by the same chain: pitch (TD-PSOLA, formants kept) → warmth EQ → speed (WSOLA, pitch kept) → level.
 // The chain and the four settings were chosen by measurement (Kıymet preface, Whisper, sentence by sentence,
 // 360 words a minute, 2026-10-19): Ema Tok 11.5 % word error, Derin 15.2 %, Cem Tok 15.2 %, Yelda Kalın 25.8 %.
@@ -12,6 +13,7 @@ struct VoiceProfile: Identifiable, Hashable, Sendable {
         case ema
         case supertonic(String)          // style or blend, "M4:0.5,M5:0.5"
         case apple(String)               // Apple voice name ("Cem"): the best installed variant is used
+        case siri(SiriEngine.Voice)      // Siri's own neural voice, Apple's engine run in this process (SiriEngine)
         case studio                      // rendered on the Mac (StudioPack); where a piece has no audio, Ema speaks it
     }
     enum Tone: Hashable, Sendable { case flat, warm, deep }
@@ -23,6 +25,10 @@ struct VoiceProfile: Identifiable, Hashable, Sendable {
     let semitones: Double
     let tone: Tone
 
+    static let siriElif = VoiceProfile(id: "vr.siri-elif", name: "Elif", detail: "Kadın · Siri'nin sesi · telefonda, internetsiz",
+                                       engine: .siri(.elif), semitones: 0, tone: .flat)
+    static let siriKaan = VoiceProfile(id: "vr.siri-kaan", name: "Kaan", detail: "Erkek · Siri'nin sesi · telefonda, internetsiz",
+                                       engine: .siri(.kaan), semitones: 0, tone: .flat)
     static let emaTok = VoiceProfile(id: "vr.ema-tok", name: "Ema Tok", detail: "Kadın · tok, berrak · hızlı dinlemede en net",
                                      engine: .ema, semitones: -4, tone: .warm)
     static let derin = VoiceProfile(id: "vr.derin", name: "Derin", detail: "Erkek · derin, tok · yeni ses (Supertonic M4+M5)",
@@ -35,7 +41,7 @@ struct VoiceProfile: Identifiable, Hashable, Sendable {
     static let studio = VoiceProfile(id: "vr.studio", name: "Anlatıcı", detail: "Erkek · stüdyo sesi, Mac'te önceden seslendirilir",
                                      engine: .studio, semitones: 0, tone: .flat)
 
-    static let all: [VoiceProfile] = [emaTok, derin, cemTok, yeldaKalin]
+    static let all: [VoiceProfile] = [siriElif, siriKaan, emaTok, derin, cemTok, yeldaKalin]
 
     static func with(id: String) -> VoiceProfile? { id == studio.id ? studio : all.first { $0.id == id } }
 
@@ -53,6 +59,7 @@ struct VoiceProfile: Identifiable, Hashable, Sendable {
         case .studio: true
         case .supertonic: SupertonicEngine.isInstalled
         case .apple(let name): Self.appleVoice(named: name) != nil
+        case .siri(let voice): SiriEngine.isInstalled(voice)
         }
     }
 }
@@ -77,7 +84,10 @@ final class ProfileRenderer: @unchecked Sendable {
     nonisolated(unsafe) static var pitchFirst = false
     let queue = DispatchQueue(label: "voice-reader.render", qos: .userInitiated)
     private var open: (VoiceProfile.Engine, NeuralEngine)?
+    private var siri: (SiriEngine.Voice, SiriEngine)?       // one engine open at a time: opening either closes the other
     private let apple = AppleCapture()
+    /// The last `render`: seconds in the engine, seconds in the steps after it (read by the test hooks, on `queue`).
+    private(set) var lastTimes = (engine: 0.0, after: 0.0)
 
     /// How much quieter iOS hands over a voice read with the phone's Spoken Content settings, as a gain that undoes it.
     /// iOS mixes its own speech-volume setting into the buffers it gives apps: on iOS 27.0.1 the same Yelda came at
@@ -139,6 +149,7 @@ final class ProfileRenderer: @unchecked Sendable {
     func warmUp(_ profile: VoiceProfile) {
         queue.async { [self] in
             if case .apple = profile.engine { return }
+            if case .siri(let voice) = profile.engine { siriEngine(voice)?.warm(); return }
             _ = engine(profile.engine == .studio ? .ema : profile.engine)
         }
     }
@@ -149,7 +160,10 @@ final class ProfileRenderer: @unchecked Sendable {
                 boost: Double = 0, cancelled: @escaping () -> Bool) -> RenderedSpeech? {
         NeuralAudio.temperature = Float(1 - min(max(calm, 0), 0.9))
         defer { NeuralAudio.temperature = 1 }
+        let started = Date()
         guard var r = base(text, profile: profile, speed: speed, cancelled: cancelled), !cancelled() else { return nil }
+        let engineDone = Date()
+        defer { lastTimes = (engineDone.timeIntervalSince(started), Date().timeIntervalSince(engineDone)) }
         // Order measured on 14 Ema sentences, Whisper (2026-10-20): speed first, then pitch. At 2.5× the words heard
         // rose from 92.7 % to 96.8 % (pitch first: WSOLA had to join PSOLA's grains, and the joins doubled up);
         // PSOLA also has fewer samples to work on.
@@ -157,7 +171,12 @@ final class ProfileRenderer: @unchecked Sendable {
         let semitones = Self.skipPitch ? 0 : profile.semitones + depth
         if Self.pitchFirst, abs(semitones) > 0.01, r.samples.count > 4800 { r.samples = PitchShift.shift(r.samples, semitones: semitones) }
         let modelSpeed = profile.engine == .ema || profile.engine == .studio ? min(speed, max(1, Self.emaModelSpeed)) : 1
-        let tempo = max(1, speed / modelSpeed)
+        var tempo = max(1, speed / modelSpeed)
+        var steady = steady
+        if case .siri(let voice) = profile.engine {
+            tempo = SiriEngine.split(speed: speed, voice: voice).tempo      // the engine took its share in `base`
+            steady = max(steady, calm)                                      // Düzlük: this model has no calm of its own
+        }
         if tempo > 1.01, r.samples.count > 4096 {
             let before = r.samples.count
             r.samples = TimeStretch.compress(r.samples, tempo: tempo)
@@ -199,18 +218,32 @@ final class ProfileRenderer: @unchecked Sendable {
     private func engine(_ e: VoiceProfile.Engine) -> NeuralEngine? {
         if let (k, m) = open, k == e { return m }
         open = nil
+        siri = nil
         let m: NeuralEngine?
         switch e {
         case .ema, .studio: m = try? EmaEngine()
         case .supertonic(let s): m = try? SupertonicEngine(style: s)
-        case .apple: m = nil
+        case .apple, .siri: m = nil
         }
         if let m { open = (e, m) }
         return m
     }
 
+    private func siriEngine(_ voice: SiriEngine.Voice) -> SiriEngine? {
+        if let (v, m) = siri, v == voice { return m }
+        siri = nil
+        open = nil
+        guard let m = SiriEngine(voice: voice) else { return nil }
+        siri = (voice, m)
+        return m
+    }
+
     private func base(_ text: String, profile: VoiceProfile, speed: Double, cancelled: @escaping () -> Bool) -> RenderedSpeech? {
         switch profile.engine {
+        case .siri(let voice):
+            // the engine reads numbers, dates and abbreviations itself and gives each word's start
+            guard let m = siriEngine(voice) else { return nil }
+            return m.synthesize(text, rate: SiriEngine.split(speed: speed, voice: voice).rate, cancelled: cancelled)
         case .apple(let name):
             // natural pace, or slower than natural when asked (below 1× the voice itself slows down)
             guard let id = VoiceProfile.appleVoice(named: name)?.identifier else { return nil }

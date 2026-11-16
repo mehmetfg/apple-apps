@@ -134,4 +134,20 @@ enum FinishTest {
         await model.open(d.id)
         model.player.play()
     }
+
+    /// -opentest (with -openreader): a long book whose reading place is at 70 %, made the last document, so the
+    /// reader opens on it; the page must show that place, not the book's beginning.
+    static func openAt(_ model: AppModel) async {
+        let para = "Okumak, bir metnin içinden yavaş yavaş yürümektir ve her cümle bir öncekinin üstüne bir taş koyar. Bu taşlar birikince yol görünür olur, sonra yol kendi yönünü söyler."
+        let text = (1...600).map { "\($0). paragraf. " + para }.joined(separator: "\n\n")
+        let d = model.store.documents.first { $0.title.hasPrefix("1. paragraf") }
+            ?? DocumentImporter.fromClipboard(text).flatMap { try? model.store.add($0, original: nil) }
+        guard let d else { return }
+        // the importer folds blank lines, so the place is found in the stored text, not in `text`
+        guard let stored = await model.store.content(for: d.id) else { return }
+        let at = (stored.text as NSString).range(of: "420. paragraf").location
+        model.store.update(d.id) { $0.position = at }
+        UserDefaults.standard.set(d.id.uuidString, forKey: "lastDocument")
+        try? "\(d.id.uuidString) at \(at)".write(to: URL.libraryDirectory.appending(path: "open-test.txt"), atomically: true, encoding: .utf8)
+    }
 }

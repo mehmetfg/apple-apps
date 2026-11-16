@@ -20,6 +20,7 @@ struct VoiceReaderApp: App {
                     if CommandLine.arguments.contains("-voicebench") { await VoiceBench.run() }
                     if CommandLine.arguments.contains("-voicedump") { await VoiceDump.run() }
                     if CommandLine.arguments.contains("-sysdump") { await SystemDump.run() }
+                    if CommandLine.arguments.contains("-siritest") { await SiriTest.run(); return }
                     if CommandLine.arguments.contains("-skiptest") { await SkipTest.run(model); return }
                     // test hook: -depthtest measures Kalınlık 100 … 20 as this device's engine gives it, and the
                     // phone's Spoken Content sound against Wise Path's own (Documents/depthtest.txt)
@@ -68,6 +69,7 @@ struct VoiceReaderApp: App {
                     if CommandLine.arguments.contains("-marktest2") { await FinishTest.marksAndWait(model); return }
                     if CommandLine.arguments.contains("-kinetictest") { await FinishTest.kinetic(model); return }
                     if CommandLine.arguments.contains("-pagetest") { await FinishTest.page(model) }
+                    if CommandLine.arguments.contains("-opentest") { await FinishTest.openAt(model) }
                     if let i = CommandLine.arguments.firstIndex(of: "-movetest"), i + 1 < CommandLine.arguments.count {
                         await FinishTest.move(model, kind: MoveKind(rawValue: CommandLine.arguments[i + 1]) ?? .bike); return
                     }

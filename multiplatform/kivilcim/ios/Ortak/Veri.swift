@@ -474,22 +474,24 @@ extension Array where Element == Oge {
 // What was said in Kıvılcım, item by item, per program: Claude writes Tatbik/claude/tatbik.json, the user's touches go
 // to Tatbik/olay/<device>.jsonl, tatbik.py merges both into Tatbik/tatbik.json (this is what the apps read).
 
+/// 2026-11-14: three states. "gerek-yok" (not needed) is gone: Claude had closed things the user still wanted
+/// (ye-12, "uzaktan hızlı okuma"). An old "gerek-yok" in the data reads as open again.
 enum TatbikStatus: String, CaseIterable, Identifiable, Sendable {
-    case acik, kismen, tamam, gerekYok = "gerek-yok"
+    case acik, kismen, tamam
     var id: String { rawValue }
     var name: String {
-        switch self { case .acik: "Açık"; case .kismen: "Kısmen"; case .tamam: "Tamamlandı"; case .gerekYok: "Gerek görülmedi" }
+        switch self { case .acik: "Açık"; case .kismen: "Kısmen"; case .tamam: "Tamamlandı" }
     }
     var short: String {
-        switch self { case .acik: "Açık"; case .kismen: "Kısmen"; case .tamam: "Tamam"; case .gerekYok: "Gerek yok" }
+        switch self { case .acik: "Açık"; case .kismen: "Kısmen"; case .tamam: "Tamam" }
     }
     var symbol: String {
-        switch self { case .acik: "circle"; case .kismen: "circle.lefthalf.filled"; case .tamam: "checkmark.circle.fill"; case .gerekYok: "minus.circle" }
+        switch self { case .acik: "circle"; case .kismen: "circle.lefthalf.filled"; case .tamam: "checkmark.circle.fill" }
     }
     var hex: String {
-        switch self { case .acik: "#2F6FEB"; case .kismen: "#E09B2D"; case .tamam: "#23915E"; case .gerekYok: "#8E8C86" }
+        switch self { case .acik: "#2F6FEB"; case .kismen: "#E09B2D"; case .tamam: "#23915E" }
     }
-    var isClosed: Bool { self == .tamam || self == .gerekYok }
+    var isClosed: Bool { self == .tamam }
 }
 
 struct TatbikProgram: Codable, Identifiable, Hashable, Sendable {
@@ -497,6 +499,8 @@ struct TatbikProgram: Codable, Identifiable, Hashable, Sendable {
     var ad: String
     var renk: String?
     var aciklama: String?
+    /// apps · building · production · life (optional; the Mac board falls back to its own table).
+    var category: String?
 }
 
 struct TatbikNote: Codable, Hashable, Sendable {
@@ -558,7 +562,7 @@ struct TatbikState: Codable, Sendable {
     func items(for record: String) -> [TatbikItem] { maddeler.filter { $0.sources.contains(record) } }
     func count(_ s: TatbikStatus, in list: [TatbikItem]? = nil) -> Int { (list ?? maddeler).filter { $0.status == s }.count }
     var openCount: Int { maddeler.filter { !$0.status.isClosed }.count }
-    /// Done share: closed items over all items (gerek-yok counts as decided).
+    /// Done share: finished items over all items.
     func progress(_ list: [TatbikItem]? = nil) -> Double {
         let l = list ?? maddeler
         return l.isEmpty ? 0 : Double(l.filter { $0.status.isClosed }.count) / Double(l.count)

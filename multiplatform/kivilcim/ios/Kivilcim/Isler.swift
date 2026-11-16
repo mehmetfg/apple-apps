@@ -510,7 +510,6 @@ struct TatbikPhoneRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(m.baslik).font(.body.weight(.medium)).lineLimit(3)
                     .foregroundStyle(m.status.isClosed ? .secondary : .primary)
-                    .strikethrough(m.status == .gerekYok, color: .secondary)
                 HStack(spacing: 8) {
                     Text(m.status.short).foregroundStyle(m.status.color)
                     if !m.status.isClosed, let p = m.priorityName { Text(p) }
