@@ -33,6 +33,7 @@ struct StateLabel: View {
 struct RecentBooks: View {
     @Environment(AppModel.self) private var model
     var open: (UUID) -> Void
+    @State private var width: CGFloat = 390
 
     /// The book in the player first, then the last opened ones (unfinished first), three in all.
     static func pick(_ model: AppModel) -> [DocumentRecord] {
@@ -59,14 +60,15 @@ struct RecentBooks: View {
                     }
                     .padding(.horizontal, 20)
                 }
-                .frame(height: Self.height)
+                .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width = $0 }
+                .frame(height: Self.height(width: width))
             }
         }
     }
 
-    /// Cover (width × 1.5) + two title lines + the state, for a third of an iPhone's width.
-    static var height: CGFloat {
-        let w = (UIScreen.main.bounds.width - 64) / 3
+    /// Cover (width × 1.5) + two title lines + the state, for a third of the row's width.
+    static func height(width: CGFloat) -> CGFloat {
+        let w = (width - 64) / 3
         return w * 1.5 + 64
     }
 }
@@ -185,6 +187,7 @@ struct CoverFlowView: View {
     @State private var current: UUID?
 
     private let coverWidth: CGFloat = 150
+    @State private var rowWidth: CGFloat = 390
 
     var body: some View {
         let shown = docs.first { $0.id == current } ?? docs.first
@@ -218,7 +221,8 @@ struct CoverFlowView: View {
             .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $current, anchor: .center)
-            .contentMargins(.horizontal, (UIScreen.main.bounds.width - coverWidth) / 2, for: .scrollContent)
+            .contentMargins(.horizontal, max((rowWidth - coverWidth) / 2, 0), for: .scrollContent)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { rowWidth = $0 }
             .frame(height: coverWidth * 1.5 + 70)
             .sensoryFeedback(.selection, trigger: current)
             if let d = shown {

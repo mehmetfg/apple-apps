@@ -76,10 +76,46 @@ struct LibraryScreen: View {
         UTType("org.fictionbook.fb2") ?? .xml,
     ]
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
     var body: some View {
+        outer(Group {
+            if sizeClass == .regular {
+                // iPad, an unfolded phone, a wide Stage Manager window: the library stays in a sidebar and the
+                // book opens beside it, instead of one phone page stretched across the screen.
+                NavigationSplitView {
+                    libraryPage
+                        .navigationSplitViewColumnWidth(min: 340, ideal: 400, max: 480)
+                } detail: {
+                    NavigationStack(path: $path) {
+                        WideReadingWelcome(onOpen: open)
+                            .navigationDestination(for: Route.self, destination: destination)
+                    }
+                }
+            } else {
+                NavigationStack(path: $path) {
+                    libraryPage
+                        .navigationDestination(for: Route.self, destination: destination)
+                }
+            }
+        })
+    }
+
+    @ViewBuilder
+    private func destination(_ r: Route) -> some View {
+        switch r {
+        case .folder(let f): FolderScreen(scope: f, onOpen: open)
+        case .reader(let id): ReaderScreen(documentID: id)
+        case .notes: NotesScreen { id, offset in
+            model.revealRequest = (id, offset)
+            open(id)
+        }
+        }
+    }
+
+    private var libraryPage: some View {
         @Bindable var model = model
-        NavigationStack(path: $path) {
-            ZStack {
+        return ZStack {
                 InkBackground()
                 ScrollView {
                     if model.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -117,24 +153,19 @@ struct LibraryScreen: View {
                         .presentationDetents([.medium, .large])
                 }
             }
-            .navigationDestination(for: Route.self) { r in
-                switch r {
-                case .folder(let f): FolderScreen(scope: f, onOpen: open)
-                case .reader(let id): ReaderScreen(documentID: id)
-                case .notes: NotesScreen { id, offset in
-                    model.revealRequest = (id, offset)
-                    open(id)
-                }
-                }
-            }
             .safeAreaInset(edge: .bottom) {
-                if let id = model.player.documentID, path.last != .reader(id) {
+                if let id = model.player.documentID, !path.contains(.reader(id)) {
                     MiniPlayer { open(id) }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .overlay { if model.importing { ProgressView("Ekleniyor…").padding().modifier(GlassPanel(cornerRadius: 16)) } }
-        }
+    }
+
+    /// Everything that hangs on the whole library, whichever of the two layouts holds it.
+    fileprivate func outer<Content: View>(_ content: Content) -> some View {
+        @Bindable var model = model
+        return content
         .sheet(isPresented: $promptShown) { PromptBuilderView() }
         .modifier(ScanImportModifier(scan: $scanShown, photos: $photosShown, folder: nil))
         .sheet(item: $expandTest) { ExpandPromptView(source: $0) }
@@ -214,7 +245,8 @@ struct LibraryScreen: View {
 
     private func open(_ id: UUID) {
         if path.last == .reader(id) { return }
-        path.append(.reader(id))
+        // Beside the sidebar, a book takes the place of the one before rather than piling on it.
+        if sizeClass == .regular { path = [.reader(id)] } else { path.append(.reader(id)) }
     }
 
     /// A found place: the book opens showing it; the reading place stays where it was.
@@ -706,6 +738,8 @@ struct DocumentCollection: View {
     @State private var renameText = ""
     @State private var deleting: DocumentRecord?
     @State private var rewinding: DocumentRecord?
+    /// The collection's own width (an iPad sidebar or a folded phone is not the screen's).
+    @State private var wallWidth: CGFloat = 390
 
     var body: some View {
         Group {
@@ -851,12 +885,13 @@ struct DocumentCollection: View {
             }
             .padding(.horizontal, 16)
         }
-        .frame(height: Self.wallHeight(count: docs.count))
+        .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { wallWidth = $0 }
+        .frame(height: Self.wallHeight(count: docs.count, width: wallWidth))
         .padding(.bottom, 24)
     }
 
-    private static func wallHeight(count: Int) -> CGFloat {
-        let w = (UIScreen.main.bounds.width - 32 - 30) / 4
+    private static func wallHeight(count: Int, width: CGFloat) -> CGFloat {
+        let w = (width - 32 - 30) / 4
         return CGFloat((count + 3) / 4) * (w * 1.5 + 7 + 12)
     }
 

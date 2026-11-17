@@ -793,7 +793,15 @@ final class TouchLiftRecognizer: UIGestureRecognizer {
 /// UITextView that says when it lays out, so a waiting scroll can run once the real size is known.
 final class LayoutReportingTextView: UITextView {
     var onLayout: (() -> Void)?
+    /// The longest line a page keeps (2026-11-17, iPad and unfolded phones): wider views centre the column.
+    static let measure: CGFloat = 680
+
     override func layoutSubviews() {
+        let side = max(18, ((bounds.width - Self.measure) / 2).rounded())
+        if abs(textContainerInset.left - side) > 0.5 {
+            textContainerInset.left = side
+            textContainerInset.right = side
+        }
         super.layoutSubviews()
         onLayout?()
     }

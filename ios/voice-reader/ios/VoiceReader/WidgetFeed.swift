@@ -56,6 +56,7 @@ enum WidgetFeed {
                                       week: Array(week),
                                       updated: .now)
             if let data = try? JSONEncoder().encode(snap) { try? data.write(to: url, options: .atomic) }
+            await MainActor.run { WatchLink.shared.publish(snap) }
             // covers are written once per book: only a book without one goes back to the main thread to be drawn
             var seen = Set<UUID>()
             let coverless = ([current].compactMap { $0 } + reading + withMarks).filter { d in

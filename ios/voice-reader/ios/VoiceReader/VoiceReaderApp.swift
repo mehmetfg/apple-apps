@@ -17,6 +17,7 @@ struct VoiceReaderApp: App {
                 .environment(\.accent, model.settings.accent)
                 .tint(model.settings.accent.ink)
                 .task {
+                    WatchLink.shared.start(model)
                     if CommandLine.arguments.contains("-voicebench") { await VoiceBench.run() }
                     if CommandLine.arguments.contains("-voicedump") { await VoiceDump.run() }
                     if CommandLine.arguments.contains("-sysdump") { await SystemDump.run() }

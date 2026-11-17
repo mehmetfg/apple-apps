@@ -1061,3 +1061,19 @@ yapılan kurulumda Ema ve Supertonic modelleri yok (`Speech/Neural/Models/` yaln
   çizgisinde açıldı.
 **Sınanmayan:** telefonda kitap açılışı ve yeni bantlar (simülatörde, açık temada bakıldı); koyu temada bantlar;
 Siri seslerinde vurgunun telefonda gözle izlenmesi (zamanlar ölçüldü).
+
+## 2026-11-17 — Her cihaz: iPhone boyları, iPad, Apple Watch
+
+| Cihaz | Durum |
+|---|---|
+| iPhone (SE 4,7" → Pro Max, katlanabilir) | Ekran genişliği yerine kapsayıcının genişliği (kapak duvarı, son üç kitap, Akış) |
+| iPad | Dört yön, Split View, Stage Manager; geniş boyda kütüphane kenar çubuğunda, kitap yanında açılır (`Views/WideLayout.swift`); okuyucu satırı en fazla 680 pt |
+| Apple Watch (`ios/WisePathWatch/`) | Şimdi çalan + ilerleme, ⏪ ⏯ ⏩ (gezinme birimiyle), bugün ve son yedi gün. Ses telefonda; saat uzaktan kumanda. Ortak tip `ios/WristShared/WristState.swift`, telefon tarafı `VoiceReader/WatchLink.swift` |
+| Apple TV | Yok: kitaplar eşitlenmiyor, TV'de dosya ekleme yolu yok; salonda AirPlay |
+
+watchOS simülatör runtime'ı yüklü değilken xcodebuild Watch gömülü şemayı derlemez. Simülatör için
+`zsh ios/sim-project.sh` Watch'suz `VoiceReader-sim.xcodeproj` üretir (git dışı). Watch kodunu denetlemek için:
+`xcodebuild -project ios/VoiceReader.xcodeproj -target WisePathWatch -sdk watchos CODE_SIGNING_ALLOWED=NO EXCLUDED_SOURCE_FILE_NAMES=Assets.xcassets build`.
+
+Sınanan: simülatörde SE, 17 Pro Max, iPad Air 11"; iOS cihaz derlemesi Watch gömülü; watchOS derleme kontrolü.
+Sınanmayan: Watch çalışırken, telefonda.
