@@ -1077,3 +1077,12 @@ watchOS simülatör runtime'ı yüklü değilken xcodebuild Watch gömülü şem
 
 Sınanan: simülatörde SE, 17 Pro Max, iPad Air 11"; iOS cihaz derlemesi Watch gömülü; watchOS derleme kontrolü.
 Sınanmayan: Watch çalışırken, telefonda.
+
+## 2026-11-17 — Cihaz denetimi, ikinci tur
+
+- **Büyük yazı:** en büyük erişilebilirlik boyunda 4,7" ekranda "Kitaplarım" başlığı ile görünüm menüsü çakışıyordu;
+  artık sığmazsa menü başlığın altına iner (`LibraryScreen.homeStyleMenu`), menü kapsülü yazıyla birlikte uzar.
+- **Sınanan (simülatör, örnek bir Markdown kitapla):** iPhone SE kütüphane + okuyucu (normal ve en büyük yazı),
+  17 Pro Max kütüphane + okuyucu, iPad Pro 11" dikey kenar çubuğu + yanında okuyucu; watchOS derleme kontrolü yeniden.
+- **Sınanmayan:** iPad yatay ve Split View penceresi (simülatör döndürülemedi; dar pencere iPhone düzenine düşer,
+  o SE'de denendi), Watch çalışırken, telefonda.

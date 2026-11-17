@@ -310,21 +310,17 @@ struct LibraryScreen: View {
             RecentBooks(open: open)
             if !model.store.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        sectionTitle("Kitaplarım")
-                        Spacer()
-                        Menu {
-                            Picker("Görünüm", selection: Binding(get: { model.settings.homeStyle }, set: { model.settings.homeStyle = $0 })) {
-                                ForEach(LibraryStyle.allCases) { Label($0.name, systemImage: $0.symbol).tag($0) }
-                            }
-                        } label: {
-                            Label(model.settings.homeStyle.name, systemImage: model.settings.homeStyle.symbol)
-                                .font(.subheadline.weight(.semibold))
-                                .padding(.horizontal, 12).frame(height: 32)
-                                .modifier(GlassCapsule())
+                    // Title and view menu share a row; at the largest text sizes on a small phone the menu goes below.
+                    ViewThatFits(in: .horizontal) {
+                        HStack {
+                            sectionTitle("Kitaplarım").fixedSize()
+                            Spacer()
+                            homeStyleMenu.fixedSize().padding(.trailing, 20)
                         }
-                        .padding(.trailing, 20)
-                        .accessibilityLabel("Görünüm: \(model.settings.homeStyle.name)")
+                        VStack(alignment: .leading, spacing: 8) {
+                            sectionTitle("Kitaplarım")
+                            homeStyleMenu.padding(.horizontal, 20)
+                        }
                     }
                     ShelfChips(selection: Binding(get: { model.settings.homeShelf }, set: { model.settings.homeShelf = $0 }))
                     homeBooks
@@ -395,6 +391,20 @@ struct LibraryScreen: View {
         default:
             return [BookshelfSection(title: shelf, docs: all.filter { $0.folder == shelf }.sorted(by: byOpened))]
         }
+    }
+
+    private var homeStyleMenu: some View {
+        Menu {
+            Picker("Görünüm", selection: Binding(get: { model.settings.homeStyle }, set: { model.settings.homeStyle = $0 })) {
+                ForEach(LibraryStyle.allCases) { Label($0.name, systemImage: $0.symbol).tag($0) }
+            }
+        } label: {
+            Label(model.settings.homeStyle.name, systemImage: model.settings.homeStyle.symbol)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 12).frame(minHeight: 32)
+                .modifier(GlassCapsule())
+        }
+        .accessibilityLabel("Görünüm: \(model.settings.homeStyle.name)")
     }
 
     private func sectionTitle(_ t: String) -> some View {
