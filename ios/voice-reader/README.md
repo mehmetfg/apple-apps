@@ -1084,5 +1084,8 @@ Sınanmayan: Watch çalışırken, telefonda.
   artık sığmazsa menü başlığın altına iner (`LibraryScreen.homeStyleMenu`), menü kapsülü yazıyla birlikte uzar.
 - **Sınanan (simülatör, örnek bir Markdown kitapla):** iPhone SE kütüphane + okuyucu (normal ve en büyük yazı),
   17 Pro Max kütüphane + okuyucu, iPad Pro 11" dikey kenar çubuğu + yanında okuyucu; watchOS derleme kontrolü yeniden.
-- **Sınanmayan:** iPad yatay ve Split View penceresi (simülatör döndürülemedi; dar pencere iPhone düzenine düşer,
-  o SE'de denendi), Watch çalışırken, telefonda.
+- **iPad yatay** (iPad Pro 11", normal ve en büyük yazı): kenar çubuğu + okuyucu yan yana, araç çubuğu ve oynatıcı
+  kenarlardan ~22 pt içeride. En büyük yazıda "Kaldığın kitaplar" kartında "%0 · 10 dk" kesiliyordu; artık iki satıra iner
+  ve satır yüksekliği yazıyla büyür (`HomeShelf.RecentBooks`).
+- **Sınanmayan:** Split View / Stage Manager penceresi (dar pencere iPhone düzenine düşer, o SE'de denendi),
+  Watch çalışırken, telefonda.

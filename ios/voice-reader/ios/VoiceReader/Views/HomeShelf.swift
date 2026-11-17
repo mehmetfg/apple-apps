@@ -34,6 +34,9 @@ struct RecentBooks: View {
     @Environment(AppModel.self) private var model
     var open: (UUID) -> Void
     @State private var width: CGFloat = 390
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /// One line of the card's progress/time text; it grows with the text size.
+    @ScaledMetric(relativeTo: .caption2) private var metaLine: CGFloat = 16
 
     /// The book in the player first, then the last opened ones (unfinished first), three in all.
     static func pick(_ model: AppModel) -> [DocumentRecord] {
@@ -61,7 +64,7 @@ struct RecentBooks: View {
                     .padding(.horizontal, 20)
                 }
                 .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { width = $0 }
-                .frame(height: Self.height(width: width))
+                .frame(height: Self.height(width: width) - 16 + metaLine * (typeSize.isAccessibilitySize ? 2 : 1))
             }
         }
     }
@@ -101,16 +104,22 @@ private struct RecentBook: View {
                 }
             Text(doc.title).font(.system(size: 13, weight: .semibold, design: .serif)).lineLimit(2)
                 .frame(width: width, alignment: .leading)
-            HStack(spacing: 5) {
-                StateLabel(doc: doc)
-                if !doc.isFinished, !doc.isUnread {
-                    Text(Format.duration(model.duration(characters: max(0, doc.length - doc.position), speed: doc.speed)))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
-                }
+            // Progress and time left share a line; at large text sizes the card is too narrow, so they stack.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 5) { cardMeta(doc) }
+                VStack(alignment: .leading, spacing: 1) { cardMeta(doc) }
             }
         }
         .frame(width: width, alignment: .leading)
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder private func cardMeta(_ doc: DocumentRecord) -> some View {
+        StateLabel(doc: doc)
+        if !doc.isFinished, !doc.isUnread {
+            Text(Format.duration(model.duration(characters: max(0, doc.length - doc.position), speed: doc.speed)))
+                .font(.caption2).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
+        }
     }
 }
 
