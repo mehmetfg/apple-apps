@@ -1087,5 +1087,7 @@ Sınanmayan: Watch çalışırken, telefonda.
 - **iPad yatay** (iPad Pro 11", normal ve en büyük yazı): kenar çubuğu + okuyucu yan yana, araç çubuğu ve oynatıcı
   kenarlardan ~22 pt içeride. En büyük yazıda "Kaldığın kitaplar" kartında "%0 · 10 dk" kesiliyordu; artık iki satıra iner
   ve satır yüksekliği yazıyla büyür (`HomeShelf.RecentBooks`).
-- **Sınanmayan:** Split View / Stage Manager penceresi (dar pencere iPhone düzenine düşer, o SE'de denendi),
-  Watch çalışırken, telefonda.
+- **iPad pencere (iPadOS 26 pencereli uygulamalar, Split View yerine):** ~375 pt dar pencerede iPhone düzeni
+  (tek sütun, mini oynatıcı altta); ~690 pt'de kenar çubuğu + ~340 pt okuyucu, araç çubuğu ve oynatıcı sığıyor.
+  Kod değişikliği gerekmedi.
+- **Sınanmayan:** Watch çalışırken, telefonda.
