@@ -1090,4 +1090,18 @@ Sınanmayan: Watch çalışırken, telefonda.
 - **iPad pencere (iPadOS 26 pencereli uygulamalar, Split View yerine):** ~375 pt dar pencerede iPhone düzeni
   (tek sütun, mini oynatıcı altta); ~690 pt'de kenar çubuğu + ~340 pt okuyucu, araç çubuğu ve oynatıcı sığıyor.
   Kod değişikliği gerekmedi.
-- **Sınanmayan:** Watch çalışırken, telefonda.
+- **Sınanmayan:** telefonda (gerçek iPhone ve saat).
+
+## 2026-11-17 — Apple Watch simülatörde
+
+watchOS 26.2 simülatör runtime'ı artık yüklü: asıl `ios/VoiceReader.xcodeproj` (Watch gömülü) simülatöre de derleniyor,
+`sim-project.sh` yalnızca runtime'sız makineler için kaldı.
+
+- **Sınanan (17 Pro Max + Series 11 46 mm eşli):** kitap yokken boş ekran, "Bugün" sayfası; telefonda açılan kitap
+  saate geliyor; saatten ⏯ telefonda okumayı başlatıp durduruyor, ⏩ telefonda ileri atlıyor (0:16 → 0:22).
+- **Düzeltme:** saat (ve widget'lar) yalnız oynatma başlayınca ya da uygulama arka plana geçince güncelleniyordu; telefonda
+  başka bir kitap açmak saatte eski kitabı bırakıyordu. Artık açılan kitap hemen gidiyor (`LibraryScreen`,
+  `player.documentID` değişince `WidgetFeed.publish`).
+- **Simülatör tuzağı:** telefon uygulaması `simctl install` ile yeniden kurulunca eşli saatteki Watch uygulaması kurulmuyor
+  ve WatchConnectivity `appInstalled: NO` diyor. Çözüm: Watch uygulamasını (`VoiceReader.app/Watch/WisePathWatch.app`)
+  saate ayrıca kur, aç, ~40 sn bekle, sonra telefon uygulamasını yeniden başlat. Xcode'dan Çalıştır bunu kendisi yapar.

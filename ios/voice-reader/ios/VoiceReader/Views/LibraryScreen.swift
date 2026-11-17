@@ -233,6 +233,8 @@ struct LibraryScreen: View {
             Task { try? await Task.sleep(for: .milliseconds(400)); perform(a) }
         }
         .onChange(of: model.player.isPlaying) { _, _ in WidgetFeed.publish(model); model.publishLive() }
+        // a newly opened book reaches the watch and the widgets before it is played
+        .onChange(of: model.player.documentID) { _, _ in WidgetFeed.publish(model) }
         .onChange(of: model.store.documents.count) { _, _ in WidgetFeed.publish(model); model.indexForSpotlight() }
         // a Spotlight result: book/<id> or book/<id>?at=<offset>. The place is shown, the reading place stays.
         .onContinueUserActivity(PDMSpotlight.activityType) { activity in
